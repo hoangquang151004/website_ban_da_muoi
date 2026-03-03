@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Giỏ hàng và Thanh toán Đèn đá muối</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f28c26",
+                        "background-light": "#FDFBF7",
+                        "background-dark": "#221910",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#2d241b",
+                        "text-primary-light": "#1c140d",
+                        "text-primary-dark": "#f3ede7",
+                        "text-secondary-light": "#9b734b",
+                        "text-secondary-dark": "#d6c1ac",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display min-h-screen flex flex-col">
+<!-- Header -->
+<header class="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 sm:px-10 py-3">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-text-primary-light dark:text-text-primary-dark">
+<div class="size-8 text-primary">
+<svg fill="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 2L2 19h20L12 2zm0 3.8L17.5 17H6.5L12 5.8z"></path>
+</svg>
+</div>
+<h2 class="text-xl font-bold leading-tight tracking-tight">Himalayan Glow</h2>
+</div>
+<nav class="hidden md:flex items-center gap-9">
+<a class="text-text-primary-light dark:text-text-primary-dark text-sm font-medium hover:text-primary transition-colors" href="#">Trang chủ</a>
+<a class="text-text-primary-light dark:text-text-primary-dark text-sm font-medium hover:text-primary transition-colors" href="#">Sản phẩm</a>
+<a class="text-text-primary-light dark:text-text-primary-dark text-sm font-medium hover:text-primary transition-colors" href="#">Về chúng tôi</a>
+<a class="text-text-primary-light dark:text-text-primary-dark text-sm font-medium hover:text-primary transition-colors" href="#">Liên hệ</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex relative">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-text-secondary-light">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</span>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-surface-light dark:bg-surface-dark pl-10 pr-4 py-2 text-sm text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light focus:border-primary focus:ring-primary dark:focus:ring-primary" placeholder="Tìm kiếm..." type="text"/>
+</div>
+<button class="relative p-2 text-text-primary-light dark:text-text-primary-dark hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="absolute top-0 right-0 size-2 bg-primary rounded-full"></span>
+</button>
+<button class="p-2 text-text-primary-light dark:text-text-primary-dark hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<h1 class="text-3xl md:text-4xl font-extrabold text-text-primary-light dark:text-text-primary-dark mb-8">Giỏ hàng &amp; Thanh toán</h1>
+<div class="flex flex-col lg:flex-row gap-8">
+<!-- Left Column: Cart Items & Shipping Form (65%) -->
+<div class="w-full lg:w-[65%] space-y-8">
+<!-- Cart Items Section -->
+<section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
+<h2 class="text-xl font-bold text-text-primary-light dark:text-text-primary-dark mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">shopping_bag</span>
+                        Sản phẩm trong giỏ
+                    </h2>
+<div class="space-y-6">
+<!-- Item 1 -->
+<div class="flex flex-col sm:flex-row gap-4 py-4 border-b border-slate-100 dark:border-slate-700 last:border-0 last:pb-0">
+<div class="shrink-0">
+<img alt="Warm glowing salt lamp on wooden table" class="size-24 rounded-lg object-cover bg-slate-100 dark:bg-slate-800" data-alt="Warm glowing salt lamp on wooden table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfC5BsiCu1mJXwkdVp0fUHOjxxdzSbsQ3wnOR4vM49oHYGPEwvWxTS0qno-rFGkO77aEJGKoSov_xzH91Jrw_ea_Uckb7hJCnYamMcsVPeruETtFCKx1IqJJ6utVF4mjfKAcRb4Tq63N0rfbz79ViNKsRST3t0bIQaeOxuXgon-fncesByD9CJLUNexL-gKrn3doN-yP_1pFy-Kpu7_OHZ_K86I5vMW1xrdxHGcr5DhHwKrIi9DB8yeIXh0gDLm8zy8WtrnhM8HLH_"/>
+</div>
+<div class="flex flex-1 flex-col justify-between">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Đèn đá muối tự nhiên</h3>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-1">Size L • Kèm dây nguồn</p>
+</div>
+<button class="text-red-500 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20" title="Xóa">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+<div class="flex justify-between items-end mt-4 sm:mt-0">
+<div class="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg">
+<button class="px-3 py-1 hover:bg-slate-50 dark:hover:bg-slate-800 text-text-primary-light dark:text-text-primary-dark rounded-l-lg transition-colors">-</button>
+<span class="px-2 py-1 text-sm font-medium text-text-primary-light dark:text-text-primary-dark w-8 text-center">1</span>
+<button class="px-3 py-1 hover:bg-slate-50 dark:hover:bg-slate-800 text-text-primary-light dark:text-text-primary-dark rounded-r-lg transition-colors">+</button>
+</div>
+<p class="font-bold text-lg text-primary">450.000đ</p>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex flex-col sm:flex-row gap-4 py-4 border-b border-slate-100 dark:border-slate-700 last:border-0 last:pb-0">
+<div class="shrink-0">
+<img alt="Round shaped salt lamp glowing softly" class="size-24 rounded-lg object-cover bg-slate-100 dark:bg-slate-800" data-alt="Round shaped salt lamp glowing softly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVgSEq0JKipndvWR8XouAlQB9uaPrtC9aBpo2V68k8DKtSL05RjU-9g47jXZTc2tBDnHM7hw2Pmpl8r6GbfXqeb8Zvjhl-iS0ooc5wiopsn9qAYfPyeOiEbWO2ZLcqAyxZq0XHlAPKN_3feiu7W3NOgZZ77O1wYy4UoPNhPvokEUYRjOMx1FvsHWt4A3wEGJaC3fN4PRVP1PI52PCNecDZaR0qYBVoPEgQYdNc2PuJEGsvEmPeUtch1sVnszmObmSofFmq4zYGo1wt"/>
+</div>
+<div class="flex flex-1 flex-col justify-between">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Đèn đá muối hình cầu</h3>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-1">Size M • Đế gỗ</p>
+</div>
+<button class="text-red-500 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20" title="Xóa">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+<div class="flex justify-between items-end mt-4 sm:mt-0">
+<div class="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg">
+<button class="px-3 py-1 hover:bg-slate-50 dark:hover:bg-slate-800 text-text-primary-light dark:text-text-primary-dark rounded-l-lg transition-colors">-</button>
+<span class="px-2 py-1 text-sm font-medium text-text-primary-light dark:text-text-primary-dark w-8 text-center">2</span>
+<button class="px-3 py-1 hover:bg-slate-50 dark:hover:bg-slate-800 text-text-primary-light dark:text-text-primary-dark rounded-r-lg transition-colors">+</button>
+</div>
+<p class="font-bold text-lg text-primary">350.000đ</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Shipping Form Section -->
+<section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
+<h2 class="text-xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">local_shipping</span>
+                        Thông tin giao hàng
+                    </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="col-span-1">
+<label class="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">Họ và tên</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark focus:border-primary focus:ring-primary dark:focus:ring-primary placeholder-slate-400" placeholder="Nguyễn Văn A" type="text"/>
+</div>
+<div class="col-span-1">
+<label class="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">Số điện thoại</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark focus:border-primary focus:ring-primary dark:focus:ring-primary placeholder-slate-400" placeholder="0912 xxx xxx" type="tel"/>
+</div>
+<div class="col-span-1 md:col-span-2">
+<label class="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">Email</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark focus:border-primary focus:ring-primary dark:focus:ring-primary placeholder-slate-400" placeholder="email@example.com" type="email"/>
+</div>
+<div class="col-span-1 md:col-span-2">
+<label class="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">Địa chỉ chi tiết</label>
+<textarea class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark focus:border-primary focus:ring-primary dark:focus:ring-primary placeholder-slate-400" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố" rows="3"></textarea>
+</div>
+</div>
+</section>
+<!-- Payment Methods Section -->
+<section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
+<h2 class="text-xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">payments</span>
+                        Phương thức thanh toán
+                    </h2>
+<div class="space-y-3">
+<label class="relative flex items-center p-4 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group has-[:checked]:border-primary has-[:checked]:bg-primary/5 dark:has-[:checked]:bg-primary/10">
+<input checked="" class="size-5 border-slate-300 text-primary focus:ring-primary" name="payment" type="radio"/>
+<span class="ml-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-text-secondary-light group-has-[:checked]:text-primary">local_atm</span>
+<span class="font-medium text-text-primary-light dark:text-text-primary-dark">Thanh toán khi nhận hàng (COD)</span>
+</span>
+</label>
+<label class="relative flex items-center p-4 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group has-[:checked]:border-primary has-[:checked]:bg-primary/5 dark:has-[:checked]:bg-primary/10">
+<input class="size-5 border-slate-300 text-primary focus:ring-primary" name="payment" type="radio"/>
+<span class="ml-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-text-secondary-light group-has-[:checked]:text-primary">account_balance</span>
+<span class="font-medium text-text-primary-light dark:text-text-primary-dark">Chuyển khoản VNPay</span>
+</span>
+<span class="ml-auto text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">Giảm 5%</span>
+</label>
+</div>
+</section>
+</div>
+<!-- Right Column: Order Summary (35%) -->
+<div class="w-full lg:w-[35%]">
+<div class="sticky top-24 bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
+<h2 class="text-xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">Tóm tắt đơn hàng</h2>
+<div class="space-y-4 mb-6">
+<div class="flex justify-between text-text-secondary-light dark:text-text-secondary-dark">
+<span>Tạm tính</span>
+<span class="font-medium text-text-primary-light dark:text-text-primary-dark">800.000đ</span>
+</div>
+<div class="flex justify-between text-text-secondary-light dark:text-text-secondary-dark">
+<span>Phí vận chuyển</span>
+<span class="font-medium text-text-primary-light dark:text-text-primary-dark">30.000đ</span>
+</div>
+<div class="flex justify-between text-text-secondary-light dark:text-text-secondary-dark">
+<span>Giảm giá</span>
+<span class="font-medium text-green-600">-0đ</span>
+</div>
+</div>
+<!-- Promo Code -->
+<div class="mb-6">
+<label class="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">Mã giảm giá</label>
+<div class="flex gap-2">
+<input class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark focus:border-primary focus:ring-primary dark:focus:ring-primary text-sm uppercase placeholder-slate-400" placeholder="Mã giảm giá" type="text"/>
+<button class="bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors">Áp dụng</button>
+</div>
+<div class="mt-3 bg-gradient-to-r from-primary/10 to-primary/5 p-3 rounded-lg border border-primary/20 flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-lg mt-0.5">auto_awesome</span>
+<div>
+<p class="text-xs text-primary font-bold mb-0.5">AI đề xuất</p>
+<p class="text-xs text-text-secondary-light dark:text-text-secondary-dark">Nhập <span class="font-bold text-primary cursor-pointer border-b border-dashed border-primary">DAMUOI10</span> để được giảm 10% cho đơn hàng đầu tiên.</p>
+</div>
+</div>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-700 pt-4 mb-6">
+<div class="flex justify-between items-end">
+<span class="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Tổng cộng</span>
+<span class="text-2xl font-extrabold text-primary">830.000đ</span>
+</div>
+<p class="text-xs text-text-secondary-light dark:text-text-secondary-dark text-right mt-1">(Đã bao gồm VAT)</p>
+</div>
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all transform active:scale-[0.98] flex justify-center items-center gap-2 group">
+                        Đặt hàng ngay
+                        <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+<p class="text-center text-xs text-text-secondary-light dark:text-text-secondary-dark mt-4 flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+                        Thanh toán bảo mật SSL 256-bit
+                    </p>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-light dark:bg-surface-dark border-t border-slate-200 dark:border-slate-800 mt-auto">
+<div class="container mx-auto px-4 py-8">
+<div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+<p>© 2024 Himalayan Glow. All rights reserved.</p>
+<div class="flex gap-4">
+<a class="hover:text-primary" href="#">Chính sách bảo mật</a>
+<a class="hover:text-primary" href="#">Điều khoản dịch vụ</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

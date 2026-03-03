@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Trợ lý AI Đá Muối</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#f28c26",
+                        "primary-light": "#fdf3e9",
+                        "primary-dark": "#d97310",
+                        "background-light": "#ffffff",
+                        "background-dark": "#1a1614",
+                        "text-main": "#1c140d",
+                        "text-muted": "#9b734b",
+                        "surface-light": "#fcfaf8",
+                        "surface-dark": "#2a2420",
+                    },
+                    fontFamily: {
+                        display: ["Manrope", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px",
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for better aesthetics */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Subtle fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen font-display p-4">
+<!-- Chatbot Container (Simulating a pop-up) -->
+<div class="w-full max-w-[420px] h-[700px] max-h-[90vh] flex flex-col bg-background-light dark:bg-background-dark shadow-2xl rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 relative">
+<!-- Header -->
+<header class="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border-b border-primary/10">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-10 h-10 rounded-full bg-white dark:bg-surface-dark flex items-center justify-center shadow-sm border border-primary/10">
+<span class="material-symbols-outlined text-primary text-2xl">smart_toy</span>
+</div>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-surface-dark rounded-full"></span>
+</div>
+<div>
+<h1 class="text-text-main dark:text-gray-100 text-lg font-bold leading-tight">Trợ lý Đá Muối</h1>
+<span class="text-text-muted dark:text-gray-400 text-xs font-medium flex items-center gap-1">
+<span class="w-1 h-1 rounded-full bg-primary inline-block"></span>
+                        Đang hoạt động
+                    </span>
+</div>
+</div>
+<button class="text-text-muted hover:text-text-main dark:text-gray-400 dark:hover:text-white transition-colors p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<!-- Chat Area -->
+<div class="flex-1 overflow-y-auto p-4 space-y-5 bg-surface-light dark:bg-[#1f1a17] scrollbar-hide">
+<!-- Date Separator -->
+<div class="flex justify-center">
+<span class="text-[11px] font-medium text-text-muted/60 dark:text-gray-500 uppercase tracking-wider bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full">Hôm nay</span>
+</div>
+<!-- AI Message (Welcome) -->
+<div class="flex items-start gap-3 animate-fade-in">
+<div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 text-primary">
+<span class="material-symbols-outlined text-lg">smart_toy</span>
+</div>
+<div class="flex flex-col gap-1 max-w-[85%]">
+<span class="text-xs text-text-muted dark:text-gray-500 ml-1">Trợ lý AI</span>
+<div class="bg-white dark:bg-surface-dark p-3.5 rounded-2xl rounded-tl-none shadow-sm text-text-main dark:text-gray-200 text-sm leading-relaxed border border-gray-100 dark:border-gray-700">
+                        Chào bạn! Tôi có thể giúp gì cho sức khỏe và không gian sống của bạn hôm nay?
+                    </div>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex items-end gap-3 justify-end animate-fade-in" style="animation-delay: 0.1s;">
+<div class="flex flex-col gap-1 items-end max-w-[85%]">
+<div class="bg-primary text-white p-3.5 rounded-2xl rounded-tr-none shadow-md text-sm leading-relaxed">
+                        Tôi bị mất ngủ, bạn có gợi ý gì không?
+                    </div>
+<span class="text-[10px] text-text-muted/70 dark:text-gray-500 mr-1">Đã xem</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0 overflow-hidden">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="Portrait of a young woman smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCybNUIou-gOYnJJR3sK_46oFXjEJyJjPj8pcmo8lENfY7onGntV-SF-yYuw7_28ZiuB_T0EYIOug5lw7WpaVshpQrGIeT4dzOJdWsNg6LPYFT0Z1SdZE1vjWKZL3Eizc9_iCYmMKW1jmaT4hX34wd6uSf62kjD1DSPrxElKMoCkQlh5JCEOCmVArUoKQq0dtnIo2rm3ewqTKpU4RBqiqYrhg_q1YsWU0d6BjQKkxi5Td7UGhrPRc0pvkfvjhWbKLD01hluRgxWdR2p"/>
+</div>
+</div>
+<!-- AI Response + Product Card -->
+<div class="flex items-start gap-3 animate-fade-in" style="animation-delay: 0.2s;">
+<div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 text-primary">
+<span class="material-symbols-outlined text-lg">smart_toy</span>
+</div>
+<div class="flex flex-col gap-2 max-w-[85%]">
+<span class="text-xs text-text-muted dark:text-gray-500 ml-1">Trợ lý AI</span>
+<!-- Text Response -->
+<div class="bg-white dark:bg-surface-dark p-3.5 rounded-2xl rounded-tl-none shadow-sm text-text-main dark:text-gray-200 text-sm leading-relaxed border border-gray-100 dark:border-gray-700">
+                        Đối với chứng mất ngủ, ánh sáng dịu nhẹ màu cam từ đá muối Himalaya tự nhiên giúp thư giãn thần kinh rất tốt. Đây là mẫu đèn phù hợp nhất dành cho bạn:
+                    </div>
+<!-- Mini Product Card -->
+<div class="bg-white dark:bg-surface-dark p-3 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 w-full overflow-hidden hover:shadow-lg transition-shadow duration-300">
+<div class="flex gap-3">
+<div class="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
+<img alt="Himalayan Salt Lamp Sphere" class="w-full h-full object-cover" data-alt="Glowing spherical Himalayan salt lamp on table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-kWzavB2atFaC36ImUKSODsg_GAYjCjNxTvuJuYxhptyoRNkbEkQO72IEe_LDLdHglVabDyPLRjE9JZZ8ZmM5u9tohSojlwMnprIabJop70b8V7FNzJXnONWbROEMSkdhN0khAkuzLK6gbjqiHNI0DLWC39B3BW5iLXl9Uv6RHH4t5jsNGmBQIoL0suZhbgDm-_kKnV-01JTAHKu1p0b7p3Bmo6Lch0L8P4-JpGxxWkP0NLcyk22Gn25FCghhQgpBS61Aii2UPcEq"/>
+</div>
+<div class="flex flex-col justify-between flex-1 py-0.5">
+<div>
+<h3 class="text-text-main dark:text-white font-bold text-sm line-clamp-1">Đèn đá muối cầu</h3>
+<p class="text-xs text-text-muted dark:text-gray-400 mt-0.5 line-clamp-2">Thư giãn, lọc không khí, giảm stress.</p>
+</div>
+<div class="flex items-end justify-between mt-2">
+<span class="text-primary font-bold text-sm">450.000đ</span>
+<button class="bg-primary hover:bg-primary-dark text-white text-xs font-semibold py-1.5 px-3 rounded-lg flex items-center gap-1 transition-colors shadow-sm shadow-primary/30">
+<span class="material-symbols-outlined text-[14px]">add_shopping_cart</span>
+                                        Thêm
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Typing Indicator -->
+<div class="flex items-start gap-3 animate-fade-in" style="animation-delay: 0.5s;">
+<div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 text-primary">
+<span class="material-symbols-outlined text-lg">smart_toy</span>
+</div>
+<div class="bg-white dark:bg-surface-dark px-4 py-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 dark:border-gray-700 w-fit">
+<div class="flex space-x-1 h-3 items-center">
+<div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+<div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+<div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<div class="p-4 bg-white dark:bg-surface-dark border-t border-gray-100 dark:border-gray-800">
+<!-- Quick Suggestions (Chips) -->
+<div class="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+<button class="whitespace-nowrap px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-medium transition-colors dark:bg-primary/10 dark:hover:bg-primary/20">
+                    Đèn cho phòng khách
+                </button>
+<button class="whitespace-nowrap px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-medium transition-colors dark:bg-primary/10 dark:hover:bg-primary/20">
+                    Công dụng đá muối?
+                </button>
+</div>
+<!-- Input Field Container -->
+<div class="flex items-end gap-2 bg-gray-50 dark:bg-[#1a1614] p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-inner">
+<button class="p-2 text-gray-400 hover:text-primary dark:text-gray-500 dark:hover:text-primary transition-colors rounded-lg">
+<span class="material-symbols-outlined text-[22px]">attach_file</span>
+</button>
+<textarea class="w-full bg-transparent border-0 focus:ring-0 p-2 text-sm text-text-main dark:text-white placeholder-gray-400 resize-none max-h-24 overflow-y-auto" placeholder="Hỏi tôi bất cứ điều gì..." rows="1" style="min-height: 40px;"></textarea>
+<button class="p-2 bg-primary hover:bg-primary-dark text-white rounded-lg shadow-sm shadow-primary/30 transition-all active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">send</span>
+</button>
+</div>
+<div class="text-center mt-2">
+<span class="text-[10px] text-gray-400 dark:text-gray-600">Được hỗ trợ bởi AI Chatbot</span>
+</div>
+</div>
+</div>
+</body></html>

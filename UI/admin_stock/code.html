@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin - Quản lý Kho hàng (Đồng bộ)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f28c26",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="flex h-screen overflow-hidden">
+<aside class="w-[250px] bg-white dark:bg-background-dark border-r border-slate-200 dark:border-slate-800 flex flex-col">
+<div class="p-6 flex items-center gap-3">
+<div class="bg-primary size-10 rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">lightbulb</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-slate-900 dark:text-slate-100 text-base font-bold leading-none">Đèn Đá Muối</h1>
+<p class="text-primary text-xs font-medium">Hệ thống quản trị</p>
+</div>
+</div>
+<nav class="flex-1 px-4 py-4 flex flex-col gap-2">
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<p class="text-sm font-medium">Tổng quan</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">package</span>
+<p class="text-sm font-medium">Sản phẩm</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">shopping_cart</span>
+<p class="text-sm font-medium">Đơn hàng</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">group</span>
+<p class="text-sm font-medium">Khách hàng</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary">
+<span class="material-symbols-outlined">inventory_2</span>
+<p class="text-sm font-semibold">Kho hàng</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">analytics</span>
+<p class="text-sm font-medium">Báo cáo</p>
+</div>
+</nav>
+<div class="p-4 border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium">Cài đặt</p>
+</div>
+<div class="mt-4 flex items-center gap-3 px-3">
+<div class="size-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar for admin profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuPns7UBOr6cjZS1f532zxa09KEeNXPrq_M822Mdhff5NaiGq1llgsr_s_8mXJ98uVm21Z4eDQmruSty05ZdT5g3uNhL2jt07V8NbpjT_a2VM4E_DCDhtVnRzZmd9aqFx29aYmvwHIaDTwxVE1XyfjafgQtUffGB6TGrk6RlEUTjg_4TiMLrlB_CTEWvqlHSzAUkX77MxeRQuR7noEKupgh_nXjyQ7qq9lDoeax9PFpiOjj9Z65C9QmNvJkm2etnOOpDDxeODLYBun"/>
+</div>
+<div>
+<p class="text-xs font-bold text-slate-900 dark:text-slate-100">Nguyễn Văn A</p>
+<p class="text-[10px] text-slate-500">Quản trị viên</p>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col overflow-y-auto bg-slate-50 dark:bg-[#1a120a]">
+<header class="h-16 bg-white dark:bg-background-dark border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between sticky top-0 z-10">
+<div class="flex-1 max-w-xl">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg focus:ring-2 focus:ring-primary/50 text-sm placeholder:text-slate-500" placeholder="Tìm kiếm sản phẩm, SKU..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white dark:border-background-dark"></span>
+</button>
+</div>
+</header>
+<div class="p-8 space-y-8">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Quản lý tồn kho</h1>
+<p class="text-slate-500 text-sm mt-1">Theo dõi tình trạng hàng hóa và cập nhật số lượng</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
+<span class="material-symbols-outlined text-sm">download</span>
+                        Xuất Excel
+                    </button>
+<button class="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-primary/90 transition-all">
+<span class="material-symbols-outlined text-sm">add_box</span>
+                        Nhập kho
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+<div class="p-3 bg-blue-500/10 text-blue-500 rounded-lg">
+<span class="material-symbols-outlined text-2xl">inventory</span>
+</div>
+<div>
+<p class="text-slate-500 text-sm font-medium">Tổng tồn kho</p>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-slate-100">2,450</h3>
+<p class="text-xs text-emerald-500 font-medium mt-1">+120 sp mới nhập</p>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-red-100 dark:border-red-900/30 shadow-sm flex items-center gap-4 relative overflow-hidden">
+<div class="absolute right-0 top-0 p-2 opacity-5">
+<span class="material-symbols-outlined text-8xl text-red-500">warning</span>
+</div>
+<div class="p-3 bg-red-500/10 text-red-500 rounded-lg z-10">
+<span class="material-symbols-outlined text-2xl">notification_important</span>
+</div>
+<div class="z-10">
+<p class="text-slate-500 text-sm font-medium">Sản phẩm sắp hết</p>
+<h3 class="text-2xl font-bold text-red-600 dark:text-red-400">8</h3>
+<p class="text-xs text-red-500 font-medium mt-1">Cần nhập hàng ngay</p>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+<div class="p-3 bg-emerald-500/10 text-emerald-500 rounded-lg">
+<span class="material-symbols-outlined text-2xl">attach_money</span>
+</div>
+<div>
+<p class="text-slate-500 text-sm font-medium">Giá trị tồn kho</p>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-slate-100">850.5tr</h3>
+<p class="text-xs text-slate-400 font-medium mt-1">Ước tính giá vốn</p>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+<div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center flex-wrap gap-4">
+<div class="flex items-center gap-2">
+<h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Danh sách sản phẩm</h2>
+<span class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold px-2 py-1 rounded-full">45</span>
+</div>
+<div class="flex gap-3">
+<div class="relative">
+<select class="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 py-2 pl-4 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+<option>Tất cả danh mục</option>
+<option>Đèn đá muối</option>
+<option>Đá muối spa</option>
+<option>Vật phẩm phong thủy</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 py-2 pl-4 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+<option>Tồn kho: Tất cả</option>
+<option>Sắp hết hàng (&lt; 10)</option>
+<option>Hàng có sẵn</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs uppercase font-bold sticky top-0">
+<tr>
+<th class="px-6 py-4 w-12">
+<input class="rounded border-slate-300 text-primary focus:ring-primary/50" type="checkbox"/>
+</th>
+<th class="px-6 py-4">Tên sản phẩm</th>
+<th class="px-6 py-4">SKU</th>
+<th class="px-6 py-4 text-center">Tồn kho thực tế</th>
+<th class="px-6 py-4 text-center">Đang giao</th>
+<th class="px-6 py-4 text-center">Cảnh báo</th>
+<th class="px-6 py-4 text-right">Lịch sử nhập</th>
+<th class="px-6 py-4 text-right">Hành động</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group bg-red-50/50 dark:bg-red-900/5">
+<td class="px-6 py-4">
+<input class="rounded border-slate-300 text-primary focus:ring-primary/50" type="checkbox"/>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-white shrink-0 border border-slate-100">
+<img class="w-full h-full object-cover rounded-lg" data-alt="Himalayan salt lamp product" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPcUBVXSV1DmvLvSYmS-1xM6vsrJWQSRAvJwjr7EnA-ltmSV9VDa_hxGTPHOtlctuDmxnEOtbyL1gr1JIEdvVJKaGy9QQw_mvfnb_Qy3riNjombkSJx8vgSFZw5w-Oi4Ekh8A5c_8b6P7vctnlfwonPHN_xDI9sEwTnK1owhOJO88SMxihJukmgQ3CzhrWVWHYlTv6Y4IROYJ3ruJ_9eLUgh0BjS2kotihxF0o02kokQXIaFVwPV-p4-cuV2lHcXI2IJ8_qoj6ejN5"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-slate-900 dark:text-slate-100">Đèn đá muối tự nhiên (Size S)</span>
+<span class="text-xs text-slate-500">Danh mục: Đèn trang trí</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-400">SL-NAT-001</td>
+<td class="px-6 py-4 text-center">
+<span class="text-sm font-bold text-red-600 dark:text-red-400">05</span>
+</td>
+<td class="px-6 py-4 text-center text-sm text-slate-600 dark:text-slate-400">20</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold rounded-full uppercase border border-red-200 dark:border-red-800">
+<span class="material-symbols-outlined text-[10px]">warning</span> Sắp hết
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right text-sm text-slate-600 dark:text-slate-400">
+                                    20/05/2024
+                                </td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<input class="rounded border-slate-300 text-primary focus:ring-primary/50" type="checkbox"/>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-white shrink-0 border border-slate-100">
+<img class="w-full h-full object-cover rounded-lg" data-alt="Salt crystal bowl product" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARfNoJFyfCJZYiAUBZMfpCG_XMkkyrfImUwqSBJOfm6EIWfcxaulEwIBGH2MApZf7CHVoygueRQ_KY-4D_PhfXy1Xep9fWN1PInXqpho8e-fag87QDb3H1j5FzOJh-VEuuBchLWPk6IroCeNatVAwu3NJj5iYiBF-qs__bVH2HfCEpKwO3rCYHeGu2UsAJBvhODiNe059MZMTFIAXTkknCmXhxZG6gk-Rz855xhINJjqYrnBggyLL16H3XyWjov7pyBY4W6Os1WmT6"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-slate-900 dark:text-slate-100">Hộp đá muối xông chân</span>
+<span class="text-xs text-slate-500">Danh mục: Sức khỏe</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-400">SL-FOOT-002</td>
+<td class="px-6 py-4 text-center">
+<span class="text-sm font-bold text-slate-900 dark:text-slate-100">42</span>
+</td>
+<td class="px-6 py-4 text-center text-sm text-slate-600 dark:text-slate-400">0</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[10px] font-bold rounded-full uppercase border border-emerald-200 dark:border-emerald-800">
+                                        Ổn định
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right text-sm text-slate-600 dark:text-slate-400">
+                                    15/06/2024
+                                </td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group bg-red-50/50 dark:bg-red-900/5">
+<td class="px-6 py-4">
+<input class="rounded border-slate-300 text-primary focus:ring-primary/50" type="checkbox"/>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-white shrink-0 border border-slate-100">
+<img class="w-full h-full object-cover rounded-lg" data-alt="Pink salt crystal candle holder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeLfMOGr3wixczVIp73qqMC7-nU8xCAlQeupjNSBtWEpox50vIGpUEtxvnluXjq_r3PW_gsR9adJX7cV0djT59XKlFl4Wz4enAIgeffOtxgtiVttdvRidyCKn1wkKUN8f8jiuk58ATYZYk2Uq9rBhlAObM2avGG3_TPddt4jJV2sB8egi_PXnnhyF5BDKub34MEvpxBhawFk4qRlNIDQK6iHIXQJqp7xa43tAeSaH3PU6y_GnSo50eie9I4uIXiOZqBXSrtKpWmvFl"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-slate-900 dark:text-slate-100">Chân nến đá muối</span>
+<span class="text-xs text-slate-500">Danh mục: Trang trí</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-400">SL-CAN-003</td>
+<td class="px-6 py-4 text-center">
+<span class="text-sm font-bold text-red-600 dark:text-red-400">08</span>
+</td>
+<td class="px-6 py-4 text-center text-sm text-slate-600 dark:text-slate-400">50</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold rounded-full uppercase border border-red-200 dark:border-red-800">
+<span class="material-symbols-outlined text-[10px]">warning</span> Sắp hết
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right text-sm text-slate-600 dark:text-slate-400">
+                                    01/06/2024
+                                </td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<input class="rounded border-slate-300 text-primary focus:ring-primary/50" type="checkbox"/>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-white shrink-0 border border-slate-100">
+<img class="w-full h-full object-cover rounded-lg" data-alt="Salt lamp pyramid shape" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUaM1_066Od3FXRhNvcSDu7VZIxee930l2rM0w-VE5CffqPpnm-RkdTb7YJGTGTfDwCGV6R1hZ-DQjVqE76rKpO8xCEBzxFyveaP7afvY2e3da-rA0U6GZk9c1T40vsaSxmi-2Z4oNY2tsqSWwdlUdWnfTWo4lB9oeqcr7EwAMtTggnbchbizAxHPoWTDXz5MG1N8NLBS6cYlIdAhBGJQP-BjsqbMRka_moDniyzMoFETuYAadmm25QS4pgTJreJKEDApm9d3Tj84u"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-slate-900 dark:text-slate-100">Đèn đá muối Kim Tự Tháp</span>
+<span class="text-xs text-slate-500">Danh mục: Phong thủy</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-400">SL-PYR-005</td>
+<td class="px-6 py-4 text-center">
+<span class="text-sm font-bold text-slate-900 dark:text-slate-100">156</span>
+</td>
+<td class="px-6 py-4 text-center text-sm text-slate-600 dark:text-slate-400">12</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[10px] font-bold rounded-full uppercase border border-emerald-200 dark:border-emerald-800">
+                                        Ổn định
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right text-sm text-slate-600 dark:text-slate-400">
+                                    18/06/2024
+                                </td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<input class="rounded border-slate-300 text-primary focus:ring-primary/50" type="checkbox"/>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-white shrink-0 border border-slate-100">
+<img class="w-full h-full object-cover rounded-lg" data-alt="Salt soap bar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZ0A7pkbW-DMIarN4oN5qQjpCNLi-BhfZ84a-rB3sBZIgxcEZRyt-i-xGTuxJWgsW2A05swA47_B_MPTQfMxirKaf4SVVMDXQkz4UJaXajLfc4RDNXBb5Tdg6w-8cve4NoowLGfN77Q1SAJJuLekdlfE5JWjp4ADIA5BbMRUgKNspEqh36Thrvlrdjxjbp8bEnNhhc6KZASeYD-f8gA-0prioxheCwi32vKW-qM-pB94rrSrWwiq__Fyv1Nv_GbM572lyQHsoHeCPo"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-slate-900 dark:text-slate-100">Xà phòng đá muối</span>
+<span class="text-xs text-slate-500">Danh mục: Spa &amp; Làm đẹp</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-400">SL-SOAP-012</td>
+<td class="px-6 py-4 text-center">
+<span class="text-sm font-bold text-slate-900 dark:text-slate-100">320</span>
+</td>
+<td class="px-6 py-4 text-center text-sm text-slate-600 dark:text-slate-400">0</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[10px] font-bold rounded-full uppercase border border-emerald-200 dark:border-emerald-800">
+                                        Ổn định
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right text-sm text-slate-600 dark:text-slate-400">
+                                    10/06/2024
+                                </td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+<p class="text-xs text-slate-500">Hiển thị 1-5 trên 45 sản phẩm</p>
+<div class="flex gap-2">
+<button class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="p-1 rounded-md text-slate-600 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 text-xs w-6 h-6 flex items-center justify-center">1</button>
+<button class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs w-6 h-6 flex items-center justify-center">2</button>
+<button class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs w-6 h-6 flex items-center justify-center">3</button>
+<button class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

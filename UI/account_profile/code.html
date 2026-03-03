@@ -1,0 +1,244 @@
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f28c26",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-link {
+            background-color: #f28c261a;
+            color: #f28c26;
+            border-left: 4px solid #f28c26;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display transition-colors duration-300">
+<div class="flex min-h-screen">
+<!-- Sidebar -->
+<aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50 hidden lg:flex flex-col">
+<div class="p-6 flex items-center gap-3">
+<div class="text-primary">
+<svg class="size-8" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M13.8261 17.4264C16.7203 18.1174 20.2244 18.5217 24 18.5217C27.7756 18.5217 31.2797 18.1174 34.1739 17.4264C36.9144 16.7722 39.9967 15.2331 41.3563 14.1648L24.8486 40.6391C24.4571 41.267 23.5429 41.267 23.1514 40.6391L6.64374 14.1648C8.00331 15.2331 11.0856 16.7722 13.8261 17.4264Z" fill="currentColor"></path>
+</svg>
+</div>
+<h1 class="font-bold text-lg tracking-tight">Himalayan Salt</h1>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-1">
+<p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-3">Quản lý</p>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<span class="text-sm font-medium">Bảng điều khiển</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">shopping_bag</span>
+<span class="text-sm font-medium">Đơn hàng của tôi</span>
+</a>
+<a class="active-link flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1">person</span>
+<span class="text-sm font-medium">Thông tin tài khoản</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">location_on</span>
+<span class="text-sm font-medium">Địa chỉ</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+<span class="text-sm font-medium">Thông báo</span>
+</a>
+</nav>
+<div class="p-4 border-t border-slate-200 dark:border-slate-800">
+<button class="flex w-full items-center gap-3 px-3 py-2.5 text-slate-500 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined">logout</span>
+<span class="text-sm font-medium">Đăng xuất</span>
+</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- Header -->
+<header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-10">
+<div class="relative max-w-md w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+<input class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Tìm kiếm sản phẩm, đơn hàng..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-white dark:border-background-dark"></span>
+</button>
+<div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold leading-tight">Nguyễn Văn An</p>
+<p class="text-xs text-slate-500">Thành viên Vàng</p>
+</div>
+<div class="size-9 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+<img alt="Avatar người dùng" class="w-full h-full object-cover" data-alt="Ảnh đại diện người dùng nam" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4IJBOeNVWtD22jpT5Mnzehk4x0wRfGtH3Ui0LdGBTjGQaDHzQMjMdtrD51PhtI96vkfZWJhPbnpDfPHTcghCbS_LoDpt227P55v5g9kJ8Z14q-JrrhENsh0MSPVAXzKRey_WkAZD2zqwH8kg8FmAD_wtGebWhjVirga9Cgrc99ua4elm-vaa2cXjCZ8biYhAYuucmSt6cIw38PDqPSNku2-jFm19miVIeJ0QsDN5UoVt6vIxoi1mgr1yhFm7GLfXpf-fPYYQm53O4"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 max-w-6xl mx-auto w-full">
+<!-- Profile Header Card -->
+<section class="bg-white dark:bg-background-dark/40 border border-slate-200 dark:border-slate-800 rounded-xl p-6 md:p-8 shadow-sm">
+<div class="flex flex-col md:flex-row items-center gap-8">
+<div class="relative group">
+<div class="size-32 md:size-40 rounded-full border-4 border-primary/10 p-1">
+<img alt="Avatar người dùng" class="w-full h-full rounded-full object-cover" data-alt="Ảnh chân dung người dùng cận cảnh" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjXPKocqmtyT0lijPUExqX0W-qllEjTxhHm6ES4Ad5rRr4DLwIYCimiINhJwCFev106B5guxYlPtm6Uq5OR3twyMmCt7w6Ema0BiIv87WP0DPGiS_bC3mZUH7E9YI9X9uTmN8NZn0Wa3xED6uqLsLfqdZfN7bBg7GeGruc9PELS-r3OTmu98tg-tpj9SP3vR4mzohU5qrwqQaxQbbZrYoTYyR07e3AGxisnKcR6_tAIk7LBFYCJCsrT-bhYqN7HEbaT7g9Ah7t21uQ"/>
+</div>
+<button class="absolute bottom-1 right-1 size-10 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[20px]">photo_camera</span>
+</button>
+</div>
+<div class="flex-1 text-center md:text-left">
+<h2 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1">Nguyễn Văn An</h2>
+<p class="text-slate-500 dark:text-slate-400 flex items-center justify-center md:justify-start gap-2">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                                Thành viên từ: 15/05/2023
+                            </p>
+<div class="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
+<span class="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">Premium Account</span>
+<span class="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-bold rounded-full uppercase tracking-wider">Đã xác minh</span>
+</div>
+</div>
+<div class="w-full md:w-auto">
+<button class="w-full md:w-auto px-6 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm rounded-lg transition-colors">
+                                Thay đổi ảnh
+                            </button>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Account Form -->
+<section class="bg-white dark:bg-background-dark/40 border border-slate-200 dark:border-slate-800 rounded-xl p-6 md:p-8 shadow-sm">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">person</span>
+<h3 class="text-lg font-bold">Thông tin cá nhân</h3>
+</div>
+<form class="space-y-4">
+<div class="space-y-1.5">
+<label class="text-sm font-semibold text-slate-600 dark:text-slate-400">Họ và tên</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:border-primary focus:ring-primary/20 text-sm py-2.5" type="text" value="Nguyễn Văn An"/>
+</div>
+<div class="space-y-1.5">
+<label class="text-sm font-semibold text-slate-600 dark:text-slate-400">Email</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:border-primary focus:ring-primary/20 text-sm py-2.5" type="email" value="an.nguyenvan@example.com"/>
+</div>
+<div class="space-y-1.5">
+<label class="text-sm font-semibold text-slate-600 dark:text-slate-400">Số điện thoại</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:border-primary focus:ring-primary/20 text-sm py-2.5" type="tel" value="0901 234 567"/>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1.5">
+<label class="text-sm font-semibold text-slate-600 dark:text-slate-400">Ngày sinh</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:border-primary focus:ring-primary/20 text-sm py-2.5" type="date" value="1995-05-15"/>
+</div>
+<div class="space-y-1.5">
+<label class="text-sm font-semibold text-slate-600 dark:text-slate-400">Giới tính</label>
+<select class="w-full rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:border-primary focus:ring-primary/20 text-sm py-2.5">
+<option value="male">Nam</option>
+<option value="female">Nữ</option>
+<option value="other">Khác</option>
+</select>
+</div>
+</div>
+<div class="pt-4">
+<button class="w-full bg-primary text-white font-bold py-2.5 rounded-lg hover:bg-primary/90 transition-shadow shadow-md shadow-primary/20" type="button">
+                                    Lưu thay đổi
+                                </button>
+</div>
+</form>
+</section>
+<!-- Security Section -->
+<div class="space-y-8">
+<!-- Password Section -->
+<section class="bg-white dark:bg-background-dark/40 border border-slate-200 dark:border-slate-800 rounded-xl p-6 md:p-8 shadow-sm">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">lock</span>
+<h3 class="text-lg font-bold">Đổi mật khẩu</h3>
+</div>
+<form class="space-y-4">
+<div class="space-y-1.5">
+<label class="text-sm font-semibold text-slate-600 dark:text-slate-400">Mật khẩu hiện tại</label>
+<div class="relative">
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:border-primary focus:ring-primary/20 text-sm py-2.5 pr-10" placeholder="••••••••" type="password"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer text-[18px]">visibility</span>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="text-sm font-semibold text-slate-600 dark:text-slate-400">Mật khẩu mới</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:border-primary focus:ring-primary/20 text-sm py-2.5" placeholder="••••••••" type="password"/>
+</div>
+<div class="space-y-1.5">
+<label class="text-sm font-semibold text-slate-600 dark:text-slate-400">Xác nhận mật khẩu</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:border-primary focus:ring-primary/20 text-sm py-2.5" placeholder="••••••••" type="password"/>
+</div>
+<div class="pt-4">
+<button class="w-full border-2 border-primary/20 text-primary font-bold py-2.5 rounded-lg hover:bg-primary/5 transition-colors" type="button">
+                                        Cập nhật mật khẩu
+                                    </button>
+</div>
+</form>
+</section>
+<!-- 2FA Section -->
+<section class="bg-white dark:bg-background-dark/40 border border-slate-200 dark:border-slate-800 rounded-xl p-6 md:p-8 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">security</span>
+<h3 class="text-lg font-bold">Bảo mật 2 lớp (2FA)</h3>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                                Thêm một lớp bảo mật cho tài khoản của bạn bằng cách yêu cầu mã xác thực từ ứng dụng di động khi đăng nhập.
+                            </p>
+<div class="mt-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg flex items-center gap-3">
+<span class="material-symbols-outlined text-green-500">check_circle</span>
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300">Đang hoạt động: Google Authenticator</span>
+</div>
+</section>
+</div>
+</div>
+<!-- Activity Footer -->
+<div class="flex flex-col md:flex-row justify-between items-center text-xs text-slate-400 py-4 gap-4">
+<p>© 2024 Himalayan Salt Lamp Vietnam. Bảo lưu mọi quyền.</p>
+<div class="flex gap-6">
+<a class="hover:text-primary transition-colors" href="#">Điều khoản dịch vụ</a>
+<a class="hover:text-primary transition-colors" href="#">Chính sách bảo mật</a>
+<a class="hover:text-primary transition-colors" href="#">Hỗ trợ khách hàng</a>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+```</body></html>

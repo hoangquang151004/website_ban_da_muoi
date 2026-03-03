@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin - Quản lý Sản phẩm (Đồng bộ)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f28c26",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="flex h-screen overflow-hidden">
+<aside class="w-[250px] bg-white dark:bg-background-dark border-r border-slate-200 dark:border-slate-800 flex flex-col">
+<div class="p-6 flex items-center gap-3">
+<div class="bg-primary size-10 rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">lightbulb</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-slate-900 dark:text-slate-100 text-base font-bold leading-none">Đèn Đá Muối</h1>
+<p class="text-primary text-xs font-medium">Hệ thống quản trị</p>
+</div>
+</div>
+<nav class="flex-1 px-4 py-4 flex flex-col gap-2">
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<p class="text-sm font-medium">Tổng quan</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary">
+<span class="material-symbols-outlined">package</span>
+<p class="text-sm font-semibold">Sản phẩm</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">shopping_cart</span>
+<p class="text-sm font-medium">Đơn hàng</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">group</span>
+<p class="text-sm font-medium">Khách hàng</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">inventory_2</span>
+<p class="text-sm font-medium">Kho hàng</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">analytics</span>
+<p class="text-sm font-medium">Báo cáo</p>
+</div>
+</nav>
+<div class="p-4 border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium">Cài đặt</p>
+</div>
+<div class="mt-4 flex items-center gap-3 px-3">
+<div class="size-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar for admin profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuPns7UBOr6cjZS1f532zxa09KEeNXPrq_M822Mdhff5NaiGq1llgsr_s_8mXJ98uVm21Z4eDQmruSty05ZdT5g3uNhL2jt07V8NbpjT_a2VM4E_DCDhtVnRzZmd9aqFx29aYmvwHIaDTwxVE1XyfjafgQtUffGB6TGrk6RlEUTjg_4TiMLrlB_CTEWvqlHSzAUkX77MxeRQuR7noEKupgh_nXjyQ7qq9lDoeax9PFpiOjj9Z65C9QmNvJkm2etnOOpDDxeODLYBun"/>
+</div>
+<div>
+<p class="text-xs font-bold text-slate-900 dark:text-slate-100">Nguyễn Văn A</p>
+<p class="text-[10px] text-slate-500">Quản trị viên</p>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col overflow-y-auto bg-slate-50 dark:bg-[#1a120a]">
+<header class="h-16 bg-white dark:bg-background-dark border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between sticky top-0 z-10">
+<div class="flex-1 max-w-xl">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg focus:ring-2 focus:ring-primary/50 text-sm placeholder:text-slate-500" placeholder="Tìm kiếm sản phẩm..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white dark:border-background-dark"></span>
+</button>
+<button class="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-primary/90 transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+                    Tạo sản phẩm
+                </button>
+</div>
+</header>
+<div class="p-8 space-y-6">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Danh sách sản phẩm</h1>
+<p class="text-sm text-slate-500 mt-1">Tổng cộng <span class="font-bold text-slate-900 dark:text-slate-100">142</span> sản phẩm trong kho</p>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">filter_alt</span>
+<input class="pl-9 pr-4 py-2 bg-white dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary w-[240px]" placeholder="Tìm theo tên hoặc SKU" type="text"/>
+</div>
+<select class="pl-3 pr-10 py-2 bg-white dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary">
+<option value="">Tất cả danh mục</option>
+<option value="1">Đèn ngủ</option>
+<option value="2">Đèn trang trí</option>
+<option value="3">Đá massage</option>
+<option value="4">Muối ăn</option>
+</select>
+<select class="pl-3 pr-10 py-2 bg-white dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary">
+<option value="">Tất cả trạng thái</option>
+<option value="published">Đang bán</option>
+<option value="draft">Bản nháp</option>
+<option value="hidden">Đã ẩn</option>
+</select>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200 dark:border-slate-800">
+<tr>
+<th class="px-6 py-4">Sản phẩm</th>
+<th class="px-6 py-4">SKU</th>
+<th class="px-6 py-4">Danh mục</th>
+<th class="px-6 py-4">Giá bán</th>
+<th class="px-6 py-4 text-center">Tồn kho</th>
+<th class="px-6 py-4 text-center">Trạng thái</th>
+<th class="px-6 py-4 text-right">Thao tác</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
+<img alt="Product Thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPcUBVXSV1DmvLvSYmS-1xM6vsrJWQSRAvJwjr7EnA-ltmSV9VDa_hxGTPHOtlctuDmxnEOtbyL1gr1JIEdvVJKaGy9QQw_mvfnb_Qy3riNjombkSJx8vgSFZw5w-Oi4Ekh8A5c_8b6P7vctnlfwonPHN_xDI9sEwTnK1owhOJO88SMxihJukmgQ3CzhrWVWHYlTv6Y4IROYJ3ruJ_9eLUgh0BjS2kotihxF0o02kokQXIaFVwPV-p4-cuV2lHcXI2IJ8_qoj6ejN5"/>
+</div>
+<div class="min-w-0 max-w-[200px]">
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100 truncate" title="Đèn đá muối tự nhiên (Size L)">Đèn đá muối tự nhiên (Size L)</p>
+<p class="text-[10px] text-slate-400">ID: 8274</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">HML-001</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Đèn ngủ</td>
+<td class="px-6 py-4 text-sm font-bold text-primary">850.000đ</td>
+<td class="px-6 py-4 text-center text-sm font-medium text-slate-700 dark:text-slate-300">45 cái</td>
+<td class="px-6 py-4 text-center">
+<label class="inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+</label>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors" title="Chỉnh sửa">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Xóa">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
+<img alt="Product Thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARfNoJFyfCJZYiAUBZMfpCG_XMkkyrfImUwqSBJOfm6EIWfcxaulEwIBGH2MApZf7CHVoygueRQ_KY-4D_PhfXy1Xep9fWN1PInXqpho8e-fag87QDb3H1j5FzOJh-VEuuBchLWPk6IroCeNatVAwu3NJj5iYiBF-qs__bVH2HfCEpKwO3rCYHeGu2UsAJBvhODiNe059MZMTFIAXTkknCmXhxZG6gk-Rz855xhINJjqYrnBggyLL16H3XyWjov7pyBY4W6Os1WmT6"/>
+</div>
+<div class="min-w-0 max-w-[200px]">
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100 truncate" title="Hộp đá muối xông chân Himalaya">Hộp đá muối xông chân</p>
+<p class="text-[10px] text-slate-400">ID: 8275</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">HML-002</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Chăm sóc sức khỏe</td>
+<td class="px-6 py-4 text-sm font-bold text-primary">2.450.000đ</td>
+<td class="px-6 py-4 text-center text-sm font-medium text-slate-700 dark:text-slate-300">12 cái</td>
+<td class="px-6 py-4 text-center">
+<label class="inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+</label>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors" title="Chỉnh sửa">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Xóa">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
+<img alt="Product Thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeLfMOGr3wixczVIp73qqMC7-nU8xCAlQeupjNSBtWEpox50vIGpUEtxvnluXjq_r3PW_gsR9adJX7cV0djT59XKlFl4Wz4enAIgeffOtxgtiVttdvRidyCKn1wkKUN8f8jiuk58ATYZYk2Uq9rBhlAObM2avGG3_TPddt4jJV2sB8egi_PXnnhyF5BDKub34MEvpxBhawFk4qRlNIDQK6iHIXQJqp7xa43tAeSaH3PU6y_GnSo50eie9I4uIXiOZqBXSrtKpWmvFl"/>
+</div>
+<div class="min-w-0 max-w-[200px]">
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100 truncate" title="Chân nến đá muối">Chân nến đá muối</p>
+<p class="text-[10px] text-slate-400">ID: 8276</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">HML-003</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Đèn trang trí</td>
+<td class="px-6 py-4 text-sm font-bold text-primary">350.000đ</td>
+<td class="px-6 py-4 text-center text-sm font-medium text-slate-700 dark:text-slate-300">128 cái</td>
+<td class="px-6 py-4 text-center">
+<label class="inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+</label>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors" title="Chỉnh sửa">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Xóa">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400">image</span>
+</div>
+<div class="min-w-0 max-w-[200px]">
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100 truncate" title="Đèn đá muối hình cầu">Đèn đá muối hình cầu</p>
+<p class="text-[10px] text-slate-400">ID: 8277</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">HML-004</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Đèn ngủ</td>
+<td class="px-6 py-4 text-sm font-bold text-primary">1.200.000đ</td>
+<td class="px-6 py-4 text-center text-sm font-medium text-red-500 font-bold">0 cái</td>
+<td class="px-6 py-4 text-center">
+<label class="inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+</label>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors" title="Chỉnh sửa">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Xóa">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400">image</span>
+</div>
+<div class="min-w-0 max-w-[200px]">
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100 truncate" title="Giường đá muối Himalaya">Giường đá muối Himalaya</p>
+<p class="text-[10px] text-slate-400">ID: 8278</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">HML-005</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Nội thất</td>
+<td class="px-6 py-4 text-sm font-bold text-primary">8.500.000đ</td>
+<td class="px-6 py-4 text-center text-sm font-medium text-slate-700 dark:text-slate-300">5 cái</td>
+<td class="px-6 py-4 text-center">
+<label class="inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+</label>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors" title="Chỉnh sửa">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Xóa">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+<p class="text-xs text-slate-500">Hiển thị <span class="font-bold">1-5</span> trong <span class="font-bold">142</span> sản phẩm</p>
+<div class="flex items-center gap-1">
+<button class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-lg bg-primary text-white text-xs font-bold shadow-sm">1</button>
+<button class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium">2</button>
+<button class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium">3</button>
+<button class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium">...</button>
+<button class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>
