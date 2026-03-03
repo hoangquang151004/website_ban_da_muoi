@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     # AI / LLM
     OPENAI_API_KEY: str = ""
+    GOOGLE_API_KEY: str = ""  # Gemini API key (tuỳ chọn)
+    LLM_PROVIDER: str = "openai"  # "openai" | "gemini" | "ollama"
+    LLM_MODEL: str = "gpt-4o-mini"  # Model name, thay đổi theo provider
 
     # Vector DB
     CHROMA_DB_PATH: str = "./chroma_db"

@@ -77,6 +77,8 @@ from app.routers import admin_users  # noqa: E402
 from app.routers import admin_reviews  # noqa: E402
 from app.routers import admin_stock  # noqa: E402
 from app.routers import admin_statistics  # noqa: E402
+from app.routers import chat  # noqa: E402
+from app.routers import admin_chat  # noqa: E402
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(products.router, prefix="/api/v1", tags=["Products / Categories / Uses / Reviews"])
@@ -90,6 +92,10 @@ app.include_router(admin_users.router, prefix="/api/v1/admin", tags=["Admin — 
 app.include_router(admin_reviews.router, prefix="/api/v1/admin", tags=["Admin — Reviews"])
 app.include_router(admin_stock.router, prefix="/api/v1/admin", tags=["Admin — Stock"])
 app.include_router(admin_statistics.router, prefix="/api/v1/admin", tags=["Admin — Statistics"])
+
+# AI Agent / Chat routers
+app.include_router(chat.router, prefix="/api/v1", tags=["Chat — AI Agent"])
+app.include_router(admin_chat.router, prefix="/api/v1/admin", tags=["Admin — AI Chat"])
 
 # ---------------------------------------------------------------------------
 # Static files (uploaded images)
