@@ -13,8 +13,11 @@ from app.services.crud import admin_product as svc
 router = APIRouter(dependencies=[Depends(require_admin)])
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "static", "uploads")
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
-MAX_SIZE = 5 * 1024 * 1024  # 5 MB
+ALLOWED_TYPES = {
+    "image/jpeg", "image/png", "image/webp",
+    "model/gltf-binary", "model/gltf+json", "application/octet-stream"
+}
+MAX_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
 @router.get("/products", response_model=BaseResponse[ProductAdminListPage])
@@ -59,18 +62,18 @@ async def delete_product(product_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/upload", response_model=BaseResponse[dict])
 async def upload_image(file: UploadFile = File(...)):
-    if file.content_type not in ALLOWED_TYPES:
+    if file.content_type not in ALLOWED_TYPES and not file.filename.endswith(('.glb', '.gltf')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Chỉ chấp nhận file jpg, png, webp",
+            detail="Chỉ chấp nhận file ảnh (jpg, png, webp) hoặc mô hình 3D (glb, gltf)",
         )
     contents = await file.read()
     if len(contents) > MAX_SIZE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File vượt quá 5MB",
+            detail="File vượt quá 50MB",
         )
-    ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "jpg"
+    ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "file"
     filename = f"{uuid.uuid4().hex}.{ext}"
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     filepath = os.path.join(UPLOAD_DIR, filename)

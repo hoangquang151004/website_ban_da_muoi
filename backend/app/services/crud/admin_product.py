@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.product import Product
+from app.models.product_image import ProductImage
+from app.models.review import Review
 from app.models.stock_log import StockLog, StockLogReason
 from app.models.use import Use
 from app.schemas.product import ProductCreate, ProductUpdate
@@ -42,7 +44,12 @@ async def list_products_admin(
 ) -> dict:
     query = (
         select(Product)
-        .options(selectinload(Product.category), selectinload(Product.uses))
+        .options(
+            selectinload(Product.category),
+            selectinload(Product.uses),
+            selectinload(Product.reviews).selectinload(Review.user),
+            selectinload(Product.images),
+        )
         .order_by(Product.created_at.desc())
     )
     if search:
@@ -92,6 +99,10 @@ async def create_product(db: AsyncSession, data: ProductCreate) -> Product:
         category_id=data.category_id,
         uses=uses,
     )
+    if data.additional_images:
+        for url in data.additional_images:
+            product.images.append(ProductImage(image_url=url))
+
     db.add(product)
     await db.flush()
     await db.refresh(product)
@@ -99,7 +110,12 @@ async def create_product(db: AsyncSession, data: ProductCreate) -> Product:
     # Eager-load relationships
     result = await db.execute(
         select(Product).where(Product.id == product.id)
-        .options(selectinload(Product.category), selectinload(Product.uses))
+        .options(
+            selectinload(Product.category),
+            selectinload(Product.uses),
+            selectinload(Product.reviews).selectinload(Review.user),
+            selectinload(Product.images),
+        )
     )
     return result.scalar_one()
 
@@ -107,7 +123,12 @@ async def create_product(db: AsyncSession, data: ProductCreate) -> Product:
 async def update_product(db: AsyncSession, product_id: int, data: ProductUpdate) -> Product:
     result = await db.execute(
         select(Product).where(Product.id == product_id)
-        .options(selectinload(Product.category), selectinload(Product.uses))
+        .options(
+            selectinload(Product.category),
+            selectinload(Product.uses),
+            selectinload(Product.reviews).selectinload(Review.user),
+            selectinload(Product.images),
+        )
     )
     product = result.scalar_one_or_none()
     if product is None:
@@ -140,6 +161,11 @@ async def update_product(db: AsyncSession, product_id: int, data: ProductUpdate)
             note="Điều chỉnh kho qua admin",
         ))
 
+    # Handle additional_images replacement
+    if "additional_images" in update_data:
+        new_urls = update_data.pop("additional_images")
+        product.images = [ProductImage(image_url=url) for url in new_urls]
+
     for field, value in update_data.items():
         if field != "use_ids":
             setattr(product, field, value)
@@ -148,7 +174,12 @@ async def update_product(db: AsyncSession, product_id: int, data: ProductUpdate)
 
     result2 = await db.execute(
         select(Product).where(Product.id == product_id)
-        .options(selectinload(Product.category), selectinload(Product.uses))
+        .options(
+            selectinload(Product.category),
+            selectinload(Product.uses),
+            selectinload(Product.reviews).selectinload(Review.user),
+            selectinload(Product.images),
+        )
     )
     return result2.scalar_one()
 
@@ -158,5 +189,6 @@ async def soft_delete_product(db: AsyncSession, product_id: int) -> None:
     product = result.scalar_one_or_none()
     if product is None:
         raise HTTPException(status_code=404, detail="Sản phẩm không tồn tại")
-    product.is_active = False
+    
+    await db.delete(product)
     await db.flush()

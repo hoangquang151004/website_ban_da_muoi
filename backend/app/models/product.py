@@ -39,6 +39,7 @@ class Product(Base):
     order_items: Mapped[list["OrderItem"]] = relationship("OrderItem", back_populates="product")  # noqa: F821
     reviews: Mapped[list["Review"]] = relationship("Review", back_populates="product")  # noqa: F821
     stock_logs: Mapped[list["StockLog"]] = relationship("StockLog", back_populates="product")  # noqa: F821
+    images: Mapped[list["ProductImage"]] = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")  # noqa: F821
 
     def __repr__(self) -> str:
         return f"<Product id={self.id} name={self.name} price={self.price}>"

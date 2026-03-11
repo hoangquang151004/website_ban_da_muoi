@@ -163,12 +163,35 @@ async def delete_category(db: AsyncSession, cat_id: int) -> None:
 # Use
 # ===========================================================================
 
-async def list_uses_admin(db: AsyncSession, is_active: bool | None = None) -> list[Use]:
+async def list_uses_admin(
+    db: AsyncSession,
+    page: int = 1,
+    limit: int = 20,
+    search: str | None = None,
+    is_active: bool | None = None,
+) -> dict:
     query = select(Use).order_by(Use.created_at.desc())
+    if search:
+        query = query.where(Use.name.ilike(f"%{search}%"))
     if is_active is not None:
         query = query.where(Use.is_active == is_active)
+
+    count_result = await db.execute(select(func.count()).select_from(query.subquery()))
+    total = count_result.scalar_one()
+
+    query = query.offset((page - 1) * limit).limit(limit)
     result = await db.execute(query)
-    return list(result.scalars().all())
+    uses = result.scalars().all()
+
+    items = [vars_without_sa_state(use) for use in uses]
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": math.ceil(total / limit) if total > 0 else 1,
+    }
 
 
 async def create_use(db: AsyncSession, data: UseCreate) -> Use:

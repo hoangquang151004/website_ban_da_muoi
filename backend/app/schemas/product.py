@@ -7,6 +7,13 @@ from app.schemas.category import CategoryResponse
 from app.schemas.use import UseResponse
 
 
+class ProductImageResponse(BaseModel):
+    id: int
+    image_url: str
+
+    model_config = {"from_attributes": True}
+
+
 class ProductCreate(BaseModel):
     name: str
     slug: str | None = None  # Tự động sinh nếu không cung cấp
@@ -20,6 +27,7 @@ class ProductCreate(BaseModel):
     is_active: bool = True
     category_id: int
     use_ids: list[int] = []
+    additional_images: list[str] = []
 
 
 class ProductUpdate(BaseModel):
@@ -35,6 +43,7 @@ class ProductUpdate(BaseModel):
     is_active: bool | None = None
     category_id: int | None = None
     use_ids: list[int] | None = None
+    additional_images: list[str] | None = None
 
 
 class ProductResponse(BaseModel):
@@ -52,6 +61,7 @@ class ProductResponse(BaseModel):
     category_id: int
     category: CategoryResponse | None = None
     uses: list[UseResponse] = []
+    images: list[ProductImageResponse] = []
     reviews: list["ReviewResponse"] = []
     average_rating: float | None = None
     created_at: datetime
@@ -79,6 +89,7 @@ class ProductListItem(BaseModel):
     is_active: bool
     category_id: int
     uses: list[UseResponse] = []
+    images: list[ProductImageResponse] = []
 
     model_config = {"from_attributes": True}
 

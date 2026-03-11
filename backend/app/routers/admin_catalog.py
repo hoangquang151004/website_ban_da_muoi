@@ -61,10 +61,23 @@ async def delete_category(cat_id: int, db: AsyncSession = Depends(get_db)):
 # Uses
 # ---------------------------------------------------------------------------
 
-@router.get("/uses", response_model=BaseResponse[list[UseResponse]])
-async def list_uses(db: AsyncSession = Depends(get_db), is_active: bool | None = Query(None)):
-    uses = await svc.list_uses_admin(db, is_active)
-    return BaseResponse.success(data=[UseResponse.model_validate(u) for u in uses])
+@router.get("/uses", response_model=BaseResponse[PaginatedData[UseResponse]])
+async def list_uses(
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None),
+    is_active: bool | None = Query(None),
+):
+    result = await svc.list_uses_admin(db, page, limit, search, is_active)
+    page_data = PaginatedData(
+        items=[UseResponse(**item) for item in result["items"]],
+        total=result["total"],
+        page=result["page"],
+        limit=result["limit"],
+        total_pages=result["total_pages"],
+    )
+    return BaseResponse.success(data=page_data)
 
 
 @router.post("/uses", status_code=status.HTTP_201_CREATED, response_model=BaseResponse[UseResponse])

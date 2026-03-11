@@ -21,6 +21,19 @@ class OrderItemResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class OrderItemAdminResponse(BaseModel):
+    """OrderItem kèm thông tin sản phẩm, dùng trong admin detail view."""
+    id: int
+    product_id: int
+    quantity: int
+    unit_price: Decimal
+    subtotal: Decimal
+    product_name: str | None = None
+    image_url: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class OrderCreate(BaseModel):
     receiver_name: str
     receiver_phone: str
@@ -68,6 +81,25 @@ class OrderAdminResponse(OrderResponse):
     model_config = {"from_attributes": True}
 
 
+class OrderAdminDetailResponse(BaseModel):
+    """Chi tiết đơn hàng đầy đủ cho admin, kèm tên và ảnh sản phẩm trong items."""
+    id: int
+    user_id: int | None
+    receiver_name: str
+    receiver_phone: str
+    receiver_address: str
+    note: str | None
+    payment_method: PaymentMethod
+    status: OrderStatus
+    total_amount: Decimal
+    items: list[OrderItemAdminResponse] = []
+    user: OrderUserSummary | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class OrderListPage(BaseModel):
     items: list[OrderResponse]
     total: int
@@ -82,3 +114,14 @@ class OrderAdminListPage(BaseModel):
     page: int
     limit: int
     total_pages: int
+
+
+class OrderStatsResponse(BaseModel):
+    """Số lượng đơn hàng theo từng trạng thái."""
+    pending: int = 0
+    confirmed: int = 0
+    packing: int = 0
+    shipping: int = 0
+    delivered: int = 0
+    cancelled: int = 0
+    total: int = 0

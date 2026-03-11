@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     # App
     APP_NAME: str = "Đèn Đá Muối Himalaya API"
     DEBUG: bool = False
+    BACKEND_URL: str = "http://localhost:8000"  # Base URL for static files
 
     # Database
     DATABASE_URL: str = "mysql+aiomysql://root:password@localhost:3306/da_muoi_db"

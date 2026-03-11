@@ -1,7 +1,39 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useCartStore } from "@/store/cartStore";
+import { getAbsoluteImageUrl } from "@/lib/imageUrl";
 
 export default function CartPage() {
+  const { items, updateQuantity, removeItem, totalPrice } = useCartStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+
+    // Debug: Log cart items to check image URLs
+    if (typeof window !== "undefined") {
+      console.log("Cart items:", items);
+      items.forEach((item) => {
+        console.log(`Product: ${item.name}, Image URL: ${item.image}`);
+      });
+    }
+  }, [items]);
+
+  if (!mounted) {
+    return null; // Prevent hydration mismatch
+  }
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
+  };
+
   return (
     <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-[1440px]">
       <h1 className="text-3xl md:text-4xl font-extrabold text-neutral-dark mb-8">
@@ -13,95 +45,86 @@ export default function CartPage() {
         <div className="w-full lg:w-[65%] space-y-8">
           <section className="bg-white rounded-xl shadow-sm border border-neutral-light p-6">
             <div className="space-y-6">
-              {/* Item 1 */}
-              <div className="flex flex-col sm:flex-row gap-4 py-4 border-b border-neutral-light last:border-0 last:pb-0">
-                <div className="shrink-0">
-                  <img
-                    alt="Warm glowing salt lamp on wooden table"
-                    className="size-24 rounded-lg object-cover bg-neutral-light"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfC5BsiCu1mJXwkdVp0fUHOjxxdzSbsQ3wnOR4vM49oHYGPEwvWxTS0qno-rFGkO77aEJGKoSov_xzH91Jrw_ea_Uckb7hJCnYamMcsVPeruETtFCKx1IqJJ6utVF4mjfKAcRb4Tq63N0rfbz79ViNKsRST3t0bIQaeOxuXgon-fncesByD9CJLUNexL-gKrn3doN-yP_1pFy-Kpu7_OHZ_K86I5vMW1xrdxHGcr5DhHwKrIi9DB8yeIXh0gDLm8zy8WtrnhM8HLH_"
-                  />
+              {items.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-neutral-medium mb-4">
+                    Giỏ hàng của bạn đang trống.
+                  </p>
                 </div>
-                <div className="flex flex-1 flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold text-neutral-dark">
-                        Đèn đá muối tự nhiên
-                      </h3>
-                      <p className="text-sm text-neutral-medium mt-1">
-                        Size L • Kèm dây nguồn
-                      </p>
+              ) : (
+                items.map((item) => (
+                  <div
+                    key={item.productId}
+                    className="flex flex-col sm:flex-row gap-4 py-4 border-b border-neutral-light last:border-0 last:pb-0"
+                  >
+                    <div className="shrink-0 relative size-24">
+                      <Image
+                        alt={item.name}
+                        className="rounded-lg object-cover bg-neutral-light"
+                        src={getAbsoluteImageUrl(item.image)}
+                        fill
+                        sizes="96px"
+                        unoptimized
+                        onError={(e) => {
+                          console.error(
+                            `Failed to load image for ${item.name}:`,
+                            getAbsoluteImageUrl(item.image),
+                          );
+                          // Fallback to placeholder
+                          (e.target as HTMLImageElement).src =
+                            "/placeholder-product.svg";
+                        }}
+                      />
                     </div>
-                    <button
-                      className="text-red-500 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50"
-                      title="Xóa"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">
-                        delete
-                      </span>
-                    </button>
-                  </div>
-                  <div className="flex justify-between items-end mt-4 sm:mt-0">
-                    <div className="flex items-center border border-neutral-light rounded-lg">
-                      <button className="px-3 py-1 hover:bg-neutral-light text-neutral-dark rounded-l-lg transition-colors">
-                        -
-                      </button>
-                      <span className="px-2 py-1 text-sm font-medium text-neutral-dark w-8 text-center">
-                        1
-                      </span>
-                      <button className="px-3 py-1 hover:bg-neutral-light text-neutral-dark rounded-r-lg transition-colors">
-                        +
-                      </button>
+                    <div className="flex flex-1 flex-col justify-between">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <Link href={`/product/${item.slug}`}>
+                            <h3 className="text-lg hover:text-primary transition-colors font-semibold text-neutral-dark">
+                              {item.name}
+                            </h3>
+                          </Link>
+                        </div>
+                        <button
+                          onClick={() => removeItem(item.productId)}
+                          className="text-red-500 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50"
+                          title="Xóa"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">
+                            delete
+                          </span>
+                        </button>
+                      </div>
+                      <div className="flex justify-between items-end mt-4 sm:mt-0">
+                        <div className="flex items-center border border-neutral-light rounded-lg">
+                          <button
+                            onClick={() =>
+                              updateQuantity(item.productId, item.quantity - 1)
+                            }
+                            className="px-3 py-1 hover:bg-neutral-light text-neutral-dark rounded-l-lg transition-colors"
+                          >
+                            -
+                          </button>
+                          <span className="px-2 py-1 text-sm font-medium text-neutral-dark w-8 text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() =>
+                              updateQuantity(item.productId, item.quantity + 1)
+                            }
+                            className="px-3 py-1 hover:bg-neutral-light text-neutral-dark rounded-r-lg transition-colors"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <p className="font-bold text-lg text-primary">
+                          {formatPrice(item.price * item.quantity)}
+                        </p>
+                      </div>
                     </div>
-                    <p className="font-bold text-lg text-primary">450.000đ</p>
                   </div>
-                </div>
-              </div>
-
-              {/* Item 2 */}
-              <div className="flex flex-col sm:flex-row gap-4 py-4 border-b border-neutral-light last:border-0 last:pb-0">
-                <div className="shrink-0">
-                  <img
-                    alt="Round shaped salt lamp glowing softly"
-                    className="size-24 rounded-lg object-cover bg-neutral-light"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVgSEq0JKipndvWR8XouAlQB9uaPrtC9aBpo2V68k8DKtSL05RjU-9g47jXZTc2tBDnHM7hw2Pmpl8r6GbfXqeb8Zvjhl-iS0ooc5wiopsn9qAYfPyeOiEbWO2ZLcqAyxZq0XHlAPKN_3feiu7W3NOgZZ77O1wYy4UoPNhPvokEUYRjOMx1FvsHWt4A3wEGJaC3fN4PRVP1PI52PCNecDZaR0qYBVoPEgQYdNc2PuJEGsvEmPeUtch1sVnszmObmSofFmq4zYGo1wt"
-                  />
-                </div>
-                <div className="flex flex-1 flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold text-neutral-dark">
-                        Đèn đá muối hình cầu
-                      </h3>
-                      <p className="text-sm text-neutral-medium mt-1">
-                        Size M • Đế gỗ
-                      </p>
-                    </div>
-                    <button
-                      className="text-red-500 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50"
-                      title="Xóa"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">
-                        delete
-                      </span>
-                    </button>
-                  </div>
-                  <div className="flex justify-between items-end mt-4 sm:mt-0">
-                    <div className="flex items-center border border-neutral-light rounded-lg">
-                      <button className="px-3 py-1 hover:bg-neutral-light text-neutral-dark rounded-l-lg transition-colors">
-                        -
-                      </button>
-                      <span className="px-2 py-1 text-sm font-medium text-neutral-dark w-8 text-center">
-                        2
-                      </span>
-                      <button className="px-3 py-1 hover:bg-neutral-light text-neutral-dark rounded-r-lg transition-colors">
-                        +
-                      </button>
-                    </div>
-                    <p className="font-bold text-lg text-primary">350.000đ</p>
-                  </div>
-                </div>
-              </div>
+                ))
+              )}
             </div>
 
             <div className="mt-8">
@@ -128,7 +151,9 @@ export default function CartPage() {
             <div className="space-y-4 mb-6">
               <div className="flex justify-between text-neutral-medium">
                 <span>Tạm tính</span>
-                <span className="font-medium text-neutral-dark">800.000đ</span>
+                <span className="font-medium text-neutral-dark">
+                  {formatPrice(totalPrice())}
+                </span>
               </div>
             </div>
 
@@ -138,7 +163,7 @@ export default function CartPage() {
                   Tổng cộng
                 </span>
                 <span className="text-2xl font-extrabold text-primary">
-                  800.000đ
+                  {formatPrice(totalPrice())}
                 </span>
               </div>
               <p className="text-xs text-neutral-medium text-right mt-1">
@@ -148,7 +173,10 @@ export default function CartPage() {
 
             <Link
               href="/checkout"
-              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all transform active:scale-[0.98] flex justify-center items-center gap-2 group"
+              className={`w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all flex justify-center items-center gap-2 group ${items.length === 0 ? "opacity-50 pointer-events-none" : "transform active:scale-[0.98]"}`}
+              onClick={(e) => {
+                if (items.length === 0) e.preventDefault();
+              }}
             >
               Chuyển đến thanh toán
               <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">

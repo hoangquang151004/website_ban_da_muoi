@@ -113,7 +113,7 @@ async def get_product(slug: str, db: AsyncSession = Depends(get_db)):
     "/products/{product_id}/reviews",
     status_code=status.HTTP_201_CREATED,
     response_model=BaseResponse[ReviewResponse],
-    summary="Gửi đánh giá sản phẩm (phải đã mua & nhận hàng)",
+    summary="Gửi đánh giá sản phẩm",
 )
 async def submit_review(
     product_id: int,
@@ -129,7 +129,7 @@ async def submit_review(
     )
     return BaseResponse.success(
         data=ReviewResponse.model_validate(review),
-        message="Đánh giá đã được gửi và đang chờ duyệt",
+        message="Đã gửi đánh giá thành công",
     )
 
 
@@ -148,4 +148,50 @@ async def list_reviews(product_id: int, db: AsyncSession = Depends(get_db)):
             items=[ReviewResponse.model_validate(r) for r in reviews],
             average_rating=avg,
         )
+    )
+
+
+# ---------------------------------------------------------------------------
+# PUT /reviews/{review_id}
+# ---------------------------------------------------------------------------
+@router.put(
+    "/reviews/{review_id}",
+    response_model=BaseResponse[ReviewResponse],
+    summary="Sửa đánh giá của người dùng",
+)
+async def update_review(
+    review_id: int,
+    body: ReviewSubmit,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    review = await review_crud.update_user_review(
+        db=db,
+        review_id=review_id,
+        user_id=current_user.id,
+        data=body,
+    )
+    return BaseResponse.success(
+        data=ReviewResponse.model_validate(review),
+        message="Đã cập nhật đánh giá",
+    )
+
+
+# ---------------------------------------------------------------------------
+# DELETE /reviews/{review_id}
+# ---------------------------------------------------------------------------
+@router.delete(
+    "/reviews/{review_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Xóa đánh giá của người dùng",
+)
+async def delete_review(
+    review_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    await review_crud.delete_user_review(
+        db=db,
+        review_id=review_id,
+        user_id=current_user.id,
     )

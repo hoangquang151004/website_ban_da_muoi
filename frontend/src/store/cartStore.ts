@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem } from "@/types";
+import { getAbsoluteImageUrl } from "@/lib/imageUrl";
 
 interface CartStore {
   items: CartItem[];
@@ -34,7 +35,12 @@ export const useCartStore = create<CartStore>()(
           return {
             items: [
               ...state.items,
-              { ...newItem, quantity: newItem.quantity ?? 1 },
+              {
+                ...newItem,
+                quantity: newItem.quantity ?? 1,
+                // Ensure image URL is absolute
+                image: getAbsoluteImageUrl(newItem.image),
+              },
             ],
           };
         });
@@ -67,6 +73,15 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: "himalayan-cart",
+      // Migrate old items with relative URLs to absolute URLs
+      onRehydrateStorage: () => (state) => {
+        if (state?.items) {
+          state.items = state.items.map((item) => ({
+            ...item,
+            image: getAbsoluteImageUrl(item.image),
+          }));
+        }
+      },
     },
   ),
 );

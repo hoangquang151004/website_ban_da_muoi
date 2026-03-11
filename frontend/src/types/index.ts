@@ -1,3 +1,12 @@
+// Category type
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  is_active?: boolean;
+}
+
 // Product types
 export interface Product {
   id: number;
@@ -5,14 +14,19 @@ export interface Product {
   slug: string;
   price: number;
   originalPrice?: number;
+  original_price?: number | null;
   images: string[];
+  image_url?: string | null;
   category: string;
+  category_id?: number;
   description: string;
   rating: number;
   reviewCount: number;
   stock: number;
   sku: string;
   isActive: boolean;
+  is_active?: boolean;
+  is_featured?: boolean;
   badge?: string;
 }
 
@@ -48,33 +62,35 @@ export interface AuthState {
 // Order types
 export type OrderStatus =
   | "pending"
-  | "processing"
+  | "confirmed"
+  | "packing"
   | "shipping"
   | "delivered"
   | "cancelled";
 
+export type PaymentMethod = "cod" | "bank_transfer";
+
 export interface OrderItem {
-  productId: number;
-  name: string;
-  price: number;
+  id: number;
+  product_id: number;
   quantity: number;
-  image: string;
+  unit_price: number;
+  subtotal: number;
 }
 
 export interface Order {
   id: number;
-  code: string;
-  userId: number;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  shippingAddress: string;
-  items: OrderItem[];
-  total: number;
+  user_id: number | null;
+  receiver_name: string;
+  receiver_phone: string;
+  receiver_address: string;
+  note?: string | null;
+  payment_method: PaymentMethod;
   status: OrderStatus;
-  note?: string;
-  createdAt: string;
-  updatedAt: string;
+  total_amount: number;
+  items: OrderItem[];
+  created_at: string;
+  updated_at: string;
 }
 
 // Review types

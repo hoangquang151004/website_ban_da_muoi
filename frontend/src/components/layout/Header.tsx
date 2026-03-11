@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
@@ -10,6 +10,12 @@ export default function Header() {
   const router = useRouter();
   const totalItems = useCartStore((s) => s.totalItems());
   const { user, isAuthenticated, logout } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch for cart badge
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = () => {
     authService.logout();
@@ -83,7 +89,7 @@ export default function Header() {
             className="relative p-2 text-neutral-dark hover:text-primary transition-colors rounded-full hover:bg-neutral-light"
           >
             <span className="material-symbols-outlined">shopping_cart</span>
-            {totalItems > 0 && (
+            {mounted && totalItems > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center px-1">
                 {totalItems > 99 ? "99+" : totalItems}
               </span>
@@ -91,7 +97,10 @@ export default function Header() {
           </Link>
 
           {/* Auth button - shows avatar or login icon */}
-          {isAuthenticated && user ? (
+          {!mounted ? (
+            // Render placeholder during SSR to prevent hydration mismatch
+            <div className="size-10 rounded-full bg-neutral-light/50 animate-pulse" />
+          ) : isAuthenticated && user ? (
             <div className="relative group">
               <button className="flex items-center gap-2 p-1.5 text-neutral-dark hover:text-primary transition-colors rounded-full hover:bg-neutral-light">
                 <div className="size-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">

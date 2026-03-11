@@ -26,12 +26,12 @@ class ChatIntent(str, Enum):
 
 # Từ khóa intent
 _ORDER_KEYWORDS = [
-    "mua", "thêm vào giỏ", "đặt hàng", "order", "cho tôi",
+    "mua", "thêm vào giỏ", "đặt hàng", "order",
     "thêm giỏ", "cho mình mua", "tôi cần mua", "order giùm",
     "thêm vào cart", "mua giùm", "mua ngay",
 ]
 _RECOMMEND_KEYWORDS = [
-    "gợi ý", "recommend", "tìm giúp", "tìm cho", "muốn mua",
+    "gợi ý", "recommend", "tìm giúp", "tìm cho",
     "tư vấn", "nên mua gì", "chọn sản phẩm", "sản phẩm nào",
     "loại nào", "cái nào", "gợi ý sản phẩm", "tìm sản phẩm",
     "cần sản phẩm", "đang tìm", "tìm đèn",
@@ -42,13 +42,15 @@ def detect_intent(message: str) -> ChatIntent:
     """Phân loại intent từ câu chat của user."""
     msg_lower = message.lower()
 
-    for kw in _ORDER_KEYWORDS:
-        if kw in msg_lower:
-            return ChatIntent.ORDER
-
+    # Kiểm tra RECOMMEND trước để tránh false positive với "cho tôi"
     for kw in _RECOMMEND_KEYWORDS:
         if kw in msg_lower:
             return ChatIntent.RECOMMEND
+
+    # Kiểm tra ORDER
+    for kw in _ORDER_KEYWORDS:
+        if kw in msg_lower:
+            return ChatIntent.ORDER
 
     # Nếu có đề cập giá tiền hoặc công dụng cụ thể → recommend
     if re.search(r"\d+k\b|\d{3,}đ|dưới|tầm|khoảng|giá", msg_lower):

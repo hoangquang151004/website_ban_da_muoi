@@ -15,13 +15,32 @@ async def list_users_admin(
     limit: int = 20,
     search: str | None = None,
     is_active: bool | None = None,
+    sort_by: str | None = None,
+    tier: str | None = None,
 ) -> dict:
-    """Chỉ lấy user có role=customer."""
-    query = (
-        select(User)
-        .where(User.role == UserRole.customer)
-        .order_by(User.created_at.desc())
+    """Lấy danh sách customer với order_count và total_spent, hỗ trợ filter/sort."""
+    
+    stats_subquery = (
+        select(
+            Order.user_id,
+            func.count(Order.id).label("order_count"),
+            func.coalesce(func.sum(Order.total_amount), 0).label("total_spent"),
+        )
+        .where(Order.status == OrderStatus.delivered)
+        .group_by(Order.user_id)
+        .subquery()
     )
+
+    query = (
+        select(
+            User,
+            func.coalesce(stats_subquery.c.order_count, 0).label("order_count"),
+            func.coalesce(stats_subquery.c.total_spent, 0).label("total_spent"),
+        )
+        .outerjoin(stats_subquery, User.id == stats_subquery.c.user_id)
+        .where(User.role == UserRole.customer)
+    )
+
     if search:
         pattern = f"%{search}%"
         query = query.where(
@@ -33,31 +52,39 @@ async def list_users_admin(
         )
     if is_active is not None:
         query = query.where(User.is_active == is_active)
+        
+    if tier:
+        if tier == "VIP":
+            query = query.where(func.coalesce(stats_subquery.c.total_spent, 0) >= 20000000)
+        elif tier == "Thân thiết":
+            query = query.where(
+                func.coalesce(stats_subquery.c.total_spent, 0) >= 5000000,
+                func.coalesce(stats_subquery.c.total_spent, 0) < 20000000
+            )
+        elif tier == "Mới":
+            query = query.where(func.coalesce(stats_subquery.c.total_spent, 0) < 5000000)
 
-    count_result = await db.execute(select(func.count()).select_from(query.subquery()))
+    if sort_by == "spent":
+        query = query.order_by(func.coalesce(stats_subquery.c.total_spent, 0).desc(), User.created_at.desc())
+    elif sort_by == "joined":
+        query = query.order_by(User.created_at.desc())
+    elif sort_by == "name":
+        query = query.order_by(User.full_name.asc())
+    else:
+        query = query.order_by(User.created_at.desc())
+
+    # Count total
+    count_query = select(func.count()).select_from(query.subquery())
+    count_result = await db.execute(count_query)
     total = count_result.scalar_one()
 
+    # Get page
     result = await db.execute(query.offset((page - 1) * limit).limit(limit))
-    users = list(result.scalars().all())
-
-    # Thống kê order_count + total_spent
-    user_ids = [u.id for u in users]
-    stats: dict[int, dict] = {uid: {"order_count": 0, "total_spent": 0.0} for uid in user_ids}
-    if user_ids:
-        stat_result = await db.execute(
-            select(
-                Order.user_id,
-                func.count(Order.id).label("cnt"),
-                func.coalesce(func.sum(Order.total_amount), 0).label("spent"),
-            )
-            .where(Order.user_id.in_(user_ids), Order.status == OrderStatus.delivered)
-            .group_by(Order.user_id)
-        )
-        for row in stat_result.all():
-            stats[row.user_id] = {"order_count": row.cnt, "total_spent": float(row.spent)}
+    rows = result.all()
 
     items = []
-    for u in users:
+    for row in rows:
+        u = row.User
         items.append({
             "id": u.id,
             "full_name": u.full_name,
@@ -68,8 +95,8 @@ async def list_users_admin(
             "is_active": u.is_active,
             "created_at": u.created_at,
             "updated_at": u.updated_at,
-            "order_count": stats[u.id]["order_count"],
-            "total_spent": stats[u.id]["total_spent"],
+            "order_count": row.order_count,
+            "total_spent": float(row.total_spent),
         })
 
     return {

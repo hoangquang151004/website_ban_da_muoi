@@ -4,12 +4,12 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/admin/dashboard", icon: "dashboard", label: "Tổng quan" },
-  { href: "/admin/products", icon: "package", label: "Sản phẩm" },
   {
     href: "/admin/categories",
     icon: "category",
     label: "Danh mục & Công dụng",
   },
+  { href: "/admin/products", icon: "package", label: "Sản phẩm" },
   { href: "/admin/orders", icon: "shopping_cart", label: "Đơn hàng" },
   { href: "/admin/customers", icon: "group", label: "Khách hàng" },
   { href: "/admin/reviews", icon: "star", label: "Đánh giá" },
@@ -21,7 +21,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-[250px] bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
+    <aside className="w-[250px] bg-white border-r border-slate-200 flex flex-col flex-shrink-0 sticky top-0 h-screen overflow-y-auto">
       {/* Logo */}
       <div className="p-6 flex items-center gap-3">
         <div className="bg-primary size-10 rounded-lg flex items-center justify-center text-white">

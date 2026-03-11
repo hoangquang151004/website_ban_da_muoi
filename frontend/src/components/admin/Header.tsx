@@ -5,6 +5,8 @@ interface AdminHeaderProps {
   actionLabel?: string;
   actionIcon?: string;
   onAction?: () => void;
+  searchValue?: string;
+  onSearchChange?: (val: string) => void;
 }
 
 export default function AdminHeader({
@@ -12,6 +14,8 @@ export default function AdminHeader({
   actionLabel,
   actionIcon = "add",
   onAction,
+  searchValue,
+  onSearchChange,
 }: AdminHeaderProps) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-10">
@@ -24,6 +28,10 @@ export default function AdminHeader({
             className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-primary/50 text-sm placeholder:text-slate-500 outline-none"
             placeholder={placeholder}
             type="text"
+            value={searchValue}
+            onChange={
+              onSearchChange ? (e) => onSearchChange(e.target.value) : undefined
+            }
           />
         </div>
       </div>

@@ -39,6 +39,11 @@ httpClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Do not trigger global logout for login endpoint 401s
+      if (error.config?.url?.includes("/auth/login")) {
+        return Promise.reject(error);
+      }
+
       // Clear auth state
       if (typeof window !== "undefined") {
         localStorage.removeItem("himalayan-auth");

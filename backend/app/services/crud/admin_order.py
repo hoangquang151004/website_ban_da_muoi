@@ -119,3 +119,35 @@ async def update_order_status(
         )
     )
     return refreshed.scalar_one()
+
+
+async def get_order_detail(db: AsyncSession, order_id: int) -> Order:
+    """Lấy chi tiết 1 đơn hàng kèm đầy đủ items (tên SP, ảnh) và thông tin khách hàng."""
+    result = await db.execute(
+        select(Order)
+        .where(Order.id == order_id)
+        .options(
+            selectinload(Order.items).selectinload(OrderItem.product),
+            selectinload(Order.user),
+        )
+    )
+    order = result.scalar_one_or_none()
+    if order is None:
+        raise HTTPException(status_code=404, detail="Đơn hàng không tồn tại")
+    return order
+
+
+async def get_order_stats(db: AsyncSession) -> dict:
+    """Đếm số đơn hàng theo từng trạng thái."""
+    result = await db.execute(
+        select(Order.status, func.count(Order.id).label("cnt"))
+        .group_by(Order.status)
+    )
+    rows = result.all()
+    stats: dict[str, int] = {s.value: 0 for s in OrderStatus}
+    total = 0
+    for row in rows:
+        stats[row.status.value] = row.cnt
+        total += row.cnt
+    stats["total"] = total
+    return stats

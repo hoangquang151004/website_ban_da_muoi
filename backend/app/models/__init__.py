@@ -3,6 +3,7 @@ from app.models.user import User, UserRole  # noqa: F401
 from app.models.category import Category  # noqa: F401
 from app.models.use import Use, product_uses  # noqa: F401
 from app.models.product import Product  # noqa: F401
+from app.models.product_image import ProductImage  # noqa: F401
 from app.models.order import Order, OrderItem, OrderStatus, PaymentMethod  # noqa: F401
 from app.models.review import Review  # noqa: F401
 from app.models.stock_log import StockLog, StockLogReason  # noqa: F401
@@ -14,6 +15,7 @@ __all__ = [
     "Use",
     "product_uses",
     "Product",
+    "ProductImage",
     "Order",
     "OrderItem",
     "OrderStatus",

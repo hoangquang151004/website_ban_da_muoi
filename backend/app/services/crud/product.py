@@ -74,7 +74,10 @@ async def list_products(
     query = (
         select(Product)
         .where(Product.is_active == True)  # noqa: E712
-        .options(selectinload(Product.uses))
+        .options(
+            selectinload(Product.uses),
+            selectinload(Product.images),
+        )
     )
 
     # Filter: category slug
@@ -139,14 +142,15 @@ async def list_products(
 
 
 async def get_product_by_slug(db: AsyncSession, slug: str) -> Product | None:
-    """Lấy product đầy đủ thông tin kèm category, uses, reviews (approved)."""
+    """Lấy product đầy đủ thông tin kèm category, uses, reviews (approved) + user."""
     result = await db.execute(
         select(Product)
         .where(Product.slug == slug, Product.is_active == True)  # noqa: E712
         .options(
             selectinload(Product.category),
             selectinload(Product.uses),
-            selectinload(Product.reviews),
+            selectinload(Product.reviews).selectinload(Review.user),
+            selectinload(Product.images),
         )
     )
     product = result.scalar_one_or_none()

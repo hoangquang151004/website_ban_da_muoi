@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { orderService } from "@/services/orderService";
+import type { PaymentMethod } from "@/types";
 
 const SHIPPING_FEE = 30000;
 
@@ -19,10 +20,9 @@ export default function CheckoutPage() {
 
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
   const [address, setAddress] = useState(user?.address ?? "");
   const [note, setNote] = useState("");
-  const [payment, setPayment] = useState("cod");
+  const [payment, setPayment] = useState<PaymentMethod>("cod");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,13 +38,13 @@ export default function CheckoutPage() {
     setLoading(true);
     try {
       const order = await orderService.createOrder({
-        customerName: name,
-        customerEmail: email,
-        customerPhone: phone,
-        shippingAddress: address,
+        receiver_name: name,
+        receiver_phone: phone,
+        receiver_address: address,
         note,
+        payment_method: payment,
         items: items.map((item) => ({
-          productId: item.productId,
+          product_id: item.productId,
           quantity: item.quantity,
         })),
       });
@@ -248,19 +248,6 @@ export default function CheckoutPage() {
                 </div>
                 <div className="col-span-1 md:col-span-2">
                   <label className="block text-sm font-medium text-neutral-medium mb-2">
-                    Email
-                  </label>
-                  <input
-                    required
-                    className="w-full rounded-lg border-neutral-light bg-background-light text-neutral-dark focus:border-primary focus:ring-primary placeholder-neutral-medium/50 outline-none p-3"
-                    placeholder="email@example.com"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div className="col-span-1 md:col-span-2">
-                  <label className="block text-sm font-medium text-neutral-medium mb-2">
                     Địa chỉ chi tiết
                   </label>
                   <textarea
@@ -320,20 +307,17 @@ export default function CheckoutPage() {
                     className="size-5 border-neutral-light text-primary focus:ring-primary cursor-pointer"
                     name="payment"
                     type="radio"
-                    value="vnpay"
-                    checked={payment === "vnpay"}
-                    onChange={() => setPayment("vnpay")}
+                    value="bank_transfer"
+                    checked={payment === "bank_transfer"}
+                    onChange={() => setPayment("bank_transfer")}
                   />
                   <span className="ml-3 flex items-center gap-3">
                     <span className="material-symbols-outlined text-neutral-medium group-has-[:checked]:text-primary">
                       account_balance
                     </span>
                     <span className="font-medium text-neutral-dark">
-                      Chuyển khoản VNPay
+                      Chuyển khoản ngân hàng
                     </span>
-                  </span>
-                  <span className="ml-auto text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">
-                    Giảm 5%
                   </span>
                 </label>
               </div>
@@ -359,47 +343,6 @@ export default function CheckoutPage() {
                   <span className="font-medium text-neutral-dark">
                     {formatPrice(SHIPPING_FEE)}
                   </span>
-                </div>
-                <div className="flex justify-between text-neutral-medium">
-                  <span>Giảm giá</span>
-                  <span className="font-medium text-green-600">-0đ</span>
-                </div>
-              </div>
-
-              {/* Promo Code */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-neutral-medium mb-2">
-                  Mã giảm giá
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    className="flex-1 rounded-lg border-neutral-light bg-background-light text-neutral-dark focus:border-primary focus:ring-primary text-sm uppercase placeholder-neutral-medium/50 outline-none px-3"
-                    placeholder="NHẬP MÃ TẠI ĐÂY"
-                    type="text"
-                  />
-                  <button
-                    type="button"
-                    className="bg-neutral-dark text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-neutral-dark/80 transition-colors"
-                  >
-                    Áp dụng
-                  </button>
-                </div>
-                <div className="mt-3 bg-gradient-to-r from-primary/10 to-primary/5 p-3 rounded-lg border border-primary/20 flex items-start gap-2">
-                  <span className="material-symbols-outlined text-primary text-lg mt-0.5">
-                    auto_awesome
-                  </span>
-                  <div>
-                    <p className="text-xs text-primary font-bold mb-0.5">
-                      AI đề xuất
-                    </p>
-                    <p className="text-xs text-neutral-medium">
-                      Nhập{" "}
-                      <span className="font-bold text-primary cursor-pointer border-b border-dashed border-primary">
-                        DAMUOI10
-                      </span>{" "}
-                      để được giảm 10% cho đơn hàng đầu tiên.
-                    </p>
-                  </div>
                 </div>
               </div>
 

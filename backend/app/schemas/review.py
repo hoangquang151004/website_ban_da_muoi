@@ -31,6 +31,14 @@ class ReviewSubmit(BaseModel):
         return _validate_rating(v)
 
 
+class ReviewUserSummary(BaseModel):
+    """Thông tin tóm tắt người đánh giá."""
+    id: int
+    full_name: str
+
+    model_config = {"from_attributes": True}
+
+
 class ReviewResponse(BaseModel):
     id: int
     product_id: int
@@ -38,7 +46,10 @@ class ReviewResponse(BaseModel):
     rating: int
     comment: str | None
     is_approved: bool
+    admin_reply: str | None = None
+    replied_at: datetime | None = None
     created_at: datetime
+    user: ReviewUserSummary | None = None
 
     model_config = {"from_attributes": True}
 
@@ -51,6 +62,11 @@ class ReviewListResponse(BaseModel):
 class ReviewAdminUpdate(BaseModel):
     is_approved: bool | None = None
     comment: str | None = None
+
+
+class ReviewReplyUpdate(BaseModel):
+    """Payload để admin phản hồi một review."""
+    admin_reply: str
 
 
 class ReviewAdminResponse(ReviewResponse):

@@ -19,10 +19,11 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Override sqlalchemy.url bằng DATABASE_URL từ settings (đồng bộ, dùng pymysql)
+# Override sqlalchemy.url bằng DATABASE_URL từ settings
+# Online mode (async) dùng aiomysql; offline mode dùng pymysql
 config.set_main_option(
     "sqlalchemy.url",
-    settings.DATABASE_URL.replace("aiomysql", "pymysql"),
+    settings.DATABASE_URL,  # giữ aiomysql cho async engine
 )
 
 target_metadata = Base.metadata
@@ -31,6 +32,8 @@ target_metadata = Base.metadata
 def run_migrations_offline() -> None:
     """Chạy migration ở chế độ offline (không cần kết nối thật)."""
     url = config.get_main_option("sqlalchemy.url")
+    # Offline mode không cần async driver
+    url = url.replace("aiomysql", "pymysql")
     context.configure(
         url=url,
         target_metadata=target_metadata,

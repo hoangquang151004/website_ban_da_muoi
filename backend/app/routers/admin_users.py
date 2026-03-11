@@ -1,14 +1,31 @@
 """Admin sub-router: Customer management."""
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db, require_admin
 from app.schemas.base import BaseResponse, PaginatedData
-from app.schemas.user import UserAdminResponse, UserStatusUpdate
+from app.schemas.user import UserAdminResponse, UserStatusUpdate, UserCreate, UserResponse
 from app.services.crud import admin_user as svc
+from app.services.crud.user import create_user, get_user_by_email
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 
+@router.post("/users", response_model=BaseResponse[UserResponse], status_code=status.HTTP_201_CREATED)
+async def create_new_customer(
+    body: UserCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    existing = await get_user_by_email(db, body.email)
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email đã được sử dụng",
+        )
+    user = await create_user(db, body)
+    return BaseResponse.success(
+        data=UserResponse.model_validate(user),
+        message="Thêm khách hàng thành công",
+    )
 
 @router.get("/users", response_model=BaseResponse[PaginatedData[UserAdminResponse]])
 async def list_users(
@@ -17,8 +34,10 @@ async def list_users(
     limit: int = Query(20, ge=1, le=100),
     search: str | None = Query(None),
     is_active: bool | None = Query(None),
+    sort_by: str | None = Query(None, description="sort column: spent, joined, name"),
+    tier: str | None = Query(None, description="VIP, Thân thiết, Mới"),
 ):
-    result = await svc.list_users_admin(db, page, limit, search, is_active)
+    result = await svc.list_users_admin(db, page, limit, search, is_active, sort_by, tier)
     page_data = PaginatedData(
         items=[UserAdminResponse(**item) for item in result["items"]],
         total=result["total"],
