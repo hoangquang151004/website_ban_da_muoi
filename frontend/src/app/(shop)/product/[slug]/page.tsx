@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useParams, notFound } from "next/navigation";
+import { useParams, useRouter, notFound } from "next/navigation";
 import { productService } from "@/services/productService";
 import type { Product } from "@/types";
 import type { ProductModelViewerRef } from "./ProductModelViewer";
@@ -129,6 +129,7 @@ function StarIcons({ rating }: { rating: number }) {
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = params?.slug as string;
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
@@ -160,35 +161,42 @@ export default function ProductDetailPage() {
 
   const addItem = useCartStore((s) => s.addItem);
 
-  const fetchProduct = React.useCallback(async (silently = false) => {
-    if (!slug) return;
-    if (!silently) setIsLoading(true);
-    try {
-      const data = (await productService.getProductBySlug(slug)) as any;
-      setProduct(data);
+  const fetchProduct = React.useCallback(
+    async (silently = false) => {
+      if (!slug) return;
+      if (!silently) setIsLoading(true);
+      try {
+        const data = (await productService.getProductBySlug(slug)) as any;
+        setProduct(data);
 
-      if (data.category?.slug && !silently) {
-        try {
-          const relatedRes = await productService.getProducts({
-            category_slug: data.category.slug,
-            limit: 4,
-          });
-          const relatedData = (relatedRes as any)?.data ?? relatedRes;
-          const items = Array.isArray(relatedData?.items) ? relatedData.items : [];
-          const filteredRelated = items.filter((p: any) => p.id !== data.id).slice(0, 3);
-          setRelatedProducts(filteredRelated);
-        } catch (e) {
-          console.error("Lỗi tải sản phẩm gợi ý:", e);
+        if (data.category?.slug && !silently) {
+          try {
+            const relatedRes = await productService.getProducts({
+              category_slug: data.category.slug,
+              limit: 4,
+            });
+            const relatedData = (relatedRes as any)?.data ?? relatedRes;
+            const items = Array.isArray(relatedData?.items)
+              ? relatedData.items
+              : [];
+            const filteredRelated = items
+              .filter((p: any) => p.id !== data.id)
+              .slice(0, 3);
+            setRelatedProducts(filteredRelated);
+          } catch (e) {
+            console.error("Lỗi tải sản phẩm gợi ý:", e);
+          }
         }
+      } catch (err: unknown) {
+        const axiosErr = err as { response?: { status?: number } };
+        if (axiosErr?.response?.status === 404) setNotFoundError(true);
+        console.error("Lỗi tải sản phẩm:", err);
+      } finally {
+        if (!silently) setIsLoading(false);
       }
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number } };
-      if (axiosErr?.response?.status === 404) setNotFoundError(true);
-      console.error("Lỗi tải sản phẩm:", err);
-    } finally {
-      if (!silently) setIsLoading(false);
-    }
-  }, [slug]);
+    },
+    [slug],
+  );
 
   useEffect(() => {
     fetchProduct();
@@ -211,6 +219,19 @@ export default function ProductDetailPage() {
     });
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
+  };
+
+  const handleBuyNow = () => {
+    addItem({
+      id: product.id,
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image_url ?? "",
+      slug: product.slug,
+      quantity,
+    });
+    router.push("/checkout");
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -250,7 +271,8 @@ export default function ProductDetailPage() {
   };
 
   const handleUpdateReview = async () => {
-    if (!editComment.trim()) return toast.error("Vui lòng nhập nội dung đánh giá");
+    if (!editComment.trim())
+      return toast.error("Vui lòng nhập nội dung đánh giá");
     setIsUpdatingReview(true);
     try {
       await productService.editReview(editingReviewId!, {
@@ -490,7 +512,7 @@ export default function ProductDetailPage() {
               {/* Price */}
               <div className="flex items-end gap-3 mb-5">
                 <span className="text-3xl font-bold text-primary tracking-tight">
-                  {Math.round(product.price).toLocaleString("vi-VN")}đ
+                  {Math.round(product.price).toLocaleString("vi-VN")} ₫
                 </span>
                 {product.original_price &&
                   product.original_price > product.price && (
@@ -498,8 +520,8 @@ export default function ProductDetailPage() {
                       <span className="text-lg text-stone-400 line-through mb-0.5">
                         {Math.round(product.original_price).toLocaleString(
                           "vi-VN",
-                        )}
-                        đ
+                        )}{" "}
+                        ₫
                       </span>
                       {discount && (
                         <span className="mb-1 px-2 py-0.5 bg-red-100 text-red-600 text-xs font-bold rounded">
@@ -622,7 +644,11 @@ export default function ProductDetailPage() {
               <button
                 className="w-full h-12 border-2 border-primary/20 hover:border-primary text-primary font-bold rounded-lg transition-colors flex items-center justify-center gap-2 focus:outline-[3px] focus:outline-primary/40 disabled:opacity-50"
                 disabled={product.stock === 0}
+                onClick={handleBuyNow}
               >
+                <span className="material-symbols-outlined text-[20px]">
+                  bolt
+                </span>
                 Mua ngay (Thanh toán COD)
               </button>
             </div>
@@ -696,34 +722,54 @@ export default function ProductDetailPage() {
                             )}
                           </p>
                           <p className="text-xs text-stone-400">
-                            {new Date(review.created_at).toLocaleDateString("vi-VN")}
+                            {new Date(review.created_at).toLocaleDateString(
+                              "vi-VN",
+                            )}
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <StarIcons rating={review.rating} />
-                          {user?.id === review.user_id && editingReviewId !== review.id && (
-                            <div className="flex gap-2">
-                              <button onClick={() => handleEditInit(review)} className="text-xs text-stone-500 hover:text-primary transition-colors flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[14px]">edit</span> Sửa
-                              </button>
-                              <button onClick={() => handleDeleteReview(review.id)} className="text-xs text-stone-500 hover:text-red-500 transition-colors flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[14px]">delete</span> Xóa
-                              </button>
-                            </div>
-                          )}
+                          {user?.id === review.user_id &&
+                            editingReviewId !== review.id && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditInit(review)}
+                                  className="text-xs text-stone-500 hover:text-primary transition-colors flex items-center gap-1"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]">
+                                    edit
+                                  </span>{" "}
+                                  Sửa
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteReview(review.id)}
+                                  className="text-xs text-stone-500 hover:text-red-500 transition-colors flex items-center gap-1"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]">
+                                    delete
+                                  </span>{" "}
+                                  Xóa
+                                </button>
+                              </div>
+                            )}
                         </div>
                       </div>
-                      
+
                       {editingReviewId === review.id ? (
                         <div className="flex flex-col gap-3 mt-4 border-t border-stone-100 dark:border-stone-700 pt-4">
-                          <div className="flex gap-1" onMouseLeave={() => setEditRating(editRating)}>
+                          <div
+                            className="flex gap-1"
+                            onMouseLeave={() => setEditRating(editRating)}
+                          >
                             {[1, 2, 3, 4, 5].map((star) => (
                               <button
                                 key={star}
                                 type="button"
                                 onClick={() => setEditRating(star)}
                                 className={`material-symbols-outlined text-2xl transition-colors ${
-                                  star <= editRating ? "text-primary" : "text-stone-300 dark:text-stone-600 hover:text-stone-400"
+                                  star <= editRating
+                                    ? "text-primary"
+                                    : "text-stone-300 dark:text-stone-600 hover:text-stone-400"
                                 }`}
                               >
                                 {star <= editRating ? "star" : "star_border"}
@@ -737,10 +783,17 @@ export default function ProductDetailPage() {
                             className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg outline-none focus:border-primary text-sm resize-none"
                           />
                           <div className="flex justify-end gap-2">
-                            <button onClick={() => setEditingReviewId(null)} className="px-3 py-1.5 text-xs font-bold text-stone-500 hover:bg-stone-100 rounded-lg transition-colors">
+                            <button
+                              onClick={() => setEditingReviewId(null)}
+                              className="px-3 py-1.5 text-xs font-bold text-stone-500 hover:bg-stone-100 rounded-lg transition-colors"
+                            >
                               Hủy
                             </button>
-                            <button onClick={handleUpdateReview} disabled={isUpdatingReview} className="px-3 py-1.5 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50">
+                            <button
+                              onClick={handleUpdateReview}
+                              disabled={isUpdatingReview}
+                              className="px-3 py-1.5 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+                            >
                               {isUpdatingReview ? "Ghi..." : "Lưu Thay Đổi"}
                             </button>
                           </div>
@@ -933,7 +986,7 @@ export default function ProductDetailPage() {
                   </h4>
                   <div className="mt-auto flex items-center justify-between">
                     <span className="font-bold text-stone-900 dark:text-stone-100">
-                      {item.price.toLocaleString("vi-VN")}đ
+                      {Math.round(item.price).toLocaleString("vi-VN")} ₫
                     </span>
                   </div>
                 </div>

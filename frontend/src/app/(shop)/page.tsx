@@ -4,7 +4,9 @@ import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { productService } from "@/services/productService";
+import { useCartStore } from "@/store/cartStore";
 import type { Product, Category } from "@/types";
+import toast from "react-hot-toast";
 
 const SORT_OPTIONS = [
   { value: "ban-chay", label: "Bán chạy nhất" },
@@ -197,6 +199,24 @@ function ShopContent() {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
     router.replace(`/?${params.toString()}`, { scroll: false });
+  };
+
+  const addItem = useCartStore((s) => s.addItem);
+
+  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.stock === 0) return toast.error("Sản phẩm đã hết hàng");
+    addItem({
+      id: product.id,
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image_url ?? "",
+      slug: product.slug,
+      quantity: 1,
+    });
+    toast.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
   };
 
   return (
@@ -414,7 +434,9 @@ function ShopContent() {
                       </div>
                       <button
                         className="flex items-center justify-center p-2 rounded-full bg-neutral-light hover:bg-primary hover:text-white transition-all text-neutral-dark"
-                        onClick={(e) => e.preventDefault()}
+                        onClick={(e) => handleAddToCart(e, product)}
+                        title="Thêm vào giỏ hàng"
+                        disabled={product.stock === 0}
                       >
                         <span className="material-symbols-outlined text-[20px]">
                           add_shopping_cart

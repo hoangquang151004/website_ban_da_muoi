@@ -78,6 +78,8 @@ export const useCartStore = create<CartStore>()(
         if (state?.items) {
           state.items = state.items.map((item) => ({
             ...item,
+            // Backward compatibility: old persisted shape may miss productId.
+            productId: Number(item.productId ?? item.id),
             image: getAbsoluteImageUrl(item.image),
           }));
         }

@@ -19,8 +19,14 @@ class Settings(BaseSettings):
     # AI / LLM
     OPENAI_API_KEY: str = ""
     GOOGLE_API_KEY: str = ""  # Gemini API key (tuỳ chọn)
-    LLM_PROVIDER: str = "openai"  # "openai" | "gemini" | "ollama"
+    HF_TOKEN: str = ""  # HuggingFace API token
+    LLM_PROVIDER: str = "openai"  # "openai" | "gemini" | "ollama" | "huggingface"
     LLM_MODEL: str = "gpt-4o-mini"  # Model name, thay đổi theo provider
+
+    # Embeddings
+    EMBEDDING_PROVIDER: str = "baseline"  # "baseline" | "gemini"
+    EMBEDDING_MODEL: str = ""  # Optional override model name for selected provider
+    EMBEDDING_BATCH_SIZE: int = 32
 
     # Vector DB
     CHROMA_DB_PATH: str = "./chroma_db"

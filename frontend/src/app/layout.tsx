@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" suppressHydrationWarning>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&display=swap"

@@ -6,7 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db, require_admin
 from app.schemas.base import BaseResponse
-from app.schemas.statistics import RevenuePoint, StatisticsOverview, TopProductItem
+from app.schemas.statistics import (
+    CategoryRevenueItem,
+    OrderStatusItem,
+    RevenuePoint,
+    StatisticsKPI,
+    StatisticsOverview,
+    TopProductItem,
+)
 from app.services.crud import admin_statistics as svc
 
 router = APIRouter(dependencies=[Depends(require_admin)])
@@ -38,3 +45,35 @@ async def top_products(
 ):
     data = await svc.get_top_products(db, limit, date_from, date_to)
     return BaseResponse.success(data=[TopProductItem(**item) for item in data])
+
+
+@router.get("/statistics/kpi", response_model=BaseResponse[StatisticsKPI])
+async def kpi_stats(
+    db: AsyncSession = Depends(get_db),
+    date_from: date = Query(default_factory=lambda: date.today() - timedelta(days=29)),
+    date_to: date = Query(default_factory=date.today),
+):
+    data = await svc.get_kpi_stats(db, date_from, date_to)
+    return BaseResponse.success(data=StatisticsKPI(**data))
+
+
+@router.get("/statistics/order-status", response_model=BaseResponse[list[OrderStatusItem]])
+async def order_status_distribution(
+    db: AsyncSession = Depends(get_db),
+    date_from: date = Query(default_factory=lambda: date.today() - timedelta(days=29)),
+    date_to: date = Query(default_factory=date.today),
+):
+    data = await svc.get_order_status_distribution(db, date_from, date_to)
+    return BaseResponse.success(data=[OrderStatusItem(**item) for item in data])
+
+
+@router.get(
+    "/statistics/category-revenue", response_model=BaseResponse[list[CategoryRevenueItem]]
+)
+async def category_revenue(
+    db: AsyncSession = Depends(get_db),
+    date_from: date = Query(default_factory=lambda: date.today() - timedelta(days=29)),
+    date_to: date = Query(default_factory=date.today),
+):
+    data = await svc.get_category_revenue(db, date_from, date_to)
+    return BaseResponse.success(data=[CategoryRevenueItem(**item) for item in data])

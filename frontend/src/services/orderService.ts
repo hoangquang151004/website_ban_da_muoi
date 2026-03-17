@@ -1,17 +1,21 @@
 import httpClient from "@/lib/httpClient";
-import type { Order, PaginatedResponse } from "@/types";
+import type { Order, PaginatedResponse, PaymentMethod } from "@/types";
 
-interface CreateOrderPayload {
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  shippingAddress: string;
-  note?: string;
-  items: {
-    productId: number;
-    quantity: number;
-  }[];
+export interface CreateOrderItemPayload {
+  product_id: number;
+  quantity: number;
 }
+
+export interface CreateOrderPayload {
+  receiver_name: string;
+  receiver_phone: string;
+  receiver_address: string;
+  note?: string;
+  payment_method: PaymentMethod;
+  items: CreateOrderItemPayload[];
+}
+
+export type CreateOrderResponse = Order;
 
 interface OrdersQuery {
   page?: number;
@@ -74,28 +78,44 @@ export const orderService = {
   /**
    * Tạo đơn hàng mới từ giỏ hàng
    */
-  async createOrder(payload: CreateOrderPayload): Promise<Order> {
-    const { data } = await httpClient.post<Order>("/orders", payload);
-    return data;
+  async createOrder(payload: CreateOrderPayload): Promise<CreateOrderResponse> {
+    const { data } = await httpClient.post<
+      BackendResponse<CreateOrderResponse>
+    >("/orders", payload);
+    return data.data;
   },
 
   /**
    * Lấy danh sách đơn hàng của user hiện tại
    */
-  async getMyOrders(params?: OrdersQuery): Promise<PaginatedResponse<Order>> {
-    const { data } = await httpClient.get<PaginatedResponse<Order>>(
-      "/orders/me",
+  async getMyOrders(params?: OrdersQuery): Promise<{
+    items: Order[];
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  }> {
+    const { data } = await httpClient.get<BackendPaginatedResponse<Order>>(
+      "/orders/my",
       { params },
     );
-    return data;
+    return {
+      items: data.data.items,
+      total: data.data.total,
+      page: data.data.page,
+      limit: data.data.limit,
+      total_pages: data.data.total_pages,
+    };
   },
 
   /**
    * Lấy chi tiết đơn hàng
    */
   async getOrderById(id: number): Promise<Order> {
-    const { data } = await httpClient.get<Order>(`/orders/${id}`);
-    return data;
+    const { data } = await httpClient.get<BackendResponse<Order>>(
+      `/orders/${id}`,
+    );
+    return data.data;
   },
 
   // --- Admin methods ---

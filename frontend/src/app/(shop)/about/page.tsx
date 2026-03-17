@@ -72,7 +72,7 @@ export default function AboutPage() {
                   />
                 </div>
                 <div>
-                  <p className="font-bold text-stone-900">Minh Anh</p>
+                  <p className="font-bold text-stone-900">Hoàng Văn Quang </p>
                   <p className="text-sm text-stone-500 italic">
                     Người sáng lập Himalaya Salt
                   </p>

@@ -114,7 +114,7 @@ async def list_user_orders(
     query = (
         select(Order)
         .where(Order.user_id == user_id)
-        .options(selectinload(Order.items))
+        .options(selectinload(Order.items).selectinload(OrderItem.product))
         .order_by(Order.created_at.desc())
     )
     if order_status is not None:

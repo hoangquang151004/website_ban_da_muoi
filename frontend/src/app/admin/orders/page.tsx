@@ -33,45 +33,47 @@ type OrderRow = {
 };
 
 // ─── Status config ────────────────────────────────────────────────────────────
-const STATUS_META: Record<OrderStatus, { label: string; cls: string; dot: string; icon: string }> =
-  {
-    pending: {
-      label: "Chờ xác nhận",
-      cls: "bg-amber-100 text-amber-700 border border-amber-200",
-      dot: "bg-amber-500",
-      icon: "schedule",
-    },
-    confirmed: {
-      label: "Đã xác nhận",
-      cls: "bg-indigo-100 text-indigo-700 border border-indigo-200",
-      dot: "bg-indigo-500",
-      icon: "check_circle",
-    },
-    packing: {
-      label: "Đang đóng gói",
-      cls: "bg-purple-100 text-purple-700 border border-purple-200",
-      dot: "bg-purple-500",
-      icon: "inventory_2",
-    },
-    shipping: {
-      label: "Đang giao",
-      cls: "bg-blue-100 text-blue-700 border border-blue-200",
-      dot: "bg-blue-500",
-      icon: "local_shipping",
-    },
-    delivered: {
-      label: "Đã giao",
-      cls: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-      dot: "bg-emerald-500",
-      icon: "done_all",
-    },
-    cancelled: {
-      label: "Đã hủy",
-      cls: "bg-red-100 text-red-700 border border-red-200",
-      dot: "bg-red-500",
-      icon: "cancel",
-    },
-  };
+const STATUS_META: Record<
+  OrderStatus,
+  { label: string; cls: string; dot: string; icon: string }
+> = {
+  pending: {
+    label: "Chờ xác nhận",
+    cls: "bg-amber-100 text-amber-700 border border-amber-200",
+    dot: "bg-amber-500",
+    icon: "schedule",
+  },
+  confirmed: {
+    label: "Đã xác nhận",
+    cls: "bg-indigo-100 text-indigo-700 border border-indigo-200",
+    dot: "bg-indigo-500",
+    icon: "check_circle",
+  },
+  packing: {
+    label: "Đang đóng gói",
+    cls: "bg-purple-100 text-purple-700 border border-purple-200",
+    dot: "bg-purple-500",
+    icon: "inventory_2",
+  },
+  shipping: {
+    label: "Đang giao",
+    cls: "bg-blue-100 text-blue-700 border border-blue-200",
+    dot: "bg-blue-500",
+    icon: "local_shipping",
+  },
+  delivered: {
+    label: "Đã giao",
+    cls: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    dot: "bg-emerald-500",
+    icon: "done_all",
+  },
+  cancelled: {
+    label: "Đã hủy",
+    cls: "bg-red-100 text-red-700 border border-red-200",
+    dot: "bg-red-500",
+    icon: "cancel",
+  },
+};
 
 // State machine — which transitions are allowed
 const ALLOWED_NEXT: Record<OrderStatus, OrderStatus[]> = {
@@ -99,7 +101,8 @@ const TABS: { key: TabKey; label: string }[] = [
 ];
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ??
+  "http://localhost:8000";
 
 function resolveImageUrl(url: string | null): string | null {
   if (!url) return null;
@@ -203,7 +206,7 @@ export default function AdminOrdersPage() {
             paymentMethod: o.payment_method ?? "cod",
             status: o.status as OrderStatus,
             createdAt: o.created_at ?? new Date().toISOString(),
-          }))
+          })),
         );
         setTotalOrders(res.total ?? 0);
         setTotalPages(res.totalPages ?? 1);
@@ -239,9 +242,7 @@ export default function AdminOrdersPage() {
       await orderService.updateOrderStatus(detail.id, newStatus as any);
       toast.success("Cập nhật trạng thái thành công!", { id: tid });
       setOrders((prev) =>
-        prev.map((o) =>
-          o.id === detail.id ? { ...o, status: newStatus } : o
-        )
+        prev.map((o) => (o.id === detail.id ? { ...o, status: newStatus } : o)),
       );
       setDetail((prev) => (prev ? { ...prev, status: newStatus } : prev));
       loadStats();
@@ -255,7 +256,7 @@ export default function AdminOrdersPage() {
   }
 
   const allowedNext = detail
-    ? ALLOWED_NEXT[detail.status as OrderStatus] ?? []
+    ? (ALLOWED_NEXT[detail.status as OrderStatus] ?? [])
     : [];
 
   const safePage = Math.min(currentPage, totalPages);
@@ -300,11 +301,16 @@ export default function AdminOrdersPage() {
               />
               {(dateFrom || dateTo) && (
                 <button
-                  onClick={() => { setDateFrom(""); setDateTo(""); }}
+                  onClick={() => {
+                    setDateFrom("");
+                    setDateTo("");
+                  }}
                   className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm text-slate-600 transition-colors"
                   title="Xóa bộ lọc ngày"
                 >
-                  <span className="material-symbols-outlined text-sm">close</span>
+                  <span className="material-symbols-outlined text-sm">
+                    close
+                  </span>
                 </button>
               )}
             </div>
@@ -313,12 +319,13 @@ export default function AdminOrdersPage() {
           {/* Stats bar */}
           {stats && (
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              {(["all", ...Object.keys(STATUS_META)] as (TabKey)[]).map((key) => {
+              {(["all", ...Object.keys(STATUS_META)] as TabKey[]).map((key) => {
                 const count =
                   key === "all"
                     ? stats.total
-                    : stats[key as keyof OrderStats] ?? 0;
-                const meta = key !== "all" ? STATUS_META[key as OrderStatus] : null;
+                    : (stats[key as keyof OrderStats] ?? 0);
+                const meta =
+                  key !== "all" ? STATUS_META[key as OrderStatus] : null;
                 return (
                   <button
                     key={key}
@@ -332,9 +339,7 @@ export default function AdminOrdersPage() {
                     <div className="flex items-center gap-1.5">
                       <span
                         className={`material-symbols-outlined text-base ${
-                          activeTab === key
-                            ? "text-primary"
-                            : "text-slate-400"
+                          activeTab === key ? "text-primary" : "text-slate-400"
                         }`}
                       >
                         {meta?.icon ?? "list_alt"}
@@ -344,7 +349,7 @@ export default function AdminOrdersPage() {
                           activeTab === key ? "text-primary" : "text-slate-500"
                         }`}
                       >
-                        {key === "all" ? "Tất cả" : meta?.label ?? key}
+                        {key === "all" ? "Tất cả" : (meta?.label ?? key)}
                       </span>
                     </div>
                     <p
@@ -386,7 +391,7 @@ export default function AdminOrdersPage() {
                       >
                         {tab.key === "all"
                           ? stats.total
-                          : stats[tab.key as keyof OrderStats] ?? 0}
+                          : (stats[tab.key as keyof OrderStats] ?? 0)}
                       </span>
                     )}
                   </button>
@@ -399,20 +404,39 @@ export default function AdminOrdersPage() {
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold sticky top-0">
                   <tr>
-                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">Mã đơn</th>
-                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">Khách hàng</th>
-                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">Địa chỉ</th>
-                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">Tổng tiền</th>
-                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">Thanh toán</th>
-                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">Trạng thái</th>
-                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">Ngày đặt</th>
-                    <th className="px-5 py-4 border-b border-slate-100 text-center whitespace-nowrap">Thao tác</th>
+                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">
+                      Mã đơn
+                    </th>
+                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">
+                      Khách hàng
+                    </th>
+                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">
+                      Địa chỉ
+                    </th>
+                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">
+                      Tổng tiền
+                    </th>
+                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">
+                      Thanh toán
+                    </th>
+                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">
+                      Trạng thái
+                    </th>
+                    <th className="px-5 py-4 border-b border-slate-100 whitespace-nowrap">
+                      Ngày đặt
+                    </th>
+                    <th className="px-5 py-4 border-b border-slate-100 text-center whitespace-nowrap">
+                      Thao tác
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {loading && (
                     <tr>
-                      <td colSpan={8} className="px-5 py-14 text-center text-sm text-slate-400">
+                      <td
+                        colSpan={8}
+                        className="px-5 py-14 text-center text-sm text-slate-400"
+                      >
                         <span className="inline-block size-5 border-2 border-slate-300 border-t-primary rounded-full animate-spin mr-2 align-middle" />
                         Đang tải dữ liệu...
                       </td>
@@ -420,7 +444,10 @@ export default function AdminOrdersPage() {
                   )}
                   {!loading && orders.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-5 py-14 text-center text-sm text-slate-400">
+                      <td
+                        colSpan={8}
+                        className="px-5 py-14 text-center text-sm text-slate-400"
+                      >
                         <span className="material-symbols-outlined text-4xl text-slate-300 block mb-2">
                           inbox
                         </span>
@@ -471,7 +498,8 @@ export default function AdminOrdersPage() {
                         </td>
                         <td className="px-5 py-4">
                           <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded-full whitespace-nowrap">
-                            {PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}
+                            {PAYMENT_LABEL[order.paymentMethod] ??
+                              order.paymentMethod}
                           </span>
                         </td>
                         <td className="px-5 py-4">
@@ -528,10 +556,11 @@ export default function AdminOrdersPage() {
                       ? "0"
                       : `${(safePage - 1) * pageSize + 1}–${Math.min(
                           safePage * pageSize,
-                          totalOrders
+                          totalOrders,
                         )}`}
                   </span>{" "}
-                  trong <span className="font-bold">{totalOrders}</span> đơn hàng
+                  trong <span className="font-bold">{totalOrders}</span> đơn
+                  hàng
                 </p>
               </div>
               <div className="flex items-center gap-1">
@@ -540,14 +569,16 @@ export default function AdminOrdersPage() {
                   onClick={() => setCurrentPage(safePage - 1)}
                   className="size-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40"
                 >
-                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                  <span className="material-symbols-outlined text-sm">
+                    chevron_left
+                  </span>
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter(
                     (p) =>
                       p === 1 ||
                       p === totalPages ||
-                      Math.abs(p - safePage) <= 1
+                      Math.abs(p - safePage) <= 1,
                   )
                   .reduce<(number | "...")[]>((acc, p, idx, arr) => {
                     if (
@@ -579,14 +610,16 @@ export default function AdminOrdersPage() {
                       >
                         {item}
                       </button>
-                    )
+                    ),
                   )}
                 <button
                   disabled={safePage === totalPages}
                   onClick={() => setCurrentPage(safePage + 1)}
                   className="size-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40"
                 >
-                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  <span className="material-symbols-outlined text-sm">
+                    chevron_right
+                  </span>
                 </button>
               </div>
             </div>
@@ -612,7 +645,10 @@ export default function AdminOrdersPage() {
                 )}
               </div>
               <button
-                onClick={() => { setViewId(null); setDetail(null); }}
+                onClick={() => {
+                  setViewId(null);
+                  setDetail(null);
+                }}
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
               >
                 <span className="material-symbols-outlined">close</span>
@@ -641,7 +677,8 @@ export default function AdminOrdersPage() {
                       {STATUS_META[detail.status as OrderStatus].label}
                     </span>
                     <span className="text-xs text-slate-400">
-                      {PAYMENT_LABEL[detail.payment_method] ?? detail.payment_method}
+                      {PAYMENT_LABEL[detail.payment_method] ??
+                        detail.payment_method}
                     </span>
                   </div>
 
@@ -654,9 +691,13 @@ export default function AdminOrdersPage() {
                       <p className="text-sm font-semibold text-slate-900">
                         {detail.receiver_name}
                       </p>
-                      <p className="text-sm text-slate-600">{detail.receiver_phone}</p>
+                      <p className="text-sm text-slate-600">
+                        {detail.receiver_phone}
+                      </p>
                       {detail.user && (
-                        <p className="text-xs text-slate-400">{detail.user.email}</p>
+                        <p className="text-xs text-slate-400">
+                          {detail.user.email}
+                        </p>
                       )}
                     </div>
                     <div className="bg-slate-50 rounded-xl p-4 space-y-2">
@@ -681,7 +722,9 @@ export default function AdminOrdersPage() {
                     </p>
                     <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 overflow-hidden">
                       {detail.items.map((item) => {
-                        const imgUrl = resolveImageUrl(item.image_url);
+                        const imgUrl = resolveImageUrl(
+                          item.product_image ?? null,
+                        );
                         return (
                           <div
                             key={item.id}
@@ -702,10 +745,12 @@ export default function AdminOrdersPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-slate-900 truncate">
-                                {item.product_name ?? `Sản phẩm #${item.product_id}`}
+                                {item.product_name ??
+                                  `Sản phẩm #${item.product_id}`}
                               </p>
                               <p className="text-xs text-slate-400">
-                                {fmtCurrency(Number(item.unit_price))} × {item.quantity}
+                                {fmtCurrency(Number(item.unit_price))} ×{" "}
+                                {item.quantity}
                               </p>
                             </div>
                             <p className="text-sm font-bold text-slate-900 whitespace-nowrap">
@@ -719,7 +764,9 @@ export default function AdminOrdersPage() {
 
                   {/* Total */}
                   <div className="flex items-center justify-between py-3 border-t border-slate-200">
-                    <span className="text-sm font-semibold text-slate-700">Tổng cộng</span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      Tổng cộng
+                    </span>
                     <span className="text-xl font-bold text-primary">
                       {fmtCurrency(Number(detail.total_amount))}
                     </span>
@@ -769,7 +816,10 @@ export default function AdminOrdersPage() {
             {/* Footer */}
             <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0">
               <button
-                onClick={() => { setViewId(null); setDetail(null); }}
+                onClick={() => {
+                  setViewId(null);
+                  setDetail(null);
+                }}
                 className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
               >
                 Đóng

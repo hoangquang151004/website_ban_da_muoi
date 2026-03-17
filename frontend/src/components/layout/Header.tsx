@@ -1,13 +1,14 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const totalItems = useCartStore((s) => s.totalItems());
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mounted, setMounted] = useState(false);
@@ -44,25 +45,30 @@ export default function Header() {
           <nav className="hidden md:flex items-center gap-8 pl-8 border-l border-neutral-light/50">
             <Link
               href="/"
-              className="text-neutral-dark hover:text-primary text-sm font-semibold transition-colors"
+              className={`text-sm font-bold transition-colors hover:text-primary ${
+                pathname === "/" ? "text-primary" : "text-neutral-dark"
+              }`}
             >
               Cửa hàng
             </Link>
+
             <Link
               href="/about"
-              className="text-neutral-dark/70 hover:text-primary text-sm font-medium transition-colors"
-            >
-              Lợi ích
-            </Link>
-            <Link
-              href="/about"
-              className="text-neutral-dark/70 hover:text-primary text-sm font-medium transition-colors"
+              className={`text-sm font-bold transition-colors hover:text-primary ${
+                pathname === "/about"
+                  ? "text-primary font-semibold"
+                  : "text-neutral-dark"
+              }`}
             >
               Về chúng tôi
             </Link>
             <Link
               href="/contact"
-              className="text-neutral-dark/70 hover:text-primary text-sm font-medium transition-colors"
+              className={`text-sm font-bold transition-colors hover:text-primary ${
+                pathname === "/contact"
+                  ? "text-primary font-semibold"
+                  : "text-neutral-dark"
+              }`}
             >
               Liên hệ
             </Link>
@@ -70,19 +76,6 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden sm:block relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="material-symbols-outlined text-neutral-medium text-[20px]">
-                search
-              </span>
-            </div>
-            <input
-              className="block w-full rounded-full border-none bg-neutral-light py-2 pl-10 pr-4 text-sm text-neutral-dark placeholder:text-neutral-medium focus:ring-1 focus:ring-primary outline-none"
-              placeholder="Tìm kiếm..."
-              type="text"
-            />
-          </div>
-
           {/* Cart button with item count badge */}
           <Link
             href="/cart"

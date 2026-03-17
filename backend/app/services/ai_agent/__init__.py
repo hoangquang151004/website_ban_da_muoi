@@ -1,1 +1,5 @@
-# AI Agent package — toàn bộ logic AI nằm trong thư mục này
+# AI Agent package root exports.
+
+from .embeddings import EmbeddingProvider, EmbeddingVector, EmbeddingVectors
+
+__all__ = ["EmbeddingProvider", "EmbeddingVector", "EmbeddingVectors"]

@@ -93,6 +93,11 @@ def create_rag_chain_with_sources():
     def run_with_sources(inputs: dict) -> dict:
         question = inputs["question"]
         docs = retriever.invoke(question)
+        if not docs:
+            return {
+                "answer": "Kho du lieu tu van hien dang chua co noi dung phu hop. Vui long cap nhat vector store hoac thu cau hoi cu the hon.",
+                "sources": [],
+            }
         context = _format_docs(docs)
         prompt_value = _rag_prompt.invoke({"context": context, "question": question})
         answer = (llm | StrOutputParser()).invoke(prompt_value)

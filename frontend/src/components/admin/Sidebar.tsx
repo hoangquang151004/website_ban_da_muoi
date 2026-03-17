@@ -1,9 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import { useState, useEffect } from "react";
 
 const navItems = [
   { href: "/admin/dashboard", icon: "dashboard", label: "Tổng quan" },
+  { href: "/admin/data", icon: "database", label: "Dữ liệu AI" },
   {
     href: "/admin/categories",
     icon: "category",
@@ -19,6 +22,15 @@ const navItems = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const user = useAuthStore((s) => s.user);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const adminName = mounted && user?.name ? user.name : "Quản trị viên";
+  const adminInitial = adminName.charAt(0).toUpperCase();
 
   return (
     <aside className="w-[250px] bg-white border-r border-slate-200 flex flex-col flex-shrink-0 sticky top-0 h-screen overflow-y-auto">
@@ -66,18 +78,19 @@ export default function AdminSidebar() {
       {/* Footer */}
       <div className="p-4 border-t border-slate-200">
         <Link
-          href="/admin/settings"
+          href="/"
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
         >
-          <span className="material-symbols-outlined">settings</span>
-          <p className="text-sm font-medium">Cài đặt</p>
+          <span className="material-symbols-outlined">storefront</span>
+          <p className="text-sm font-medium">Quay lại cửa hàng</p>
         </Link>
+
         <div className="mt-4 flex items-center gap-3 px-3">
           <div className="size-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs flex-shrink-0">
-            AD
+            {adminInitial}
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-900">Nguyễn Văn A</p>
+            <p className="text-xs font-bold text-slate-900">{adminName}</p>
             <p className="text-[10px] text-slate-500">Quản trị viên</p>
           </div>
         </div>

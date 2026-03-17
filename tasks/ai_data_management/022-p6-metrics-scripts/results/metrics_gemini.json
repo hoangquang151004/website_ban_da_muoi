@@ -1,0 +1,430 @@
+{
+  "provider": "gemini",
+  "dataset": {
+    "path": "D:\\web_ban_da_muoi\\tasks\\ai_data_management\\021-p6-benchmark-dataset\\dataset\\benchmark_dataset_v1.json",
+    "version": "v1.0.0",
+    "documents": 11,
+    "queries": 18,
+    "corpus_characters": 1256,
+    "query_characters": 626
+  },
+  "collection": {
+    "name": "salt_lamp_benchmark_gemini",
+    "persist_dir": "D:\\web_ban_da_muoi\\backend\\chroma_db",
+    "rebuild_index": true
+  },
+  "metrics": {
+    "recall_at_5": 0.944444,
+    "mrr_at_10": 0.869907
+  },
+  "latency": {
+    "avg_ms": 539.067,
+    "p50_ms": 550.304,
+    "p95_ms": 596.757,
+    "max_ms": 597.981
+  },
+  "query_results": [
+    {
+      "query_id": "q001",
+      "query": "phi van chuyen tinh the nao",
+      "ground_truth_doc_ids": [
+        "policy_shipping_001"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "policy_shipping_001",
+        "policy_return_001",
+        "policy_usage_001",
+        "knowledge_010",
+        "policy_warranty_001",
+        "knowledge_002",
+        "knowledge_001",
+        "knowledge_007",
+        "knowledge_009",
+        "knowledge_006"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 543.961
+    },
+    {
+      "query_id": "q002",
+      "query": "don bao nhieu thi duoc mien phi ship",
+      "ground_truth_doc_ids": [
+        "policy_shipping_001"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "policy_shipping_001",
+        "policy_return_001",
+        "policy_usage_001",
+        "policy_warranty_001",
+        "knowledge_001",
+        "knowledge_009",
+        "knowledge_010",
+        "knowledge_002",
+        "knowledge_006",
+        "knowledge_007"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 556.647
+    },
+    {
+      "query_id": "q003",
+      "query": "doi tra trong bao lau",
+      "ground_truth_doc_ids": [
+        "policy_return_001"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "policy_shipping_001",
+        "policy_usage_001",
+        "policy_return_001",
+        "knowledge_010",
+        "knowledge_002",
+        "policy_warranty_001",
+        "knowledge_006",
+        "knowledge_001",
+        "knowledge_004",
+        "knowledge_009"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 0.3333333333333333,
+      "latency_ms": 575.229
+    },
+    {
+      "query_id": "q004",
+      "query": "san pham loi co doi tra duoc khong",
+      "ground_truth_doc_ids": [
+        "policy_return_001"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "policy_return_001",
+        "policy_shipping_001",
+        "policy_warranty_001",
+        "policy_usage_001",
+        "knowledge_010",
+        "knowledge_001",
+        "knowledge_002",
+        "knowledge_009",
+        "knowledge_006",
+        "knowledge_004"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 385.565
+    },
+    {
+      "query_id": "q005",
+      "query": "bao hanh den da muoi bao lau",
+      "ground_truth_doc_ids": [
+        "policy_warranty_001"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "policy_warranty_001",
+        "policy_usage_001",
+        "knowledge_010",
+        "knowledge_006",
+        "knowledge_002",
+        "knowledge_001",
+        "knowledge_004",
+        "knowledge_009",
+        "knowledge_007",
+        "policy_return_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 597.981
+    },
+    {
+      "query_id": "q006",
+      "query": "da muoi co duoc bao hanh nut vo khong",
+      "ground_truth_doc_ids": [
+        "policy_warranty_001"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "policy_warranty_001",
+        "knowledge_001",
+        "knowledge_010",
+        "knowledge_006",
+        "knowledge_004",
+        "policy_return_001",
+        "policy_usage_001",
+        "knowledge_007",
+        "policy_shipping_001",
+        "knowledge_002"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 514.537
+    },
+    {
+      "query_id": "q007",
+      "query": "cach su dung den da muoi dung cach",
+      "ground_truth_doc_ids": [
+        "policy_usage_001"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "knowledge_001",
+        "knowledge_004",
+        "knowledge_006",
+        "policy_warranty_001",
+        "knowledge_010",
+        "knowledge_007",
+        "knowledge_002",
+        "policy_usage_001",
+        "knowledge_009",
+        "policy_shipping_001"
+      ],
+      "recall_hit_at_5": false,
+      "reciprocal_rank_at_10": 0.125,
+      "latency_ms": 509.9
+    },
+    {
+      "query_id": "q008",
+      "query": "co duoc lau den bang khan uot khong",
+      "ground_truth_doc_ids": [
+        "policy_usage_001",
+        "knowledge_010"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "policy_usage_001",
+        "knowledge_010",
+        "knowledge_002",
+        "knowledge_009",
+        "knowledge_001",
+        "knowledge_006",
+        "knowledge_004",
+        "policy_warranty_001",
+        "knowledge_007",
+        "policy_shipping_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 590.902
+    },
+    {
+      "query_id": "q009",
+      "query": "den da muoi co loc khong khi khong",
+      "ground_truth_doc_ids": [
+        "knowledge_001"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "knowledge_001",
+        "knowledge_004",
+        "knowledge_007",
+        "knowledge_006",
+        "knowledge_002",
+        "policy_warranty_001",
+        "knowledge_009",
+        "policy_usage_001",
+        "knowledge_010",
+        "policy_shipping_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 501.343
+    },
+    {
+      "query_id": "q010",
+      "query": "den da muoi co giam buc xa dien tu khong",
+      "ground_truth_doc_ids": [
+        "knowledge_001",
+        "knowledge_009"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "knowledge_001",
+        "knowledge_002",
+        "knowledge_009",
+        "knowledge_006",
+        "knowledge_004",
+        "policy_warranty_001",
+        "knowledge_007",
+        "policy_usage_001",
+        "knowledge_010",
+        "policy_shipping_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 569.518
+    },
+    {
+      "query_id": "q011",
+      "query": "dat den trong phong ngu co giup ngu ngon khong",
+      "ground_truth_doc_ids": [
+        "knowledge_002",
+        "knowledge_007"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "knowledge_002",
+        "knowledge_009",
+        "knowledge_007",
+        "policy_usage_001",
+        "knowledge_006",
+        "knowledge_001",
+        "knowledge_004",
+        "knowledge_010",
+        "policy_warranty_001",
+        "policy_shipping_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 538.559
+    },
+    {
+      "query_id": "q012",
+      "query": "nguoi hen suyuen dung den da muoi co tot khong",
+      "ground_truth_doc_ids": [
+        "knowledge_004"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "knowledge_004",
+        "knowledge_001",
+        "knowledge_002",
+        "policy_warranty_001",
+        "knowledge_006",
+        "knowledge_007",
+        "knowledge_010",
+        "policy_usage_001",
+        "knowledge_009",
+        "policy_shipping_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 579.528
+    },
+    {
+      "query_id": "q013",
+      "query": "dat den da muoi o dau la tot nhat",
+      "ground_truth_doc_ids": [
+        "knowledge_009"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "knowledge_006",
+        "knowledge_001",
+        "knowledge_004",
+        "knowledge_002",
+        "knowledge_009",
+        "policy_warranty_001",
+        "policy_usage_001",
+        "knowledge_010",
+        "knowledge_007",
+        "policy_shipping_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 0.2,
+      "latency_ms": 596.541
+    },
+    {
+      "query_id": "q014",
+      "query": "phong khach nen chon den mau nao theo phong thuy",
+      "ground_truth_doc_ids": [
+        "knowledge_006",
+        "knowledge_009"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "knowledge_006",
+        "knowledge_009",
+        "knowledge_002",
+        "knowledge_007",
+        "knowledge_001",
+        "policy_usage_001",
+        "knowledge_004",
+        "policy_shipping_001",
+        "knowledge_010",
+        "policy_warranty_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 429.56
+    },
+    {
+      "query_id": "q015",
+      "query": "bao quan den da muoi the nao de khong chay nuoc",
+      "ground_truth_doc_ids": [
+        "knowledge_010"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "knowledge_010",
+        "knowledge_001",
+        "policy_warranty_001",
+        "knowledge_004",
+        "policy_usage_001",
+        "knowledge_006",
+        "knowledge_007",
+        "knowledge_002",
+        "knowledge_009",
+        "policy_shipping_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 568.845
+    },
+    {
+      "query_id": "q016",
+      "query": "khi khong dung den thi can lam gi",
+      "ground_truth_doc_ids": [
+        "knowledge_010"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "knowledge_010",
+        "policy_usage_001",
+        "knowledge_009",
+        "knowledge_002",
+        "knowledge_001",
+        "knowledge_004",
+        "policy_shipping_001",
+        "knowledge_007",
+        "policy_warranty_001",
+        "policy_return_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 543.446
+    },
+    {
+      "query_id": "q017",
+      "query": "den mau hong hop phong nao",
+      "ground_truth_doc_ids": [
+        "knowledge_007"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "knowledge_007",
+        "knowledge_002",
+        "policy_usage_001",
+        "knowledge_009",
+        "knowledge_006",
+        "knowledge_001",
+        "knowledge_010",
+        "policy_warranty_001",
+        "knowledge_004",
+        "policy_shipping_001"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 525.436
+    },
+    {
+      "query_id": "q018",
+      "query": "giao hang mat bao lau",
+      "ground_truth_doc_ids": [
+        "policy_shipping_001"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "policy_shipping_001",
+        "policy_return_001",
+        "policy_usage_001",
+        "policy_warranty_001",
+        "knowledge_010",
+        "knowledge_002",
+        "knowledge_001",
+        "knowledge_009",
+        "knowledge_007",
+        "knowledge_006"
+      ],
+      "recall_hit_at_5": true,
+      "reciprocal_rank_at_10": 1.0,
+      "latency_ms": 575.707
+    }
+  ],
+  "generated_at_epoch": 1773551060,
+  "runtime_seconds": 12.35
+}

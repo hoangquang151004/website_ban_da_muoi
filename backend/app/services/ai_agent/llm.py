@@ -2,9 +2,10 @@
 llm.py — Singleton LLM client.
 
 Đổi provider chỉ cần sửa file .env:
-- LLM_PROVIDER=openai    → ChatOpenAI  (cần OPENAI_API_KEY)
-- LLM_PROVIDER=gemini    → ChatGoogleGenerativeAI (cần GOOGLE_API_KEY)
-- LLM_PROVIDER=ollama    → ChatOllama  (không cần API key, chạy local)
+- LLM_PROVIDER=openai        → ChatOpenAI  (cần OPENAI_API_KEY)
+- LLM_PROVIDER=gemini        → ChatGoogleGenerativeAI (cần GOOGLE_API_KEY)
+- LLM_PROVIDER=ollama        → ChatOllama  (không cần API key, chạy local)
+- LLM_PROVIDER=huggingface   → ChatOpenAI trỏ đến HF Router (cần HF_TOKEN)
 """
 
 from __future__ import annotations
@@ -32,6 +33,15 @@ def get_llm():
         return ChatOllama(
             model=settings.LLM_MODEL or "llama3.2",
             temperature=0.2,
+        )
+
+    if provider == "huggingface":
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(
+            model=settings.LLM_MODEL or "openai/gpt-oss-120b:groq",
+            temperature=0.2,
+            api_key=settings.HF_TOKEN,
+            base_url="https://router.huggingface.co/v1",
         )
 
     # Default: OpenAI

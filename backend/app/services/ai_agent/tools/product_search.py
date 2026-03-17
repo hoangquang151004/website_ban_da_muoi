@@ -91,6 +91,21 @@ async def product_search_tool(
         db_result = await session.execute(query_obj)
         db_products = db_result.scalars().all()
 
+        # Fallback: nếu lọc theo use quá hẹp, bổ sung thêm sản phẩm chung
+        if inferred_use_id is not None and len(db_products) < 3:
+            fallback_query = (
+                select(Product)
+                .where(and_(*conditions))
+                .options(selectinload(Product.uses))
+                .order_by(Product.is_featured.desc(), Product.id)
+                .limit(10)
+            )
+            fallback_result = await session.execute(fallback_query)
+            fallback_products = fallback_result.scalars().all()
+
+            existing_ids = {p.id for p in db_products}
+            db_products.extend([p for p in fallback_products if p.id not in existing_ids])
+
         # Ưu tiên sản phẩm trong Vector Search candidates
         sorted_products = sorted(
             db_products,
@@ -100,7 +115,7 @@ async def product_search_tool(
             ),
         )
 
-        for p in sorted_products[:6]:
+        for p in sorted_products[:3]:
             uses_text = ", ".join(u.name for u in p.uses) if p.uses else "Đa công dụng"
             results.append(
                 f"- ID:{p.id} | {p.name} | Giá: {int(p.price):,}đ | "
@@ -178,19 +193,37 @@ async def search_products_structured(
         db_result = await session.execute(query_obj)
         products = db_result.scalars().all()
 
+        # Fallback: nếu lọc theo use quá hẹp, bổ sung thêm sản phẩm chung
+        if inferred_use_id is not None and len(products) < 6:
+            fallback_query = (
+                select(Product)
+                .where(and_(*conditions))
+                .options(selectinload(Product.uses))
+                .order_by(Product.is_featured.desc())
+                .limit(10)
+            )
+            fallback_result = await session.execute(fallback_query)
+            fallback_products = fallback_result.scalars().all()
+
+            existing_ids = {p.id for p in products}
+            products.extend([p for p in fallback_products if p.id not in existing_ids])
+
         sorted_products = sorted(
             products,
             key=lambda p: (0 if p.id in candidate_product_ids else 1, not p.is_featured),
         )
 
         for p in sorted_products[:6]:
+            short_description = (p.description[:120] + "...") if p.description and len(p.description) > 120 else p.description
             output.append({
                 "id": p.id,
                 "name": p.name,
+            "slug": p.slug,
                 "price": float(p.price),
                 "original_price": float(p.original_price) if p.original_price else None,
                 "image_url": p.image_url,
                 "stock": p.stock,
+                "short_description": short_description,
                 "uses": [{"id": u.id, "name": u.name} for u in p.uses],
             })
 

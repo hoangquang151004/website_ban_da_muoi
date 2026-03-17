@@ -1,0 +1,127 @@
+# Bộ Dữ Liệu Mẫu - Website Đá Muối Himalaya
+
+## Meta
+
+- category: policy, knowledge, usage
+- tags: vận chuyển, đổi trả, bảo hành, phong thủy, sức khỏe
+- version: 1.0.0
+- language: vi
+
+---
+
+## 1) Chính sách vận chuyển
+
+### C1: Phí vận chuyển được tính như thế nào?
+
+Trả lời: Đơn hàng dưới 1.000.000đ tính phí theo khu vực. Đơn từ 1.000.000đ trở lên được miễn phí giao hàng nội thành.
+
+### C2: Thời gian giao hàng bao lâu?
+
+Trả lời: Thời gian giao hàng trung bình 2 đến 5 ngày làm việc, tùy theo địa chỉ nhận hàng.
+
+### C3: Có giao hàng cuối tuần không?
+
+Trả lời: Có, một số đơn vị vận chuyển hỗ trợ giao thứ Bảy. Chủ Nhật phụ thuộc khu vực.
+
+---
+
+## 2) Chính sách đổi trả và bảo hành
+
+### C4: Sản phẩm lỗi có đổi trả được không?
+
+Trả lời: Hỗ trợ đổi trả trong 7 ngày nếu lỗi do nhà sản xuất hoặc hư hỏng khi vận chuyển.
+
+### C5: Điều kiện đổi trả là gì?
+
+Trả lời: Sản phẩm cần còn đầy đủ phụ kiện, hóa đơn hoặc thông tin đơn hàng, và hình ảnh tình trạng lỗi.
+
+### C6: Bảo hành áp dụng cho những bộ phận nào?
+
+Trả lời: Bảo hành bóng đèn và dây điện trong 3 tháng. Khối đá muối tự nhiên không bảo hành nứt vỡ do va đập.
+
+### C7: Nếu đèn chảy nước có được bảo hành không?
+
+Trả lời: Hiện tượng chảy nước do độ ẩm cao là tính chất tự nhiên của đá muối, không thuộc phạm vi bảo hành.
+
+---
+
+## 3) Kiến thức sản phẩm
+
+### C8: Đèn đá muối có công dụng gì?
+
+Trả lời: Đèn đá muối giúp tạo không gian ấm áp, thư giãn tinh thần, hỗ trợ cảm giác dễ ngủ và tăng tính thẩm mỹ cho không gian.
+
+### C9: Đèn đá muối có lọc không khí không?
+
+Trả lời: Đèn đá muối không phải thiết bị lọc không khí chuyên dụng, nhưng có thể hỗ trợ cảm giác dễ chịu trong không gian sống.
+
+### C10: Nên đặt đèn đá muối ở đâu?
+
+Trả lời: Nên đặt ở phòng ngủ, phòng khách, bàn làm việc, khu vực thư giãn; tránh nơi ẩm ướt và sát cửa sổ mưa tạt.
+
+### C11: Đèn đá muối hợp mệnh nào?
+
+Trả lời: Màu cam hồng ấm thường được ưa chuộng trong không gian cần tạo sự ấm cúng, phù hợp nhiều phong cách phong thủy gia đình.
+
+---
+
+## 4) Hướng dẫn sử dụng và bảo quản
+
+### C12: Mỗi ngày nên bật đèn bao lâu?
+
+Trả lời: Nên bật đèn 1 đến 3 giờ mỗi ngày. Có thể bật lâu hơn nếu phòng có độ ẩm cao.
+
+### C13: Vệ sinh đèn đá muối như thế nào?
+
+Trả lời: Dùng khăn khô lau nhẹ bề mặt, tránh dùng khăn ướt hoặc rửa trực tiếp bằng nước.
+
+### C14: Làm sao tránh chảy nước?
+
+Trả lời: Đặt đèn nơi khô thoáng, bật đèn đều để tạo nhiệt nhẹ, có thể dùng gói hút ẩm gần khu vực đặt đèn.
+
+### C15: Khi không sử dụng nên làm gì?
+
+Trả lời: Rút điện, lau khô bề mặt và bảo quản đèn ở nơi khô thoáng, tránh độ ẩm cao kéo dài.
+
+---
+
+## 5) Gợi ý lựa chọn theo nhu cầu
+
+### C16: Phòng ngủ nhỏ nên chọn loại nào?
+
+Trả lời: Có thể chọn đèn 2–3 kg với ánh sáng dịu, phù hợp không gian nhỏ và nhu cầu thư giãn buổi tối.
+
+### C17: Phòng khách rộng nên chọn loại nào?
+
+Trả lời: Có thể chọn đèn 5–7 kg để tạo điểm nhấn nội thất rõ ràng hơn.
+
+### C18: Người mới nên mua màu nào để dễ phối nội thất?
+
+Trả lời: Màu cam hồng truyền thống dễ kết hợp với nội thất hiện đại và cổ điển.
+
+### C19: Đèn đá muối có tốn điện nhiều không?
+
+Trả lời: Đèn sử dụng bóng công suất thấp, mức tiêu thụ điện thường rất nhỏ.
+
+### C20: Có cần thay bóng định kỳ không?
+
+Trả lời: Có, tùy tần suất sử dụng. Nên dùng đúng loại bóng theo khuyến nghị của nhà bán.
+
+---
+
+## 6) Mẫu câu hỏi benchmark để test retrieval
+
+- Phí ship được tính như thế nào?
+- Đơn bao nhiêu thì được miễn phí ship?
+- Bảo hành bóng đèn bao lâu?
+- Có đổi trả nếu hư hỏng lúc vận chuyển không?
+- Đặt đèn đá muối ở đâu trong phòng ngủ?`
+- Cách bảo quản để đèn không chảy nước?
+
+---
+
+## 7) Ghi chú cho quản trị viên
+
+- Khuyến nghị upload file này với category: policy
+- Tags đề xuất: shipping, warranty, return, usage, knowledge
+- Sau khi upload, bấm Re-index nếu cần cập nhật nội dung

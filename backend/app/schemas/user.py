@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import date, datetime
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
-from app.models.user import UserRole
+from app.models.user import UserGender, UserRole
 
 
 class UserCreate(BaseModel):
@@ -24,7 +25,16 @@ class UserUpdateProfile(BaseModel):
     """Schema cho user tự cập nhật hồ sơ cá nhân và đổi mật khẩu."""
     full_name: str | None = None
     phone: str | None = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[UserGender] = None
+    # Address fields
     address: str | None = None
+    ward: str | None = None
+    district: str | None = None
+    city: str | None = None
+    postal_code: str | None = None
+    address_note: str | None = None
+    # Password change
     current_password: str | None = None
     new_password: str | None = None
 
@@ -34,7 +44,15 @@ class UserResponse(BaseModel):
     full_name: str
     email: str
     phone: str | None
+    date_of_birth: date | None
+    gender: UserGender | None
+    avatar_url: str | None
     address: str | None
+    ward: str | None
+    district: str | None
+    city: str | None
+    postal_code: str | None
+    address_note: str | None
     role: UserRole
     is_active: bool
     created_at: datetime

@@ -17,6 +17,9 @@ class OrderItemResponse(BaseModel):
     quantity: int
     unit_price: Decimal
     subtotal: Decimal
+    product_name: str | None = None
+    image_url: str | None = None
+    product_slug: str | None = None
 
     model_config = {"from_attributes": True}
 

@@ -7,7 +7,7 @@ export default function AccountDashboardPage() {
       {/* Welcome Section */}
       <div>
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-          Chào mừng trở lại, An! ✨
+          Chào mừng bạn trở lại! ✨
         </h2>
         <p className="text-slate-500 mt-2">
           Dưới đây là tóm tắt hoạt động tài khoản của bạn trong tháng này.
@@ -15,7 +15,7 @@ export default function AccountDashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between">
           <div className="space-y-2">
             <p className="text-sm font-medium text-slate-500">
@@ -54,7 +54,7 @@ export default function AccountDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between">
+        {/* <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between">
           <div className="space-y-2">
             <p className="text-sm font-medium text-slate-500">
               Điểm thưởng tích lũy
@@ -75,7 +75,7 @@ export default function AccountDashboardPage() {
           <div className="p-3 bg-yellow-50 text-yellow-600 rounded-lg">
             <span className="material-symbols-outlined">loyalty</span>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Secondary Content Grid */}
@@ -190,22 +190,6 @@ export default function AccountDashboardPage() {
                 </div>
               </div>
             </Link>
-          </div>
-
-          {/* Promotion Banner */}
-          <div className="bg-gradient-to-br from-primary to-orange-600 rounded-xl p-6 text-white relative overflow-hidden shadow-sm">
-            <div className="relative z-10">
-              <h3 className="font-bold text-xl mb-2">Ưu đãi thành viên</h3>
-              <p className="text-white/80 text-sm mb-4">
-                Giảm ngay 15% cho đơn hàng tiếp theo từ 1.000.000đ
-              </p>
-              <div className="inline-block bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg font-mono text-sm tracking-widest border border-white/30 font-bold">
-                SALTVIP15
-              </div>
-            </div>
-            <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-white/10 text-9xl">
-              workspace_premium
-            </span>
           </div>
         </div>
       </div>

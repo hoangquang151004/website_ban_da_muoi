@@ -7,6 +7,14 @@ from app.models.product_image import ProductImage  # noqa: F401
 from app.models.order import Order, OrderItem, OrderStatus, PaymentMethod  # noqa: F401
 from app.models.review import Review  # noqa: F401
 from app.models.stock_log import StockLog, StockLogReason  # noqa: F401
+from app.models.data_source import (  # noqa: F401
+    DataSource,
+    DataChunk,
+    IndexJob,
+    DataSourceStatus,
+    IndexJobStatus,
+    IndexJobOperation,
+)
 
 __all__ = [
     "User",
@@ -23,4 +31,10 @@ __all__ = [
     "Review",
     "StockLog",
     "StockLogReason",
+    "DataSource",
+    "DataChunk",
+    "IndexJob",
+    "DataSourceStatus",
+    "IndexJobStatus",
+    "IndexJobOperation",
 ]

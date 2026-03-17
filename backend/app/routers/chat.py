@@ -10,7 +10,7 @@ Endpoints:
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -19,6 +19,16 @@ from app.core.dependencies import get_optional_user, get_current_user
 from app.schemas.base import BaseResponse
 
 router = APIRouter()
+
+
+ResponseType = Literal[
+    "text",          # Cau tra loi van ban thuan / RAG knowledge
+    "product_cards", # Danh sach san pham goi y
+    "checkout_form", # Form checkout nhung trong chat
+    "order_list",    # Danh sach don hang cua user
+    "order_detail",  # Chi tiet 1 don hang
+    "stats",         # Widgets thong ke cho admin
+]
 
 
 # ---------------------------------------------------------------------------
@@ -47,11 +57,17 @@ class OrderChatResponse(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+    response_type: ResponseType = "text"
     intent: Optional[str] = None
+    data: Optional[dict] = None
+    meta: Optional[dict] = None
     products: Optional[list[dict]] = None
     sources: Optional[list[dict]] = None
     cart_updated: Optional[bool] = None
     cart_item: Optional[dict] = None
+    orders: Optional[list[dict]] = None
+    order_detail: Optional[dict] = None
+    stats_data: Optional[dict] = None
 
 
 # ---------------------------------------------------------------------------
@@ -66,9 +82,11 @@ async def chat_unified(
     from app.services.ai_agent.agent import run_chat
 
     user_id = current_user.id if current_user else None
+    user_role = current_user.role if current_user else None
     result = await run_chat(
         message=req.message,
         user_id=user_id,
+        user_role=user_role,
         session_id=req.session_id,
     )
     return BaseResponse.success(data=result)

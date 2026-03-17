@@ -51,8 +51,22 @@ async def update_user_profile(
         user.full_name = data.full_name
     if data.phone is not None:
         user.phone = data.phone
+    if data.date_of_birth is not None:
+        user.date_of_birth = data.date_of_birth
+    if data.gender is not None:
+        user.gender = data.gender
     if data.address is not None:
         user.address = data.address
+    if data.ward is not None:
+        user.ward = data.ward
+    if data.district is not None:
+        user.district = data.district
+    if data.city is not None:
+        user.city = data.city
+    if data.postal_code is not None:
+        user.postal_code = data.postal_code
+    if data.address_note is not None:
+        user.address_note = data.address_note
 
     await db.flush()
     await db.refresh(user)

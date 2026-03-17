@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Quản lý Dữ liệu AI - Knowledge Base</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f28c26",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="flex min-h-screen">
+<!-- Sidebar Navigation -->
+<aside class="w-64 border-r border-primary/10 bg-white dark:bg-background-dark hidden md:flex flex-col">
+<div class="p-6">
+<div class="flex items-center gap-3 text-primary">
+<span class="material-symbols-outlined text-3xl">neurology</span>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-none">Admin Panel</h1>
+</div>
+<p class="text-xs text-primary/70 mt-1 uppercase tracking-widest font-semibold">Hệ thống AI</p>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-primary/5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Tổng quan</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">database</span>
+<span class="text-sm font-medium">Dữ liệu AI</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-primary/5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">settings_suggest</span>
+<span class="text-sm font-medium">Cấu hình Bot</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-primary/5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-sm font-medium">Người dùng</span>
+</a>
+<div class="pt-4 pb-2 px-3 text-[10px] uppercase font-bold text-slate-400 tracking-widest">Hệ thống</div>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-primary/5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Cài đặt chung</span>
+</a>
+</nav>
+<div class="p-4 border-t border-primary/10">
+<div class="flex items-center gap-3 px-3 py-2">
+<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm">person</span>
+</div>
+<div class="overflow-hidden">
+<p class="text-sm font-bold truncate">Admin User</p>
+<p class="text-xs text-slate-500 truncate">admin@example.com</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- Top Navigation Bar -->
+<header class="h-16 bg-white dark:bg-background-dark border-b border-primary/10 flex items-center justify-between px-8 z-10">
+<div class="flex items-center gap-4 flex-1">
+<span class="md:hidden material-symbols-outlined text-slate-600">menu</span>
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-background-light dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/50" placeholder="Tìm kiếm nguồn dữ liệu..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 text-slate-500 hover:bg-primary/5 rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-primary/5 rounded-full transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="flex-1 overflow-y-auto p-8 space-y-8">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h2 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Quản lý Dữ liệu AI</h2>
+<p class="text-slate-500 mt-1">Quản lý và đồng bộ hóa Knowledge Base cho Vector Database</p>
+</div>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all">
+<span class="material-symbols-outlined">add</span>
+                        Thêm nguồn dữ liệu
+                    </button>
+</div>
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-primary/10 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="text-slate-500 font-medium text-sm">Tổng tài liệu</span>
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">description</span>
+</div>
+</div>
+<p class="text-2xl font-bold">1,250</p>
+<p class="text-xs text-green-600 font-medium mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">trending_up</span> +12% tháng này
+                        </p>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-primary/10 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="text-slate-500 font-medium text-sm">Dung lượng dữ liệu</span>
+<div class="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+<span class="material-symbols-outlined">database</span>
+</div>
+</div>
+<p class="text-2xl font-bold">4.2 GB</p>
+<p class="text-xs text-slate-400 mt-2">Dùng 42% dung lượng</p>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-primary/10 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="text-slate-500 font-medium text-sm">Mục đã Vector hóa</span>
+<div class="p-2 bg-purple-500/10 rounded-lg text-purple-500">
+<span class="material-symbols-outlined">memory</span>
+</div>
+</div>
+<p class="text-2xl font-bold">85,000</p>
+<p class="text-xs text-purple-600 font-medium mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">check_circle</span> 98% thành công
+                        </p>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-primary/10 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="text-slate-500 font-medium text-sm">Cập nhật lần cuối</span>
+<div class="p-2 bg-orange-500/10 rounded-lg text-orange-500">
+<span class="material-symbols-outlined">update</span>
+</div>
+</div>
+<p class="text-2xl font-bold">10 phút</p>
+<p class="text-xs text-slate-400 mt-2">Tự động đồng bộ</p>
+</div>
+</div>
+<!-- AI Training Status -->
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-primary/10 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">analytics</span>
+                            Trạng thái huấn luyện AI (VectorDB Indexing)
+                        </h3>
+<span class="text-sm font-semibold text-primary">85% Hoàn tất</span>
+</div>
+<div class="w-full bg-primary/10 h-3 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 85%;"></div>
+</div>
+<div class="mt-3 flex justify-between text-xs text-slate-500">
+<span>Đang xử lý: "Thông tin sản phẩm 2024.pdf"</span>
+<span>Dự kiến: 2 phút còn lại</span>
+</div>
+</div>
+<!-- Data Sources Table -->
+<div class="bg-white dark:bg-background-dark rounded-xl border border-primary/10 shadow-sm overflow-hidden">
+<div class="px-6 py-4 border-b border-primary/10 flex justify-between items-center bg-primary/5">
+<h3 class="font-bold">Danh sách nguồn dữ liệu</h3>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-white rounded-lg text-slate-500 transition-colors">
+<span class="material-symbols-outlined text-xl">filter_list</span>
+</button>
+<button class="p-2 hover:bg-white rounded-lg text-slate-500 transition-colors">
+<span class="material-symbols-outlined text-xl">sync</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-xs uppercase text-slate-400 border-b border-primary/10">
+<th class="px-6 py-4 font-bold">Tên nguồn</th>
+<th class="px-6 py-4 font-bold">Loại</th>
+<th class="px-6 py-4 font-bold">Trạng thái</th>
+<th class="px-6 py-4 font-bold">Ngày thêm</th>
+<th class="px-6 py-4 font-bold text-right">Thao tác</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-primary/10">
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-red-100 flex items-center justify-center text-red-600">
+<span class="material-symbols-outlined text-xl">picture_as_pdf</span>
+</div>
+<span class="font-medium">Thông tin sản phẩm</span>
+</div>
+</td>
+<td class="px-6 py-4 text-sm">PDF</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase">Indexed</span>
+</td>
+<td class="px-6 py-4 text-sm text-slate-500">12/05/2024</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-1 text-primary hover:bg-primary/10 rounded" title="Sync">
+<span class="material-symbols-outlined text-xl">sync</span>
+</button>
+<button class="p-1 text-slate-400 hover:bg-slate-100 rounded" title="Edit">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+<button class="p-1 text-red-400 hover:bg-red-50 rounded" title="Delete">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-blue-100 flex items-center justify-center text-blue-600">
+<span class="material-symbols-outlined text-xl">language</span>
+</div>
+<span class="font-medium">Chính sách bảo hành</span>
+</div>
+</td>
+<td class="px-6 py-4 text-sm">Website URL</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 bg-orange-100 text-orange-700 text-[10px] font-bold rounded-full uppercase">Processing</span>
+</td>
+<td class="px-6 py-4 text-sm text-slate-500">14/05/2024</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-1 text-primary hover:bg-primary/10 rounded" title="Sync">
+<span class="material-symbols-outlined text-xl">sync</span>
+</button>
+<button class="p-1 text-slate-400 hover:bg-slate-100 rounded" title="Edit">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+<button class="p-1 text-red-400 hover:bg-red-50 rounded" title="Delete">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-green-100 flex items-center justify-center text-green-600">
+<span class="material-symbols-outlined text-xl">csv</span>
+</div>
+<span class="font-medium">Dữ liệu khách hàng mẫu</span>
+</div>
+</td>
+<td class="px-6 py-4 text-sm">CSV</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 bg-red-100 text-red-700 text-[10px] font-bold rounded-full uppercase">Failed</span>
+</td>
+<td class="px-6 py-4 text-sm text-slate-500">10/05/2024</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-1 text-primary hover:bg-primary/10 rounded" title="Sync">
+<span class="material-symbols-outlined text-xl">sync</span>
+</button>
+<button class="p-1 text-slate-400 hover:bg-slate-100 rounded" title="Edit">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+<button class="p-1 text-red-400 hover:bg-red-50 rounded" title="Delete">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Integration Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- File Upload -->
+<div class="bg-white dark:bg-background-dark p-8 rounded-xl border-2 border-dashed border-primary/20 flex flex-col items-center justify-center text-center">
+<div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4">
+<span class="material-symbols-outlined text-4xl">upload_file</span>
+</div>
+<h4 class="text-xl font-bold mb-2">Tải lên tập tin</h4>
+<p class="text-slate-500 text-sm mb-6">Hỗ trợ PDF, CSV, TXT, DOCX. Kích thước tối đa 50MB.</p>
+<button class="bg-primary/10 hover:bg-primary/20 text-primary px-6 py-2 rounded-lg font-bold transition-all">
+                            Chọn tập tin
+                        </button>
+</div>
+<!-- URL Scraper -->
+<div class="bg-white dark:bg-background-dark p-8 rounded-xl border border-primary/10 shadow-sm flex flex-col">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">link</span>
+</div>
+<h4 class="text-xl font-bold">Cào dữ liệu từ Website</h4>
+</div>
+<div class="flex flex-col gap-4 flex-1">
+<div class="space-y-2">
+<label class="text-sm font-medium text-slate-600">Nhập URL nguồn</label>
+<input class="w-full px-4 py-2 bg-background-light dark:bg-slate-800 border-primary/20 rounded-lg text-sm focus:ring-primary focus:border-primary" placeholder="https://example.com/docs" type="url"/>
+</div>
+<div class="flex gap-4">
+<label class="flex items-center gap-2 text-sm cursor-pointer">
+<input class="rounded text-primary focus:ring-primary" type="checkbox"/>
+<span>Cào đệ quy (Sub-links)</span>
+</label>
+</div>
+<button class="mt-auto bg-slate-900 dark:bg-primary text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity">
+                                Bắt đầu Crawl
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

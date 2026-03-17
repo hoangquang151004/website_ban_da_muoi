@@ -1,0 +1,53 @@
+{
+  "dataset": "D:\\web_ban_da_muoi\\tasks\\ai_data_management\\021-p6-benchmark-dataset\\dataset\\benchmark_dataset_v1.json",
+  "recall_k": 5,
+  "mrr_k": 10,
+  "providers": [
+    {
+      "provider": "baseline",
+      "status": "success",
+      "metrics": {
+        "recall": 0.833333,
+        "mrr": 0.517284
+      },
+      "latency": {
+        "avg_ms": 16.796,
+        "p50_ms": 15.847,
+        "p95_ms": 22.04,
+        "max_ms": 27.289
+      },
+      "cost": {
+        "rate_usd_per_1k_chars": 0.0,
+        "estimated_usd": 0.0
+      },
+      "runtime_seconds": 10.669,
+      "error": null
+    },
+    {
+      "provider": "gemini",
+      "status": "success",
+      "metrics": {
+        "recall": 0.944444,
+        "mrr": 0.869907
+      },
+      "latency": {
+        "avg_ms": 539.067,
+        "p50_ms": 550.304,
+        "p95_ms": 596.757,
+        "max_ms": 597.981
+      },
+      "cost": {
+        "rate_usd_per_1k_chars": 0.00012,
+        "estimated_usd": 0.000226
+      },
+      "runtime_seconds": 12.353,
+      "error": null
+    }
+  ],
+  "recommendation": "hybrid_baseline_default",
+  "notes": [
+    "Khong dat dong thoi quality-latency-cost de rollout full Gemini.",
+    "Khuyen nghi hybrid: baseline mac dinh, Gemini cho policy/query can do chinh xac cao."
+  ],
+  "generated_at_epoch": 1773551060
+}

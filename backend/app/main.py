@@ -77,6 +77,7 @@ from app.routers import admin_users  # noqa: E402
 from app.routers import admin_reviews  # noqa: E402
 from app.routers import admin_stock  # noqa: E402
 from app.routers import admin_statistics  # noqa: E402
+from app.routers import admin_data  # noqa: E402
 from app.routers import chat  # noqa: E402
 from app.routers import admin_chat  # noqa: E402
 
@@ -92,6 +93,7 @@ app.include_router(admin_users.router, prefix="/api/v1/admin", tags=["Admin — 
 app.include_router(admin_reviews.router, prefix="/api/v1/admin", tags=["Admin — Reviews"])
 app.include_router(admin_stock.router, prefix="/api/v1/admin", tags=["Admin — Stock"])
 app.include_router(admin_statistics.router, prefix="/api/v1/admin", tags=["Admin — Statistics"])
+app.include_router(admin_data.router, prefix="/api/v1/admin", tags=["Admin — Data Sources"])
 
 # AI Agent / Chat routers
 app.include_router(chat.router, prefix="/api/v1", tags=["Chat — AI Agent"])

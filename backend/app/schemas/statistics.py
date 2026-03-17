@@ -21,3 +21,29 @@ class TopProductItem(BaseModel):
     product_name: str
     total_sold: int
     total_revenue: float
+
+
+class StatisticsKPI(BaseModel):
+    total_revenue: float
+    gross_profit: float
+    total_cost: float         # COGS (cost of goods sold)
+    avg_order_value: float
+    completed_orders: int
+    new_customers: int
+    growth_pct: float         # revenue growth vs previous same-length period
+
+
+class OrderStatusItem(BaseModel):
+    status: str
+    count: int
+    percentage: float
+
+
+class CategoryRevenueItem(BaseModel):
+    category_id: int
+    category_name: str
+    qty_sold: int
+    revenue: float
+    cost: float
+    profit: float
+    margin_pct: float

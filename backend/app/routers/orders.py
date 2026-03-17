@@ -6,10 +6,41 @@ from app.core.dependencies import get_current_user, get_db, get_optional_user
 from app.models.order import OrderStatus
 from app.models.user import UserRole
 from app.schemas.base import BaseResponse
-from app.schemas.order import OrderCreate, OrderListPage, OrderResponse
+from app.schemas.order import OrderCreate, OrderListPage, OrderResponse, OrderItemResponse
 from app.services.crud import order as order_crud
 
 router = APIRouter()
+
+
+def _build_order_response(order) -> OrderResponse:
+    """Builds OrderResponse from ORM Order, populating product info in items."""
+    items_data = [
+        OrderItemResponse(
+            id=item.id,
+            product_id=item.product_id,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            subtotal=item.subtotal,
+            product_name=item.product.name if item.product else None,
+            image_url=item.product.image_url if item.product else None,
+            product_slug=item.product.slug if item.product else None,
+        )
+        for item in order.items
+    ]
+    return OrderResponse(
+        id=order.id,
+        user_id=order.user_id,
+        receiver_name=order.receiver_name,
+        receiver_phone=order.receiver_phone,
+        receiver_address=order.receiver_address,
+        note=order.note,
+        payment_method=order.payment_method,
+        status=order.status,
+        total_amount=order.total_amount,
+        items=items_data,
+        created_at=order.created_at,
+        updated_at=order.updated_at,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -57,7 +88,7 @@ async def list_my_orders(
         limit=limit,
     )
     page_data = OrderListPage(
-        items=[OrderResponse.model_validate(o) for o in result["items"]],
+        items=[_build_order_response(o) for o in result["items"]],
         total=result["total"],
         page=result["page"],
         limit=result["limit"],
@@ -91,4 +122,4 @@ async def get_order(
             detail="Bạn không có quyền xem đơn hàng này",
         )
 
-    return BaseResponse.success(data=OrderResponse.model_validate(order))
+    return BaseResponse.success(data=_build_order_response(order))

@@ -16,9 +16,11 @@ class Product(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     original_price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    cost_price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     stock: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     model_3d_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    min_stock: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     category_id: Mapped[int] = mapped_column(

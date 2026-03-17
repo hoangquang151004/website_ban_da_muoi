@@ -24,7 +24,15 @@ interface BackendUser {
   full_name: string;
   email: string;
   phone?: string;
+  date_of_birth?: string | null;
+  gender?: "male" | "female" | "other" | null;
+  avatar_url?: string | null;
   address?: string;
+  ward?: string | null;
+  district?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
+  address_note?: string | null;
   role: "customer" | "admin";
   is_active: boolean;
   created_at: string;
@@ -38,7 +46,15 @@ function normalizeUser(u: BackendUser): User {
     name: u.full_name,
     email: u.email,
     phone: u.phone,
+    date_of_birth: u.date_of_birth,
+    gender: u.gender,
+    avatar_url: u.avatar_url,
     address: u.address,
+    ward: u.ward,
+    district: u.district,
+    city: u.city,
+    postal_code: u.postal_code,
+    address_note: u.address_note,
     role: u.role,
     createdAt: u.created_at,
   };
@@ -121,6 +137,42 @@ export const authService = {
    */
   async getMe(): Promise<User> {
     const { data } = await httpClient.get<BackendUserResponse>("/auth/me");
+    return normalizeUser(data.data);
+  },
+
+  /**
+   * Cập nhật thông tin cá nhân
+   */
+  async updateProfile(payload: {
+    full_name?: string;
+    phone?: string;
+    date_of_birth?: string | null;
+    gender?: "male" | "female" | "other" | null;
+    address?: string;
+    ward?: string;
+    district?: string;
+    city?: string;
+    postal_code?: string;
+    address_note?: string;
+  }): Promise<User> {
+    const { data } = await httpClient.put<BackendUserResponse>(
+      "/auth/me",
+      payload,
+    );
+    return normalizeUser(data.data);
+  },
+
+  /**
+   * Đổi mật khẩu
+   */
+  async changePassword(payload: {
+    current_password: string;
+    new_password: string;
+  }): Promise<User> {
+    const { data } = await httpClient.put<BackendUserResponse>(
+      "/auth/me",
+      payload,
+    );
     return normalizeUser(data.data);
   },
 };

@@ -2,6 +2,7 @@
 
 interface AdminHeaderProps {
   placeholder?: string;
+  hideSearch?: boolean;
   actionLabel?: string;
   actionIcon?: string;
   onAction?: () => void;
@@ -11,6 +12,7 @@ interface AdminHeaderProps {
 
 export default function AdminHeader({
   placeholder = "Tìm kiếm...",
+  hideSearch = false,
   actionLabel,
   actionIcon = "add",
   onAction,
@@ -20,20 +22,24 @@ export default function AdminHeader({
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-10">
       <div className="flex-1 max-w-xl">
-        <div className="relative group">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
-            search
-          </span>
-          <input
-            className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-primary/50 text-sm placeholder:text-slate-500 outline-none"
-            placeholder={placeholder}
-            type="text"
-            value={searchValue}
-            onChange={
-              onSearchChange ? (e) => onSearchChange(e.target.value) : undefined
-            }
-          />
-        </div>
+        {!hideSearch && (
+          <div className="relative group">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
+              search
+            </span>
+            <input
+              className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-primary/50 text-sm placeholder:text-slate-500 outline-none"
+              placeholder={placeholder}
+              type="text"
+              value={searchValue}
+              onChange={
+                onSearchChange
+                  ? (e) => onSearchChange(e.target.value)
+                  : undefined
+              }
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-4">

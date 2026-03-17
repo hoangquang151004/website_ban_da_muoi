@@ -480,7 +480,7 @@ export default function AdminProductsPage() {
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             className="p-1.5 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
-                            title="Chinh sua"
+                            title="Chỉnh sửa"
                             onClick={() => openEdit(product)}
                           >
                             <span className="material-symbols-outlined text-[18px]">
@@ -489,7 +489,7 @@ export default function AdminProductsPage() {
                           </button>
                           <button
                             className="p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                            title="Xoa"
+                            title="Xóa"
                             onClick={() =>
                               setDeleteTarget({
                                 id: product.id,

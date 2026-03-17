@@ -2,42 +2,60 @@
 vector_store.py — Kết nối ChromaDB local, tạo collection cho kiến thức sản phẩm.
 
 Collection: salt_lamp_knowledge
-Embedding : OpenAIEmbeddings (gpt) hoặc HuggingFaceEmbeddings (free, offline)
+Embedding : Provider abstraction (factory chọn theo EMBEDDING_PROVIDER)
 """
 
 from __future__ import annotations
 
 import os
 from functools import lru_cache
+from pathlib import Path
 
-from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 
 from app.core.config import settings
+from app.services.ai_agent.embeddings import EmbeddingProvider, get_embedding_provider
 
-# ---------------------------------------------------------------------------
-# Chọn embedding model
-# ---------------------------------------------------------------------------
-def _get_embeddings():
-    """Trả về embedding model.
-    - Nếu có OPENAI_API_KEY → dùng OpenAIEmbeddings
-    - Ngược lại → dùng HuggingFaceEmbeddings (miễn phí)
+try:
+    # Preferred import (new package).
+    from langchain_chroma import Chroma
+except ImportError:  # pragma: no cover - fallback for older envs
+    from langchain_community.vectorstores import Chroma
+
+def _resolve_persist_dir() -> str:
+    """Resolve Chroma persist path independent from current working directory.
+
+    If CHROMA_DB_PATH is relative, anchor it at backend root (folder containing app/).
     """
-    if settings.OPENAI_API_KEY:
-        from langchain_openai import OpenAIEmbeddings
-        return OpenAIEmbeddings(api_key=settings.OPENAI_API_KEY)
-    else:
-        from langchain_community.embeddings import HuggingFaceEmbeddings
-        return HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+    configured = Path(settings.CHROMA_DB_PATH)
+    if configured.is_absolute():
+        return str(configured)
+
+    # vector_store.py -> ai_agent -> services -> app -> backend
+    backend_root = Path(__file__).resolve().parents[3]
+    return str((backend_root / configured).resolve())
+
+def _get_embeddings() -> EmbeddingProvider:
+    """Trả về embedding model theo EMBEDDING_PROVIDER config."""
+    return get_embedding_provider()
+
+
+def _resolve_collection_name() -> str:
+    """Use provider-specific collection to prevent embedding dimension conflicts."""
+    provider = (settings.EMBEDDING_PROVIDER or "baseline").strip().lower()
+    if provider == "baseline":
+        # Keep legacy collection name for backward compatibility.
+        return "salt_lamp_knowledge"
+    return f"salt_lamp_knowledge_{provider}"
 
 
 @lru_cache(maxsize=1)
 def get_vector_store() -> Chroma:
     """Trả về singleton ChromaDB Chroma instance (persistent local)."""
-    persist_dir = os.path.abspath(settings.CHROMA_DB_PATH)
+    persist_dir = _resolve_persist_dir()
     os.makedirs(persist_dir, exist_ok=True)
     return Chroma(
-        collection_name="salt_lamp_knowledge",
+        collection_name=_resolve_collection_name(),
         embedding_function=_get_embeddings(),
         persist_directory=persist_dir,
     )

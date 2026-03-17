@@ -113,6 +113,37 @@ KNOWLEDGE_DOCS: list[Document] = [
     ),
 ]
 
+POLICY_DOCS: list[Document] = [
+    Document(
+        page_content=(
+            "Chinh sach van chuyen: Mien phi ship noi thanh cho don tu 1.000.000d. "
+            "Cac don duoi muc nay tinh phi theo khu vuc. Thoi gian giao hang 2-5 ngay lam viec."
+        ),
+        metadata={"doc_id": "policy_shipping_001", "category": "policy", "title": "Chinh sach van chuyen"},
+    ),
+    Document(
+        page_content=(
+            "Chinh sach doi tra: Ho tro doi tra trong vong 7 ngay neu san pham loi do nha san xuat hoac hu hong khi van chuyen. "
+            "San pham phai con day du phu kien va hinh anh xac nhan."
+        ),
+        metadata={"doc_id": "policy_return_001", "category": "policy", "title": "Chinh sach doi tra"},
+    ),
+    Document(
+        page_content=(
+            "Chinh sach bao hanh: Bao hanh bong den va day dien 3 thang. "
+            "Khoi da muoi tu nhien khong ap dung bao hanh nut vo do va dap hoac am nuoc."
+        ),
+        metadata={"doc_id": "policy_warranty_001", "category": "policy", "title": "Chinh sach bao hanh"},
+    ),
+    Document(
+        page_content=(
+            "Huong dan su dung: Dat den o noi kho rao, tranh nuoc. "
+            "Bat den 1-3 gio moi ngay. Lau bang khan kho, khong dung khan uot."
+        ),
+        metadata={"doc_id": "policy_usage_001", "category": "policy", "title": "Huong dan su dung"},
+    ),
+]
+
 # ---------------------------------------------------------------------------
 # 2. Nạp dữ liệu Uses từ MySQL
 # ---------------------------------------------------------------------------
@@ -204,12 +235,17 @@ async def main() -> None:
     print("=== Bắt đầu seed Vector Store ===\n")
 
     # 1. Nạp kiến thức cứng
-    print(f"[1/3] Nạp {len(KNOWLEDGE_DOCS)} documents kiến thức...")
+    print(f"[1/4] Nạp {len(KNOWLEDGE_DOCS)} documents kiến thức...")
     upsert_documents(KNOWLEDGE_DOCS)
     print("      ✓ Xong.\n")
 
-    # 2. Nạp Uses từ DB
-    print("[2/3] Nạp Uses từ MySQL...")
+    # 2. Nạp chính sách CSKH
+    print(f"[2/4] Nạp {len(POLICY_DOCS)} documents chinh sach...")
+    upsert_documents(POLICY_DOCS)
+    print("      ✓ Xong.\n")
+
+    # 3. Nạp Uses từ DB
+    print("[3/4] Nạp Uses từ MySQL...")
     try:
         use_docs = await seed_uses_from_db()
         if use_docs:
@@ -220,8 +256,8 @@ async def main() -> None:
     except Exception as e:
         print(f"      ✗ Lỗi khi đọc Uses: {e}\n")
 
-    # 3. Nạp Products từ DB
-    print("[3/3] Nạp sản phẩm từ MySQL...")
+    # 4. Nạp Products từ DB
+    print("[4/4] Nạp sản phẩm từ MySQL...")
     try:
         product_docs = await seed_products_from_db()
         if product_docs:

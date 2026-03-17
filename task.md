@@ -1,237 +1,332 @@
-# Task List - Admin Categories Page Enhancements
-
-## Tổng quan
-
-Dự án nâng cấp trang quản trị danh mục và công dụng (Admin Categories & Uses Page) với các tính năng tìm kiếm, phân trang và thông báo.
+﻿# TASK PLAN - Module Quan Ly Du Lieu AI voi Gemini Embedding 2
+Ngay cap nhat: 2026-03-14
 
 ---
 
-## Các task đã hoàn thành ✅
+## 1. Muc tieu
 
-### 1. Tìm kiếm cho Quản lý Công dụng (Uses Management) ✅ DONE
+Xay dung module quan ly du lieu AI cho Admin de:
 
-**Trạng thái:** Hoàn thành  
-**Mô tả:**
+- Tai len va quan ly nguon du lieu van ban.
+- Nhung van ban bang Gemini Embedding 2.
+- Luu vector vao ChromaDB va truy van cho RAG chatbot.
+- Theo doi tien trinh index, re-index, va quan ly loi indexing.
 
-- Thêm ô tìm kiếm (search box) cho phần Quản lý Công dụng
-- Tìm kiếm theo tên công dụng
-- Kết quả tự động cập nhật khi người dùng nhập (debounced 400ms)
-- Tích hợp với API backend
-
-**Files đã chỉnh sửa:**
-
-- `frontend/src/services/catalogService.ts` - Cập nhật `listUses()` để hỗ trợ pagination và search
-- `frontend/src/app/admin/categories/page.tsx` - Thêm search input và state quản lý
+Muc tieu cuoi: chat/knowledge va chat tong hop su dung du lieu moi da vector hoa, truy vet duoc nguon tra loi.
 
 ---
 
-### 2. Phân trang (Pagination) cho Quản lý Công dụng ✅ DONE
+## 2. Pham vi
 
-**Trạng thái:** Hoàn thành  
-**Mô tả:**
+### Trong pham vi
 
-- Thêm phân trang cho danh sách công dụng
-- Hiển thị 10 items mỗi trang (có thể cấu hình)
-- Nút Previous/Next để di chuyển giữa các trang
-- Hiển thị thông tin trang hiện tại/tổng số trang
-- Đồng bộ với tìm kiếm
+- Backend embedding provider abstraction + Gemini Embedding 2 integration.
+- Pipeline parse -> chunk -> embed -> upsert Chroma.
+- API Admin quan ly nguon du lieu va job indexing.
+- UI Admin Data ket noi API that (khong con hardcode danh sach).
+- Danh gia chat luong retrieval giua baseline va Gemini.
 
-**Files đã chỉnh sửa:**
+### Ngoai pham vi
 
-- `frontend/src/services/catalogService.ts` - Hỗ trợ params pagination
-- `frontend/src/app/admin/categories/page.tsx` - Thêm UI phân trang và logic
-
-**Ghi chú:** Phân trang cho Quản lý Danh mục đã có sẵn từ trước.
+- Crawl du lieu website (tam thoi khong trien khai).
+- Thay doi luong checkout/order hien tai.
 
 ---
 
-### 3. Hệ thống thông báo (Toast Notifications) ✅ DONE
+## 3. Hien trang codebase (de tai su dung)
 
-**Trạng thái:** Hoàn thành  
-**Mô tả:**
-
-- Sử dụng thư viện `react-hot-toast` đã có sẵn trong dự án
-- Hiển thị thông báo ở góc trên bên phải màn hình
-- 4 loại thông báo: success, error, info, warning
-- Tự động ẩn sau 4 giây
-- Người dùng có thể đóng thủ công
-
-**Files đã tạo:**
-
-- `frontend/src/components/ui/Toast.tsx` - Component Toast tùy chỉnh (tham khảo, không bắt buộc sử dụng)
-
-**Ghi chú:** Đã tận dụng `react-hot-toast` có sẵn thay vì tạo component mới.
+- Vector store da co: `backend/app/services/ai_agent/vector_store.py`.
+- Script seed da co: `backend/scripts/seed_vector_store.py`.
+- Chat endpoints da co: `backend/app/routers/chat.py`.
+- Config da co bien Gemini API key: `backend/app/core/config.py` (`GOOGLE_API_KEY`).
+- Trang Admin Data da co UI co ban: `frontend/src/app/admin/data/page.tsx`.
 
 ---
 
-### 4. Tích hợp thông báo vào các thao tác CRUD ✅ DONE
+## 4. Kien truc module de xuat
 
-**Trạng thái:** Hoàn thành  
-**Mô tả:**  
-Thêm thông báo cho tất cả các thao tác:
+### 4.1 Thanh phan chinh
 
-#### Thêm mới (Create)
+1. Data Source Manager
+- Quan ly metadata nguon du lieu (ten, loai, kich thuoc, hash, trang thai).
 
-- **Thành công:** "Đã thêm [danh mục/công dụng] '[tên]' thành công"
-- **Thất bại:** Hiển thị lỗi từ API hoặc "Lưu thất bại"
+2. Ingestion Worker
+- Parse file -> chunk text -> embed -> upsert Chroma.
 
-#### Cập nhật (Update)
+3. Embedding Provider Layer
+- Chuyen doi provider bang config (`baseline`, `gemini`).
 
-- **Thành công:** "Đã cập nhật [danh mục/công dụng] '[tên]' thành công"
-- **Thất bại:** Hiển thị lỗi từ API hoặc "Lưu thất bại"
+4. Retrieval Layer
+- Dung chung vector store cho RAG chain.
 
-#### Xóa (Delete)
+### 4.2 Metadata chuan cho moi chunk
 
-- **Thành công:** "Đã xóa [danh mục/công dụng] '[tên]' thành công"
-- **Thất bại:** "Không thể xóa [danh mục/công dụng]"
+- `source_id`
+- `source_name`
+- `category`
+- `chunk_index`
+- `text_hash`
+- `version`
+- `created_at`
 
-#### Bật/Tắt trạng thái (Toggle Status)
+### 4.3 Nguyen tac index
 
-- **Thành công:** "Đã [kích hoạt/vô hiệu hóa] [danh mục/công dụng] '[tên]'"
-- **Thất bại:** "Không thể cập nhật trạng thái [danh mục/công dụng]"
-
-**Files đã chỉnh sửa:**
-
-- `frontend/src/app/admin/categories/page.tsx` - Thêm toast.success() và toast.error() vào các handlers
-
----
-
-### 5. Tạo file Task.md ✅ DONE
-
-**Trạng thái:** Hoàn thành  
-**Mô tả:**
-
-- Tạo file task.md để quản lý và theo dõi tiến độ
-- Liệt kê chi tiết các task với mô tả
-- Đánh dấu trạng thái: TODO / DOING / DONE
-- Ghi chú các files đã chỉnh sửa
-
-**Files đã tạo:**
-
-- `task.md` (file này)
+- Idempotent theo `source_id + chunk_index + version`.
+- Re-index tang `version`.
+- Ho tro soft delete nguon du lieu.
 
 ---
 
-## Chi tiết kỹ thuật
+## 5. Ke hoach trien khai chi tiet theo giai doan
 
-### State Management
+## Giai doan 1 - Chuan hoa Embedding Layer (1 ngay)
 
-```typescript
-// Category states (đã có sẵn)
-const [catSearch, setCatSearch] = useState("");
-const [catPage, setCatPage] = useState(1);
-const [catTotalPages, setCatTotalPages] = useState(1);
-const [catTotal, setCatTotal] = useState(0);
+Muc tieu: tach logic embedding khoi vector store de de thay provider.
 
-// Use states (mới thêm)
-const [useSearch, setUseSearch] = useState("");
-const [usePage, setUsePage] = useState(1);
-const [useTotalPages, setUseTotalPages] = useState(1);
-const [useTotal, setUseTotal] = useState(0);
-```
+Cong viec:
+- Tao abstraction embedding provider (factory/service).
+- Them env config:
+  - `EMBEDDING_PROVIDER=baseline|gemini`
+  - `EMBEDDING_MODEL=<model_name>`
+  - `EMBEDDING_BATCH_SIZE=...`
+- Giu backward compatibility voi luong hien tai.
 
-### API Integration
+Deliverables:
+- Module provider moi trong `backend/app/services/ai_agent/`.
+- `vector_store.py` dung provider abstraction.
 
-```typescript
-// Updated service
-async listUses(params?: {
-  page?: number;
-  limit?: number;
-  search?: string;
-  is_active?: boolean;
-})
-```
+DoD:
+- Chuyen provider bang env ma khong sua business logic.
 
-### Toast Usage
+## Giai doan 2 - Tich hop Gemini Embedding 2 (1 ngay)
 
-```typescript
-import toast from "react-hot-toast";
+Muc tieu: nhung du lieu bang Gemini Embedding 2 o backend.
 
-// Success
-toast.success("Thao tác thành công");
+Cong viec:
+- Implement `GeminiEmbeddingProvider`.
+- Batch embedding + retry exponential backoff.
+- Chuan hoa loi: invalid key, quota, timeout.
 
-// Error
-toast.error("Có lỗi xảy ra");
-```
+Deliverables:
+- Provider Gemini hoat dong trong local env.
+
+DoD:
+- Embedding thanh cong tap van ban mau va upsert vao Chroma.
+
+## Giai doan 3 - API quan ly nguon du lieu admin (2 ngay)
+
+Muc tieu: tao REST API cho module quan ly du lieu.
+
+Cong viec:
+- Tao bang DB:
+  - `data_sources`
+  - `data_chunks` (metadata)
+  - `index_jobs`
+- Tao admin APIs:
+  - `POST /api/v1/admin/data-sources/upload`
+  - `GET /api/v1/admin/data-sources`
+  - `POST /api/v1/admin/data-sources/{id}/reindex`
+  - `DELETE /api/v1/admin/data-sources/{id}`
+  - `GET /api/v1/admin/data-sources/jobs/{job_id}`
+- Bat buoc auth + role admin.
+
+Deliverables:
+- Router + service + schema cho data management.
+
+DoD:
+- Upload file va truy van danh sach nguon du lieu qua API thanh cong.
+
+## Giai doan 4 - Ingestion worker va job progress (1-2 ngay)
+
+Muc tieu: xu ly indexing nen, khong block request.
+
+Cong viec:
+- Tao worker/job executor cho ingestion pipeline.
+- Cap nhat progress theo % cho tung job.
+- Log theo tung buoc parse/chunk/embed/upsert.
+
+Deliverables:
+- Job state machine: `queued -> processing -> indexed|failed`.
+
+DoD:
+- File lon van xu ly duoc, API upload tra ve ngay voi `job_id`.
+
+## Giai doan 5 - Ket noi frontend Admin Data voi API that (1-2 ngay)
+
+Muc tieu: thay toan bo mock/hardcode bang du lieu tu backend.
+
+Cong viec:
+- Tao `adminDataService.ts` o frontend.
+- Bang du lieu lay tu API danh sach data source.
+- Nguoi dung chon file va upload that.
+- Nguoi dung bam sync de re-index.
+- Polling trang thai job de cap nhat progress/status.
+
+Deliverables:
+- `frontend/src/app/admin/data/page.tsx` dung du lieu that.
+
+DoD:
+- UI hien thi dung trang thai `processing/indexed/failed` theo backend.
+
+## Giai doan 6 - Benchmark va quyet dinh rollout (2 ngay)
+
+Muc tieu: danh gia Gemini Embedding 2 so voi baseline.
+
+Cong viec:
+- Tao bo cau hoi test retrieval (policy, cong dung, san pham).
+- Do metrics:
+  - Recall@5
+  - MRR@10
+  - Ty le cau tra loi co nguon dung
+  - Latency p50/p95
+  - Chi phi uoc tinh
+- Chay A/B benchmark (baseline vs gemini).
+
+Deliverables:
+- Bao cao ket qua benchmark + de xuat rollout.
+
+DoD:
+- Co ket luan ro rang: chuyen sang Gemini toan phan hay hybrid.
 
 ---
 
-## Testing Checklist
+## 6. API contract de xuat cho module Data Management
 
-### Tìm kiếm (Search)
+### 6.1 Upload source
 
-- [ ] Tìm công dụng theo tên
-- [ ] Kết quả cập nhật khi nhập
-- [ ] Xóa từ khóa hiển thị lại tất cả
-- [ ] Tìm kiếm không phân biệt hoa thường
-- [ ] Tìm kiếm không trả về kết quả hiển thị "Chưa có công dụng nào"
+`POST /api/v1/admin/data-sources/upload`
 
-### Phân trang (Pagination)
+Request:
+- multipart/form-data (`file`, `category?`, `tags?`)
 
-- [ ] Hiển thị đúng số items mỗi trang
-- [ ] Nút Previous disabled ở trang đầu
-- [ ] Nút Next disabled ở trang cuối
-- [ ] Chuyển trang hoạt động chính xác
-- [ ] Phân trang hoạt động với search
-- [ ] Hiển thị đúng tổng số trang
-
-### Thông báo (Notifications)
-
-- [ ] Thông báo thành công khi thêm danh mục
-- [ ] Thông báo thành công khi sửa danh mục
-- [ ] Thông báo thành công khi xóa danh mục
-- [ ] Thông báo thành công khi thêm công dụng
-- [ ] Thông báo thành công khi sửa công dụng
-- [ ] Thông báo thành công khi xóa công dụng
-- [ ] Thông báo thành công khi bật/tắt trạng thái
-- [ ] Thông báo lỗi khi thao tác thất bại
-- [ ] Toast tự động ẩn sau 4 giây
-- [ ] Có thể đóng toast thủ công
-
----
-
-## Ghi chú bổ sung
-
-### Dependencies
-
-Không cần cài đặt thêm package, đã sử dụng:
-
-- `react-hot-toast` - Có sẵn trong project
-
-### Backend Requirements
-
-Backend cần hỗ trợ các params sau cho endpoint `/admin/uses`:
-
-- `page` (number) - Trang hiện tại
-- `limit` (number) - Số items mỗi trang
-- `search` (string) - Từ khóa tìm kiếm
-
-Response format:
-
+Response:
 ```json
 {
-  "items": [...],
-  "total": 100,
-  "page": 1,
-  "total_pages": 10
+  "source_id": "src_123",
+  "job_id": "job_456",
+  "status": "queued"
 }
 ```
 
-### Future Enhancements (Tính năng tương lai)
+### 6.2 List sources
 
-- [ ] Thêm sorting (sắp xếp) cho bảng
-- [ ] Export danh sách ra Excel/CSV
-- [ ] Bulk actions (xóa/cập nhật nhiều items cùng lúc)
-- [ ] Drag & drop để sắp xếp thứ tự
-- [ ] Lọc theo trạng thái (active/inactive)
-- [ ] Thêm ảnh cho công dụng
+`GET /api/v1/admin/data-sources?page=1&limit=20&status=indexed`
+
+Response:
+```json
+{
+  "items": [
+    {
+      "id": "src_123",
+      "name": "chinh-sach-bao-hanh.pdf",
+      "type": "pdf",
+      "status": "indexed",
+      "created_at": "2026-03-14T10:00:00Z",
+      "chunks": 42
+    }
+  ],
+  "total": 1
+}
+```
+
+### 6.3 Re-index source
+
+`POST /api/v1/admin/data-sources/{id}/reindex`
+
+Response:
+```json
+{
+  "job_id": "job_789",
+  "status": "queued"
+}
+```
+
+### 6.4 Delete source
+
+`DELETE /api/v1/admin/data-sources/{id}`
+
+Response:
+```json
+{
+  "deleted": true
+}
+```
+
+### 6.5 Job status
+
+`GET /api/v1/admin/data-sources/jobs/{job_id}`
+
+Response:
+```json
+{
+  "job_id": "job_456",
+  "status": "processing",
+  "progress": 65,
+  "error": null
+}
+```
 
 ---
 
-## Tổng kết
+## 7. Thong so khoi tao khuyen nghi
 
-✅ Tất cả các task đã hoàn thành  
-📝 Đã cập nhật: March 5, 2026  
-👨‍💻 Developer: GitHub Copilot
+- Chunk size: 600-900 tokens.
+- Chunk overlap: 80-120 tokens.
+- Top-k retrieval: 5.
+- Embedding batch size: 16-64 (theo quota).
+- Filter retrieval theo `category` cho cac nhom query policy/san pham.
 
-**Status:** COMPLETED ✨
+---
+
+## 8. Rui ro va cach giam thieu
+
+1. Rate limit/Quota Gemini
+- Queue + retry backoff + gioi han concurrency.
+
+2. Chi phi embedding tang nhanh
+- Cache theo `text_hash`, khong embed lai noi dung trung.
+
+3. Lech metadata giua DB va Chroma
+- Versioning + idempotent ids + soft delete.
+
+4. Sai retrieval tieng Viet do chunking
+- Chunk theo paragraph/sentence boundary, khong cat giua cau.
+
+---
+
+## 9. Ke hoach kiem thu
+
+### Unit test
+- Parser cho txt/md/pdf/docx/csv.
+- Chunker behavior.
+- Gemini provider (mock API response + error handling).
+
+### Integration test
+- Upload -> indexing -> retrieval co source.
+- Re-index -> version tang dung.
+- Delete source -> khong con retrieval.
+
+### E2E
+- Admin upload file o UI.
+- Theo doi progress.
+- Chatbot tra loi co trich dan tu file vua index.
+
+---
+
+## 10. Moc thoi gian de xuat (7-10 ngay lam viec)
+
+1. Ngay 1-2: Giai doan 1-2.
+2. Ngay 3-5: Giai doan 3-4.
+3. Ngay 6-7: Giai doan 5.
+4. Ngay 8-10: Giai doan 6 + hardening.
+
+---
+
+## 11. Checklist DoD tong
+
+- [ ] Co the upload nguon du lieu tu trang Admin Data.
+- [ ] Nguon du lieu duoc index bang Gemini Embedding 2.
+- [ ] ChromaDB luu chunk + metadata day du, truy vet nguon duoc.
+- [ ] Chatbot tra loi su dung context moi.
+- [ ] Co benchmark so sanh baseline va Gemini.
+- [ ] Co quyet dinh rollout dua tren metrics va chi phi.
