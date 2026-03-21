@@ -1,15 +1,16 @@
 """
-text_to_sql.py — LangChain Tool sinh và thực thi câu SQL SELECT an toàn.
+text_to_sql.py — Tool sinh và thực thi SQL SELECT an toàn.
+
+Schema được đồng bộ chính xác với da_muoi_db (kiểm tra 2026-03).
 """
 
 from __future__ import annotations
 
 import re
-
 from langchain_core.tools import tool
 
 # ---------------------------------------------------------------------------
-# Danh sách từ khóa nguy hiểm
+# Security
 # ---------------------------------------------------------------------------
 DANGEROUS_KEYWORDS = frozenset([
     "insert", "update", "delete", "drop", "alter", "truncate",
@@ -17,72 +18,187 @@ DANGEROUS_KEYWORDS = frozenset([
     "call", "merge", "load", "into outfile", "dumpfile",
 ])
 
+# ---------------------------------------------------------------------------
+# DB_SCHEMA — đồng bộ thực tế với da_muoi_db
+# Quan trọng: LLM dùng schema này để sinh SQL đúng cột
+# ---------------------------------------------------------------------------
 DB_SCHEMA = """
-Các bảng trong database:
+== SCHEMA DATABASE: da_muoi_db (MySQL) ==
 
-users (id, full_name, email, phone, address, role[customer/admin], is_active, created_at, updated_at)
-categories (id, name, slug, description, is_active, created_at)
-uses (id, name, icon, color, description, is_active, created_at)
-products (id, name, slug, description, price, original_price, stock, image_url, is_featured, is_active, category_id, created_at, updated_at)
-product_uses (product_id, use_id)  -- bảng trung gian Many-to-Many
-orders (id, user_id, receiver_name, receiver_phone, receiver_address, note, payment_method[cod/bank_transfer], status[pending/confirmed/packing/shipping/delivered/cancelled], total_amount, created_at, updated_at)
-order_items (id, order_id, product_id, quantity, price)
-reviews (id, product_id, user_id, rating[1-5], comment, is_approved, created_at)
-stock_logs (id, product_id, change, reason, note, created_at)
+-- users
+users (
+  id INT PK,
+  full_name VARCHAR,
+  email VARCHAR UNIQUE,
+  phone VARCHAR,
+  address VARCHAR,
+  ward VARCHAR,
+  district VARCHAR,
+  city VARCHAR,
+  postal_code VARCHAR,
+  address_note VARCHAR,
+  role ENUM('customer','admin') DEFAULT 'customer',
+  is_active TINYINT(1) DEFAULT 1,
+  date_of_birth DATE,
+  gender VARCHAR,
+  avatar_url VARCHAR,
+  created_at DATETIME,
+  updated_at DATETIME
+)
 
-Quan hệ:
-- products.category_id → categories.id
-- product_uses.product_id → products.id, product_uses.use_id → uses.id
-- orders.user_id → users.id
-- order_items.order_id → orders.id, order_items.product_id → products.id
-- reviews.product_id → products.id, reviews.user_id → users.id
-- stock_logs.product_id → products.id
+-- categories
+categories (
+  id INT PK,
+  name VARCHAR UNIQUE,
+  slug VARCHAR UNIQUE,
+  description TEXT,
+  image_url VARCHAR,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at DATETIME
+)
+
+-- uses  [công dụng sản phẩm]
+uses (
+  id INT PK,
+  name VARCHAR UNIQUE,
+  icon VARCHAR,
+  color VARCHAR,
+  description TEXT,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at DATETIME
+)
+
+-- products
+products (
+  id INT PK,
+  name VARCHAR,
+  slug VARCHAR UNIQUE,
+  description TEXT,
+  price DECIMAL(10,2),           -- giá bán
+  original_price DECIMAL(10,2),  -- giá gốc (trước giảm)
+  cost_price DECIMAL(10,2),      -- giá vốn (để tính lợi nhuận)
+  stock INT DEFAULT 0,
+  min_stock INT,                 -- ngưỡng cảnh báo tồn kho thấp
+  image_url VARCHAR,
+  model_3d_url VARCHAR,
+  is_featured TINYINT(1) DEFAULT 0,
+  is_active TINYINT(1) DEFAULT 1,
+  category_id INT FK→categories.id,
+  created_at DATETIME,
+  updated_at DATETIME
+)
+
+-- product_uses  [Many-to-Many: sản phẩm ↔ công dụng]
+product_uses (
+  product_id INT FK→products.id,
+  use_id INT FK→uses.id,
+  PRIMARY KEY (product_id, use_id)
+)
+
+-- orders
+orders (
+  id INT PK,
+  user_id INT FK→users.id (NULL nếu guest),
+  receiver_name VARCHAR,
+  receiver_phone VARCHAR,
+  receiver_address VARCHAR,
+  note TEXT,
+  payment_method ENUM('cod','bank_transfer'),
+  status ENUM('pending','confirmed','packing','shipping','delivered','cancelled') DEFAULT 'pending',
+  total_amount DECIMAL(12,2),
+  created_at DATETIME,
+  updated_at DATETIME
+)
+
+-- order_items
+order_items (
+  id INT PK,
+  order_id INT FK→orders.id,
+  product_id INT FK→products.id,
+  quantity INT,
+  unit_price DECIMAL(10,2),   -- KHÔNG phải 'price', là 'unit_price'
+  subtotal DECIMAL(12,2)      -- = quantity * unit_price
+)
+
+-- reviews
+reviews (
+  id INT PK,
+  product_id INT FK→products.id,
+  user_id INT FK→users.id,
+  rating INT (1-5),
+  comment TEXT,
+  admin_reply TEXT,
+  is_approved TINYINT(1) DEFAULT 0,
+  created_at DATETIME
+)
+
+-- stock_logs  [lịch sử nhập/xuất kho]
+stock_logs (
+  id INT PK,
+  product_id INT FK→products.id,
+  change_amount INT,           -- KHÔNG phải 'change', là 'change_amount' (+nhập / -xuất)
+  reason ENUM('purchase','restock','adjustment'),
+  reference_id INT,            -- order_id hoặc NULL
+  unit_cost DECIMAL(10,2),
+  note VARCHAR,
+  created_at DATETIME
+)
+
+== CÁC GIÁ TRỊ ENUM QUAN TRỌNG ==
+orders.status: 'pending'=chờ xác nhận, 'confirmed'=đã xác nhận,
+               'packing'=đang đóng gói, 'shipping'=đang giao,
+               'delivered'=giao thành công, 'cancelled'=đã hủy
+orders.payment_method: 'cod'=tiền mặt khi nhận, 'bank_transfer'=chuyển khoản
+stock_logs.reason: 'purchase'=bán hàng, 'restock'=nhập kho, 'adjustment'=điều chỉnh
+users.role: 'customer', 'admin'
+
+== CÁC CÔNG THỨC THƯỜNG DÙNG ==
+-- Doanh thu (chỉ đơn delivered):
+  SUM(total_amount) FROM orders WHERE status = 'delivered'
+
+-- Lợi nhuận gộp (cần JOIN order_items + products):
+  SUM(oi.quantity * (oi.unit_price - p.cost_price))
+  FROM order_items oi JOIN products p ON oi.product_id = p.id
+  JOIN orders o ON oi.order_id = o.id WHERE o.status = 'delivered'
+
+-- Sản phẩm tồn kho thấp:
+  SELECT * FROM products WHERE stock <= min_stock AND is_active = 1
+
+-- Ngày hôm nay: CURDATE()
+-- Tháng này: YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())
+-- 30 ngày gần nhất: created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
 """
 
 
 def validate_sql(sql: str) -> tuple[bool, str]:
-    """Kiểm tra câu SQL có an toàn không.
-
-    Returns:
-        (is_safe: bool, error_message: str)
-    """
+    """Kiểm tra câu SQL có an toàn không."""
     sql_lower = sql.lower().strip()
 
-    # Phải bắt đầu bằng SELECT
     if not sql_lower.startswith("select"):
         return False, "Chỉ cho phép câu truy vấn SELECT."
 
-    # Kiểm tra từ khóa nguy hiểm
     for keyword in DANGEROUS_KEYWORDS:
-        # Dùng word boundary để tránh false positive
         pattern = r'\b' + re.escape(keyword) + r'\b'
         if re.search(pattern, sql_lower):
             return False, f"Câu SQL chứa từ khóa không được phép: '{keyword.upper()}'."
 
-    # Không cho phép subquery với DML
-    if re.search(r'\b(insert|update|delete)\b', sql_lower):
-        return False, "Từ khóa DML không được phép trong câu truy vấn."
-
     # Không cho phép nhiều câu SQL
-    if sql.count(";") > 1 or (sql.count(";") == 1 and not sql.strip().endswith(";")):
+    clean = sql.strip().rstrip(";")
+    if ";" in clean:
         return False, "Chỉ cho phép một câu SQL duy nhất."
 
     return True, ""
 
 
 async def execute_safe_sql(sql: str) -> tuple[list[dict], str]:
-    """Thực thi câu SQL SELECT và trả về kết quả.
-
-    Returns:
-        (rows: list[dict], error: str)
-    """
+    """Thực thi SQL SELECT, trả về (rows, error_message)."""
     import sqlalchemy
     from sqlalchemy.ext.asyncio import create_async_engine
     from sqlalchemy import text
     from app.core.config import settings
 
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
-    rows = []
+    rows: list[dict] = []
     error = ""
     try:
         async with engine.connect() as conn:
@@ -91,7 +207,9 @@ async def execute_safe_sql(sql: str) -> tuple[list[dict], str]:
             for row in result.fetchall():
                 rows.append(dict(zip(columns, row)))
     except sqlalchemy.exc.SQLAlchemyError as e:
-        error = f"Lỗi thực thi SQL: {str(e)}"
+        error = str(e)
+    except Exception as e:
+        error = f"Unexpected error: {str(e)}"
     finally:
         await engine.dispose()
     return rows, error
@@ -102,56 +220,7 @@ async def text_to_sql_tool(question: str) -> str:
     """Sinh câu SQL từ câu hỏi ngôn ngữ tự nhiên và thực thi để trả lời.
 
     Chỉ sinh câu SELECT, từ chối mọi câu SQL nguy hiểm.
-
-    Args:
-        question: Câu hỏi về dữ liệu kinh doanh (VD: "Doanh thu hôm nay?")
-
-    Returns:
-        Kết quả truy vấn dạng text
     """
-    from langchain_core.prompts import ChatPromptTemplate
-    from langchain_core.output_parsers import StrOutputParser
-    from app.services.ai_agent.llm import get_llm
-
-    # Sinh SQL
-    sql_prompt = ChatPromptTemplate.from_messages([
-        ("system", f"""Bạn là chuyên gia SQL MySQL.
-Dựa trên schema sau, hãy sinh **duy nhất một câu SELECT SQL** (không giải thích, không markdown, chỉ SQL thuần).
-Câu SQL phải an toàn, chỉ đọc dữ liệu.
-
-Schema:
-{DB_SCHEMA}
-
-Ngày hiện tại: 2026-03-03
-"""),
-        ("human", "{question}"),
-    ])
-
-    llm = get_llm()
-    sql_chain = sql_prompt | llm | StrOutputParser()
-    raw_sql = await sql_chain.ainvoke({"question": question})
-
-    # Clean up markdown code blocks nếu có
-    cleaned_sql = re.sub(r"```(?:sql)?\s*", "", raw_sql, flags=re.IGNORECASE).strip()
-    cleaned_sql = cleaned_sql.rstrip(";").strip() + ";"
-
-    # Validate
-    is_safe, error_msg = validate_sql(cleaned_sql)
-    if not is_safe:
-        return f"🚫 Không thể thực thi: {error_msg}"
-
-    # Thực thi
-    rows, exec_error = await execute_safe_sql(cleaned_sql)
-    if exec_error:
-        return f"Lỗi: {exec_error}\nSQL đã sinh: {cleaned_sql}"
-
-    if not rows:
-        return f"Truy vấn thực thi thành công nhưng không có kết quả.\nSQL: {cleaned_sql}"
-
-    # Format kết quả
-    lines = []
-    for i, row in enumerate(rows[:20]):  # Giới hạn 20 dòng
-        line = " | ".join(f"{k}: {v}" for k, v in row.items())
-        lines.append(f"{i+1}. {line}")
-
-    return f"Kết quả ({len(rows)} dòng):\n" + "\n".join(lines)
+    from app.services.ai_agent.chains.admin_report import run_admin_report
+    result = await run_admin_report(question)
+    return result.get("answer", "Không có kết quả.")

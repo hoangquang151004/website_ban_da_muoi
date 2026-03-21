@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/authStore";
 import { orderService } from "@/services/orderService";
 import { getAbsoluteImageUrl } from "@/lib/imageUrl";
@@ -153,7 +154,29 @@ export default function OrderDetailPage() {
   const [mounted, setMounted] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryingPayment, setRetryingPayment] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const canRetryPayment =
+    order?.payment_method === "bank_transfer" && order.status === "pending";
+
+  const handleRetryPayment = async () => {
+    if (!order || retryingPayment) return;
+    setRetryingPayment(true);
+    try {
+      const result = await orderService.retryPayment(order.id);
+      toast.success("Đang chuyển đến cổng thanh toán VNPay...");
+      window.location.href = result.payment_url;
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Không thể tạo lại link thanh toán.";
+      toast.error(message);
+    } finally {
+      setRetryingPayment(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -333,6 +356,17 @@ export default function OrderDetailPage() {
                 <p className="text-sm text-slate-700 font-medium">
                   {PAYMENT_LABEL[order.payment_method] ?? order.payment_method}
                 </p>
+                {canRetryPayment && (
+                  <button
+                    onClick={handleRetryPayment}
+                    disabled={retryingPayment}
+                    className="mt-4 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60"
+                  >
+                    {retryingPayment
+                      ? "Đang tạo link thanh toán..."
+                      : "Thanh toán lại qua VNPay"}
+                  </button>
+                )}
               </div>
             </div>
           </div>

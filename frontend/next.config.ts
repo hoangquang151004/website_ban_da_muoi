@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
 
-const backendApiBase =
+const rawBackendApiBase =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ??
   "http://localhost:8000/api/v1";
+
+const backendApiBase = /\/api\/v1$/i.test(rawBackendApiBase)
+  ? rawBackendApiBase
+  : `${rawBackendApiBase}/api/v1`;
 
 const nextConfig: NextConfig = {
   /* config options here */

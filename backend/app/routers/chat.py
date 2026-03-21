@@ -52,6 +52,7 @@ class RecommendResponse(BaseModel):
 class OrderChatResponse(BaseModel):
     answer: str
     cart_updated: bool = False
+    cart_removed: bool = False
     cart_item: Optional[dict] = None
 
 
@@ -64,6 +65,7 @@ class ChatResponse(BaseModel):
     products: Optional[list[dict]] = None
     sources: Optional[list[dict]] = None
     cart_updated: Optional[bool] = None
+    cart_removed: Optional[bool] = None
     cart_item: Optional[dict] = None
     orders: Optional[list[dict]] = None
     order_detail: Optional[dict] = None

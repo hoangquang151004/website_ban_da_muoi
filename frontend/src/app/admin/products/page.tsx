@@ -107,8 +107,10 @@ export default function AdminProductsPage() {
   const [formImagePreview, setFormImagePreview] = useState<string | null>(null);
   const [formImageFile, setFormImageFile] = useState<File | null>(null);
   const mainImageInputRef = useRef<HTMLInputElement>(null);
-  
-  const [formAdditionalImages, setFormAdditionalImages] = useState<string[]>([]);
+
+  const [formAdditionalImages, setFormAdditionalImages] = useState<string[]>(
+    [],
+  );
   const additionalImageInputRef = useRef<HTMLInputElement>(null);
 
   const [formModelFile, setFormModelFile] = useState<File | null>(null);
@@ -208,7 +210,7 @@ export default function AdminProductsPage() {
     setFormUseIds(p.uses.map((u) => u.id));
     setFormImagePreview(resolveImageUrl(p.imageUrl));
     setFormImageFile(null);
-    setFormAdditionalImages(p.images.map(img => img.image_url));
+    setFormAdditionalImages(p.images.map((img) => img.image_url));
     setFormModelFile(null);
     setFormModelPreview(p.model3DUrl ? resolveImageUrl(p.model3DUrl) : null);
     setShowModal(true);
@@ -836,17 +838,30 @@ export default function AdminProductsPage() {
                       + Thêm ảnh phụ
                     </button>
                   </div>
-                  
+
                   <div className="grid grid-cols-4 gap-2">
                     {formAdditionalImages.map((url, idx) => (
-                      <div key={idx} className="relative aspect-square border border-slate-200 rounded-lg overflow-hidden group">
-                        <img src={resolveImageUrl(url)!} alt="" className="w-full h-full object-contain" />
+                      <div
+                        key={idx}
+                        className="relative aspect-square border border-slate-200 rounded-lg overflow-hidden group"
+                      >
+                        <img
+                          src={resolveImageUrl(url)!}
+                          alt=""
+                          className="w-full h-full object-contain"
+                        />
                         <button
                           type="button"
-                          onClick={() => setFormAdditionalImages(formAdditionalImages.filter((_, i) => i !== idx))}
+                          onClick={() =>
+                            setFormAdditionalImages(
+                              formAdditionalImages.filter((_, i) => i !== idx),
+                            )
+                          }
                           className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          <span className="material-symbols-outlined text-white">delete</span>
+                          <span className="material-symbols-outlined text-white">
+                            delete
+                          </span>
                         </button>
                       </div>
                     ))}
@@ -858,17 +873,21 @@ export default function AdminProductsPage() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (file.size > 5 * 1024 * 1024) return toast.error("Ảnh tối đa 5MB");
+                          if (file.size > 5 * 1024 * 1024)
+                            return toast.error("Ảnh tối đa 5MB");
                           const tid = toast.loading("Đang tải ảnh phụ lên...");
                           try {
                             const url = await productService.uploadImage(file);
                             setFormAdditionalImages((prev) => [...prev, url]);
-                            toast.success("Tải ảnh phụ thành công", { id: tid });
+                            toast.success("Tải ảnh phụ thành công", {
+                              id: tid,
+                            });
                           } catch {
                             toast.error("Lỗi khi tải ảnh", { id: tid });
                           }
                         }
-                        if (additionalImageInputRef.current) additionalImageInputRef.current.value = "";
+                        if (additionalImageInputRef.current)
+                          additionalImageInputRef.current.value = "";
                       }}
                     />
                   </div>
@@ -916,8 +935,8 @@ export default function AdminProductsPage() {
                               onChange={(e) => {
                                 const file = e.target.files?.[0] ?? null;
                                 if (file) {
-                                  if (file.size > 50 * 1024 * 1024) {
-                                    toast.error("File 3D tối đa 50MB");
+                                  if (file.size > 150 * 1024 * 1024) {
+                                    toast.error("File 3D tối đa 150MB");
                                     e.target.value = "";
                                     return;
                                   }
@@ -954,7 +973,7 @@ export default function AdminProductsPage() {
                           Tải lên mô hình 3D hoặc kéo thả
                         </p>
                         <p className="text-[11px] text-slate-500 mt-0.5">
-                          Hỗ trợ định dạng .glb, .gltf (Max 50MB)
+                          Hỗ trợ định dạng .glb, .gltf (Max 150MB)
                         </p>
                       </div>
                       <input
@@ -964,8 +983,8 @@ export default function AdminProductsPage() {
                         onChange={(e) => {
                           const file = e.target.files?.[0] ?? null;
                           if (file) {
-                            if (file.size > 50 * 1024 * 1024) {
-                              toast.error("File 3D tối đa 50MB");
+                            if (file.size > 150 * 1024 * 1024) {
+                              toast.error("File 3D tối đa 150MB");
                               e.target.value = "";
                               return;
                             }

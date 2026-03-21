@@ -48,6 +48,18 @@ export default function CheckoutPage() {
           quantity: item.quantity,
         })),
       });
+
+      if (payment === "bank_transfer") {
+        if (!order.payment_url) {
+          setError(
+            "Không thể tạo liên kết thanh toán VNPay. Vui lòng thử lại.",
+          );
+          return;
+        }
+        window.location.href = order.payment_url;
+        return;
+      }
+
       clearCart();
       setOrderId(order.id);
     } catch (err: unknown) {

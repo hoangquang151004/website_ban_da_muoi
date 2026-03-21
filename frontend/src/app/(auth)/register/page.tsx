@@ -37,7 +37,7 @@ export default function RegisterPage() {
 
   return (
     <div className="font-display bg-gray-100 text-[#333333] min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1513506003013-68d27dbe9711?q=80&w=2574&auto=format&fit=crop')] bg-cover bg-center opacity-30 blur-sm"></div>
+      <div className="absolute inset-0 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDQqA8e0F7h8qA9w2L7M_8z6S4q5T6W6V3V0T8L7v5Y3L0Q9z8_4N7_0W8_5Q8z5P8M0_1Q5N6P_9G6Y0L2M3V0_2J0X7V8_6Q5V3H6L0_6W5Y8_4_7_7J2_Z8K6T9Q7K0W8D6P0D0Z1_"></div>
       <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
 
       <div className="relative w-full max-w-[1000px] bg-[#FDFBF7] rounded-2xl shadow-2xl flex flex-col md:flex-row-reverse overflow-hidden border border-white/50">
@@ -46,7 +46,7 @@ export default function RegisterPage() {
             className="absolute inset-0 bg-cover bg-center h-full w-full"
             style={{
               backgroundImage:
-                "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDQqA8e0F7h8qA9w2L7M_8z6S4q5T6W6V3V0T8L7v5Y3L0Q9z8_4N7_0W8_5Q8z5P8M0_1Q5N6P_9G6Y0L2M3V0_2J0X7V8_6Q5V3H6L0_6W5Y8_4_7_7J2_Z8K6T9Q7K0W8D6P0D0Z1_') ",
+                "url('https://i.pinimg.com/736x/18/37/ef/1837ef38e37da4ff13051e2dc14b3838.jpg') ",
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>

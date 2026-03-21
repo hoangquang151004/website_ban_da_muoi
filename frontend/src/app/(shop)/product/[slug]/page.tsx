@@ -12,7 +12,7 @@ const ProductModelViewer = dynamic(() => import("./ProductModelViewer"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-stone-100 dark:bg-stone-800 text-stone-500 animate-pulse">
-      Ä ang tải mô hình 3D...
+      Đang tải mô hình 3D...
     </div>
   ),
 });
@@ -103,21 +103,31 @@ function ProductDetailSkeleton() {
 // ─── Star rating helper ────────────────────────────────────────
 
 function StarIcons({ rating }: { rating: number }) {
+  const normalizedRating = Math.max(0, Math.min(5, Number(rating) || 0));
+
   return (
-    <div className="flex text-primary">
-      {[1, 2, 3, 4, 5].map((i) => {
-        const icon =
-          rating >= i
-            ? "star"
-            : rating >= i - 0.5
-              ? "star_half"
-              : "star_border";
+    <div
+      className="flex items-center gap-0.5"
+      aria-label={`Đánh giá ${normalizedRating.toFixed(1)} trên 5`}
+    >
+      {[0, 1, 2, 3, 4].map((i) => {
+        const fillPercent = Math.max(
+          0,
+          Math.min(100, (normalizedRating - i) * 100),
+        );
+
         return (
           <span
             key={i}
-            className="material-symbols-outlined text-[20px] fill-current"
+            className="relative inline-block text-[20px] leading-none"
           >
-            {icon}
+            <span className="text-stone-300 dark:text-stone-600">★</span>
+            <span
+              className="absolute inset-y-0 left-0 overflow-hidden text-primary"
+              style={{ width: `${fillPercent}%` }}
+            >
+              ★
+            </span>
           </span>
         );
       })}

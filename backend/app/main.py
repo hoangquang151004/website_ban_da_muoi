@@ -80,10 +80,12 @@ from app.routers import admin_statistics  # noqa: E402
 from app.routers import admin_data  # noqa: E402
 from app.routers import chat  # noqa: E402
 from app.routers import admin_chat  # noqa: E402
+from app.routers import payments  # noqa: E402
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(products.router, prefix="/api/v1", tags=["Products / Categories / Uses / Reviews"])
 app.include_router(orders.router, prefix="/api/v1/orders", tags=["Orders"])
+app.include_router(payments.router, prefix="/api/v1/payments", tags=["Payments"])
 
 # Admin routers
 app.include_router(admin_catalog.router, prefix="/api/v1/admin", tags=["Admin — Catalog"])

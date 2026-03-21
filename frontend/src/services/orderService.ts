@@ -15,7 +15,14 @@ export interface CreateOrderPayload {
   items: CreateOrderItemPayload[];
 }
 
-export type CreateOrderResponse = Order;
+export interface CreateOrderResponse extends Order {
+  payment_url?: string | null;
+}
+
+export interface RetryPaymentResponse {
+  order_id: number;
+  payment_url: string;
+}
 
 interface OrdersQuery {
   page?: number;
@@ -115,6 +122,16 @@ export const orderService = {
     const { data } = await httpClient.get<BackendResponse<Order>>(
       `/orders/${id}`,
     );
+    return data.data;
+  },
+
+  /**
+   * Tạo lại link thanh toán VNPay cho đơn chuyển khoản chưa thanh toán
+   */
+  async retryPayment(orderId: number): Promise<RetryPaymentResponse> {
+    const { data } = await httpClient.post<
+      BackendResponse<RetryPaymentResponse>
+    >(`/orders/${orderId}/retry-payment`);
     return data.data;
   },
 

@@ -71,9 +71,21 @@ async def list_products(
     sort_by: str | None = None,
 ) -> dict:
     """Danh sách sản phẩm có phân trang, lọc, tìm kiếm."""
+    review_stats_subquery = (
+        select(
+            Review.product_id.label("product_id"),
+            func.avg(Review.rating).label("average_rating"),
+            func.count(Review.id).label("review_count"),
+        )
+        .where(Review.is_approved == True)  # noqa: E712
+        .group_by(Review.product_id)
+        .subquery()
+    )
+
     query = (
-        select(Product)
+        select(Product, review_stats_subquery.c.average_rating, review_stats_subquery.c.review_count)
         .where(Product.is_active == True)  # noqa: E712
+        .outerjoin(review_stats_subquery, review_stats_subquery.c.product_id == Product.id)
         .options(
             selectinload(Product.uses),
             selectinload(Product.images),
@@ -130,7 +142,13 @@ async def list_products(
     query = query.offset(offset).limit(limit)
 
     result = await db.execute(query)
-    products = result.scalars().unique().all()
+    rows = result.unique().all()
+
+    products: list[Product] = []
+    for product, average_rating, review_count in rows:
+        product.average_rating = round(float(average_rating), 2) if average_rating is not None else None
+        product.review_count = int(review_count or 0)
+        products.append(product)
 
     return {
         "items": list(products),
