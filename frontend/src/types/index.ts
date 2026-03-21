@@ -20,8 +20,10 @@ export interface Product {
   category: string;
   category_id?: number;
   description: string;
-  rating: number;
-  reviewCount: number;
+  rating?: number;
+  reviewCount?: number;
+  average_rating?: number | null;
+  review_count?: number;
   stock: number;
   sku: string;
   isActive: boolean;
@@ -152,6 +154,7 @@ export interface PaginatedResponse<T> {
 export type ChatResponseType =
   | "text" // Cau tra loi van ban / RAG
   | "product_cards" // Danh sach san pham
+  | "cart_view" // Xem gio hang (chi hien thi danh sach gio)
   | "checkout_form" // Form checkout nhung
   | "order_list" // Danh sach don hang
   | "order_detail" // Chi tiet 1 don hang
@@ -245,10 +248,15 @@ export interface ChatApiResponse {
   sources?: Array<{ title: string; snippet: string }> | null;
   // checkout_form
   cart_updated?: boolean | null;
+  cart_removed?: boolean | null;
   cart_item?: {
     product_id: number;
     quantity: number;
     unit_price: number;
+    product_name?: string;
+    product_slug?: string;
+    image_url?: string;
+    price?: number;
   } | null;
   data?: {
     cart_items?: ChatCheckoutItem[] | null;

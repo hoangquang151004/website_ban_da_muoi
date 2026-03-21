@@ -32,21 +32,31 @@ function getImageUrl(url: string | null | undefined): string {
 }
 
 function StarIcons({ rating }: { rating: number }) {
+  const normalizedRating = Math.max(0, Math.min(5, Number(rating) || 0));
+
   return (
-    <div className="flex text-primary text-[14px]">
-      {[1, 2, 3, 4, 5].map((i) => {
-        const icon =
-          rating >= i
-            ? "star"
-            : rating >= i - 0.5
-              ? "star_half"
-              : "star_border";
+    <div
+      className="flex items-center gap-0.5"
+      aria-label={`Đánh giá ${normalizedRating.toFixed(1)} trên 5`}
+    >
+      {[0, 1, 2, 3, 4].map((i) => {
+        const fillPercent = Math.max(
+          0,
+          Math.min(100, (normalizedRating - i) * 100),
+        );
+
         return (
           <span
             key={i}
-            className="material-symbols-outlined fill-current text-[16px]"
+            className="relative inline-block text-[16px] leading-none"
           >
-            {icon}
+            <span className="text-stone-300">★</span>
+            <span
+              className="absolute inset-y-0 left-0 overflow-hidden text-primary"
+              style={{ width: `${fillPercent}%` }}
+            >
+              ★
+            </span>
           </span>
         );
       })}
@@ -74,6 +84,7 @@ function ShopContent() {
   const [uses, setUses] = useState<{ id: number; name: string }[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // Sync input when URL changes externally (back/forward)
   useEffect(() => {
@@ -122,7 +133,9 @@ function ShopContent() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const paginatedData = (res as any)?.data ?? res;
         setProducts(paginatedData.items ?? []);
-        setTotalPages(paginatedData.total_pages ?? 1);
+        setTotalPages(
+          Number(paginatedData.total_pages ?? paginatedData.totalPages ?? 1),
+        );
       } catch (err) {
         console.error("Lỗi tải sản phẩm:", err);
         setProducts([]);
@@ -201,6 +214,52 @@ function ShopContent() {
     router.replace(`/?${params.toString()}`, { scroll: false });
   };
 
+  const getCompactPages = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, "dots-right", totalPages] as const;
+    }
+
+    if (currentPage >= totalPages - 3) {
+      return [
+        1,
+        "dots-left",
+        totalPages - 4,
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
+      ] as const;
+    }
+
+    return [
+      1,
+      "dots-left",
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      "dots-right",
+      totalPages,
+    ] as const;
+  };
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      goToPage(Math.max(1, totalPages));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileFiltersOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileFiltersOpen]);
+
   const addItem = useCartStore((s) => s.addItem);
 
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
@@ -221,23 +280,17 @@ function ShopContent() {
 
   return (
     <main className="flex-grow w-full max-w-[1440px] mx-auto px-6 py-8">
-      <div className="flex items-center gap-2 mb-8 text-sm">
-        <Link href="/" className="text-neutral-medium hover:text-primary">
-          Trang chủ
-        </Link>
-        <span className="text-neutral-medium">/</span>
-        <span className="text-neutral-dark font-medium">
-          Bộ sưu tập Đèn đá muối
-        </span>
-      </div>
-
       <div className="flex flex-col lg:flex-row gap-10">
         <aside className="w-full lg:w-1/4 flex flex-col gap-8">
           <div className="lg:hidden">
             <h1 className="text-3xl font-bold text-neutral-dark mb-4">
               Bộ sưu tập Đèn đá muối
             </h1>
-            <button className="w-full flex items-center justify-center gap-2 bg-neutral-light py-3 rounded-lg font-medium text-neutral-dark">
+            <button
+              className="w-full flex items-center justify-center gap-2 bg-neutral-light py-3 rounded-lg font-medium text-neutral-dark"
+              onClick={() => setMobileFiltersOpen(true)}
+              type="button"
+            >
               <span className="material-symbols-outlined">filter_list</span>
               Bộ lọc
             </button>
@@ -378,79 +431,89 @@ function ShopContent() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {products.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/product/${product.slug}`}
-                  className="group flex flex-col gap-3"
-                >
-                  <div className="relative overflow-hidden rounded-2xl bg-white aspect-[4/5] shadow-sm hover:shadow-md transition-shadow">
-                    <img
-                      alt={product.name}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      src={getImageUrl(product.image_url)}
-                    />
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        className="bg-white p-2 rounded-full shadow-lg text-neutral-dark hover:text-primary transition-colors"
-                        onClick={(e) => e.preventDefault()}
-                      >
-                        <span className="material-symbols-outlined text-[20px]">
-                          favorite
-                        </span>
-                      </button>
-                    </div>
-                    {product.is_featured && (
-                      <div className="absolute top-3 left-3">
-                        <span className="bg-primary/90 text-white backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold shadow-sm">
-                          Nổi bật
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <h3 className="text-lg font-bold text-neutral-dark group-hover:text-primary transition-colors">
-                      {product.name}
-                    </h3>
-                    <div className="flex items-center gap-1">
-                      <StarIcons rating={product.rating ?? 4.5} />
-                      <span className="text-xs text-neutral-medium">
-                        ({product.reviewCount ?? 0})
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex flex-col">
-                        <span className="text-xl font-bold text-primary">
-                          {formatPrice(product.price)}
-                        </span>
-                        {(product.original_price ?? product.originalPrice) && (
-                          <span className="text-xs text-neutral-medium line-through">
-                            {formatPrice(
-                              (product.original_price ??
-                                product.originalPrice)!,
-                            )}
+              {products.map((product) => {
+                const avgRating =
+                  product.average_rating ?? product.rating ?? null;
+                const reviewCount =
+                  product.review_count ?? product.reviewCount ?? 0;
+
+                return (
+                  <Link
+                    key={product.id}
+                    href={`/product/${product.slug}`}
+                    className="group flex flex-col gap-3"
+                  >
+                    <div className="relative overflow-hidden rounded-2xl bg-white aspect-[4/5] shadow-sm hover:shadow-md transition-shadow">
+                      <img
+                        alt={product.name}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        src={getImageUrl(product.image_url)}
+                      />
+                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          className="bg-white p-2 rounded-full shadow-lg text-neutral-dark hover:text-primary transition-colors"
+                          onClick={(e) => e.preventDefault()}
+                        >
+                          <span className="material-symbols-outlined text-[20px]">
+                            favorite
                           </span>
-                        )}
+                        </button>
                       </div>
-                      <button
-                        className="flex items-center justify-center p-2 rounded-full bg-neutral-light hover:bg-primary hover:text-white transition-all text-neutral-dark"
-                        onClick={(e) => handleAddToCart(e, product)}
-                        title="Thêm vào giỏ hàng"
-                        disabled={product.stock === 0}
-                      >
-                        <span className="material-symbols-outlined text-[20px]">
-                          add_shopping_cart
-                        </span>
-                      </button>
+                      {product.is_featured && (
+                        <div className="absolute top-3 left-3">
+                          <span className="bg-primary/90 text-white backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold shadow-sm">
+                            Nổi bật
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </Link>
-              ))}
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-lg font-bold text-neutral-dark group-hover:text-primary transition-colors">
+                        {product.name}
+                      </h3>
+                      <div className="flex items-center gap-1">
+                        <StarIcons rating={avgRating ?? 0} />
+                        <span className="text-xs text-neutral-medium">
+                          {reviewCount > 0
+                            ? `${avgRating?.toFixed(1) ?? "0.0"} (${reviewCount})`
+                            : "Chưa có đánh giá"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="flex flex-col">
+                          <span className="text-xl font-bold text-primary">
+                            {formatPrice(product.price)}
+                          </span>
+                          {(product.original_price ??
+                            product.originalPrice) && (
+                            <span className="text-xs text-neutral-medium line-through">
+                              {formatPrice(
+                                (product.original_price ??
+                                  product.originalPrice)!,
+                              )}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          className="flex items-center justify-center p-2 rounded-full bg-neutral-light hover:bg-primary hover:text-white transition-all text-neutral-dark"
+                          onClick={(e) => handleAddToCart(e, product)}
+                          title="Thêm vào giỏ hàng"
+                          disabled={product.stock === 0}
+                        >
+                          <span className="material-symbols-outlined text-[20px]">
+                            add_shopping_cart
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {totalPages >= 1 && (
             <div className="flex justify-center mt-12 gap-2">
               <button
                 className="flex items-center justify-center w-10 h-10 rounded-lg border border-border-color text-neutral-dark hover:bg-neutral-light disabled:opacity-40"
@@ -461,8 +524,8 @@ function ShopContent() {
                   arrow_back_ios
                 </span>
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
+              {getCompactPages().map((page, idx) =>
+                typeof page === "number" ? (
                   <button
                     key={page}
                     className={`flex items-center justify-center w-10 h-10 rounded-lg font-bold ${
@@ -474,6 +537,13 @@ function ShopContent() {
                   >
                     {page}
                   </button>
+                ) : (
+                  <span
+                    key={`${page}-${idx}`}
+                    className="flex items-center justify-center w-10 h-10 text-neutral-medium"
+                  >
+                    ...
+                  </span>
                 ),
               )}
               <button
@@ -489,6 +559,130 @@ function ShopContent() {
           )}
         </section>
       </div>
+
+      {mobileFiltersOpen && (
+        <>
+          <div
+            className="lg:hidden fixed inset-0 z-40 bg-black/40"
+            onClick={() => setMobileFiltersOpen(false)}
+          />
+          <div className="lg:hidden fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white shadow-xl p-6 overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-neutral-dark">Bộ lọc</h2>
+              <button
+                type="button"
+                className="p-2 rounded-full hover:bg-neutral-light text-neutral-dark"
+                onClick={() => setMobileFiltersOpen(false)}
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-8">
+              <div>
+                <h3 className="text-lg font-bold text-neutral-dark mb-4">
+                  Tìm kiếm sản phẩm
+                </h3>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-medium">
+                    <span className="material-symbols-outlined text-[20px]">
+                      search
+                    </span>
+                  </span>
+                  <input
+                    className="w-full bg-white border border-border-color rounded-lg py-3 pl-10 pr-4 text-sm focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-neutral-medium transition-shadow outline-none"
+                    placeholder="Từ khóa..."
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-border-color pt-6">
+                <h3 className="text-lg font-bold text-neutral-dark mb-4">
+                  Danh mục
+                </h3>
+                <div className="flex flex-col gap-3">
+                  {categories.map((cat) => (
+                    <label
+                      key={cat.slug}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <input
+                        className="w-5 h-5 rounded border-border-color text-primary focus:ring-primary cursor-pointer"
+                        type="checkbox"
+                        checked={selectedCategories.includes(cat.slug)}
+                        onChange={() => toggleCategory(cat.slug)}
+                      />
+                      <span className="text-neutral-dark group-hover:text-primary transition-colors">
+                        {cat.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-border-color pt-6">
+                <h3 className="text-lg font-bold text-neutral-dark mb-4">
+                  Công dụng
+                </h3>
+                <div className="flex flex-col gap-3">
+                  {uses.map((u) => (
+                    <label
+                      key={u.id}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <input
+                        className="w-5 h-5 rounded border-border-color text-primary focus:ring-primary cursor-pointer"
+                        type="checkbox"
+                        checked={selectedUses.includes(u.id)}
+                        onChange={() => toggleUse(u.id)}
+                      />
+                      <span className="text-neutral-dark group-hover:text-primary transition-colors">
+                        {u.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-border-color pt-6">
+                <h3 className="text-lg font-bold text-neutral-dark mb-4">
+                  Khoảng giá (VND)
+                </h3>
+                <div className="flex items-center gap-2 mb-4">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Từ..."
+                    className="w-1/2 bg-white border border-border-color rounded-lg py-2 px-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    value={minPriceParam}
+                    onChange={(e) => updateParam("min_price", e.target.value)}
+                  />
+                  <span className="text-neutral-medium">-</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Đến..."
+                    className="w-1/2 bg-white border border-border-color rounded-lg py-2 px-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    value={maxPriceParam}
+                    onChange={(e) => updateParam("max_price", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="w-full py-3 rounded-lg bg-primary text-white font-semibold"
+                onClick={() => setMobileFiltersOpen(false)}
+              >
+                Xem kết quả
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </main>
   );
 }

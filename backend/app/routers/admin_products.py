@@ -17,7 +17,7 @@ ALLOWED_TYPES = {
     "image/jpeg", "image/png", "image/webp",
     "model/gltf-binary", "model/gltf+json", "application/octet-stream"
 }
-MAX_SIZE = 50 * 1024 * 1024  # 50 MB
+MAX_SIZE = 150 * 1024 * 1024  # 150 MB
 
 
 @router.get("/products", response_model=BaseResponse[ProductAdminListPage])
@@ -71,7 +71,7 @@ async def upload_image(file: UploadFile = File(...)):
     if len(contents) > MAX_SIZE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File vượt quá 50MB",
+            detail="File vượt quá 150MB",
         )
     ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "file"
     filename = f"{uuid.uuid4().hex}.{ext}"

@@ -1,27 +1,25 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCartStore } from "@/store/cartStore";
 import { getAbsoluteImageUrl } from "@/lib/imageUrl";
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, totalPrice } = useCartStore();
+  const items = useCartStore((s) => s.items);
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const removeItem = useCartStore((s) => s.removeItem);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+  }, []);
 
-    // Debug: Log cart items to check image URLs
-    if (typeof window !== "undefined") {
-      console.log("Cart items:", items);
-      items.forEach((item) => {
-        console.log(`Product: ${item.name}, Image URL: ${item.image}`);
-      });
-    }
-  }, [items]);
+  const cartTotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items],
+  );
 
   if (!mounted) {
     return null; // Prevent hydration mismatch
@@ -152,7 +150,7 @@ export default function CartPage() {
               <div className="flex justify-between text-neutral-medium">
                 <span>Tạm tính</span>
                 <span className="font-medium text-neutral-dark">
-                  {formatPrice(totalPrice())}
+                  {formatPrice(cartTotal)}
                 </span>
               </div>
             </div>
@@ -163,7 +161,7 @@ export default function CartPage() {
                   Tổng cộng
                 </span>
                 <span className="text-2xl font-extrabold text-primary">
-                  {formatPrice(totalPrice())}
+                  {formatPrice(cartTotal)}
                 </span>
               </div>
               <p className="text-xs text-neutral-medium text-right mt-1">

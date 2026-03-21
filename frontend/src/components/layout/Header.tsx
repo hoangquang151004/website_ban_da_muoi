@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
@@ -12,10 +12,32 @@ export default function Header() {
   const totalItems = useCartStore((s) => s.totalItems());
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Prevent hydration mismatch for cart badge
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setAccountMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!accountMenuRef.current) return;
+      if (!accountMenuRef.current.contains(event.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -75,7 +97,21 @@ export default function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button
+            type="button"
+            aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"}
+            onClick={() => {
+              setMobileMenuOpen((prev) => !prev);
+              setAccountMenuOpen(false);
+            }}
+            className="md:hidden p-2 text-neutral-dark hover:text-primary transition-colors rounded-full hover:bg-neutral-light"
+          >
+            <span className="material-symbols-outlined">
+              {mobileMenuOpen ? "close" : "menu"}
+            </span>
+          </button>
+
           {/* Cart button with item count badge */}
           <Link
             href="/cart"
@@ -94,63 +130,83 @@ export default function Header() {
             // Render placeholder during SSR to prevent hydration mismatch
             <div className="size-10 rounded-full bg-neutral-light/50 animate-pulse" />
           ) : isAuthenticated && user ? (
-            <div className="relative group">
-              <button className="flex items-center gap-2 p-1.5 text-neutral-dark hover:text-primary transition-colors rounded-full hover:bg-neutral-light">
+            <div className="relative" ref={accountMenuRef}>
+              <button
+                type="button"
+                aria-expanded={accountMenuOpen}
+                aria-label="Mở menu tài khoản"
+                onClick={() => {
+                  setAccountMenuOpen((prev) => !prev);
+                  setMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-2 p-1.5 text-neutral-dark hover:text-primary transition-colors rounded-full hover:bg-neutral-light"
+              >
                 <div className="size-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">
                   {(user.name ?? "?").charAt(0).toUpperCase()}
                 </div>
               </button>
-              {/* Dropdown */}
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-neutral-light opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="p-3 border-b border-neutral-light">
-                  <p className="text-sm font-bold text-neutral-dark truncate">
-                    {user.name}
-                  </p>
-                  <p className="text-xs text-neutral-medium truncate">
-                    {user.email}
-                  </p>
-                </div>
-                <div className="p-1">
-                  <Link
-                    href="/account"
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-dark hover:bg-neutral-light hover:text-primary transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      account_circle
-                    </span>
-                    Tài khoản
-                  </Link>
-                  <Link
-                    href="/account/orders"
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-dark hover:bg-neutral-light hover:text-primary transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      receipt_long
-                    </span>
-                    Đơn hàng
-                  </Link>
-                  {user.role === "admin" && (
+
+              {accountMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-neutral-light transition-all duration-200 z-50">
+                  <div className="p-3 border-b border-neutral-light">
+                    <p className="text-sm font-bold text-neutral-dark truncate">
+                      {user.name}
+                    </p>
+                    <p className="text-xs text-neutral-medium truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                  <div className="p-1">
                     <Link
-                      href="/admin/dashboard"
+                      href="/account"
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-dark hover:bg-neutral-light hover:text-primary transition-colors"
                     >
                       <span className="material-symbols-outlined text-[18px]">
-                        admin_panel_settings
+                        dashboard
                       </span>
-                      Quản trị
+                      Bảng điều khiển
                     </Link>
-                  )}
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      logout
-                    </span>
-                    Đăng xuất
-                  </button>
+                    <Link
+                      href="/account/profile"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-dark hover:bg-neutral-light hover:text-primary transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        account_circle
+                      </span>
+                      Tài khoản
+                    </Link>
+                    <Link
+                      href="/account/orders"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-dark hover:bg-neutral-light hover:text-primary transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        receipt_long
+                      </span>
+                      Đơn hàng
+                    </Link>
+                    {user.role === "admin" && (
+                      <Link
+                        href="/admin/dashboard"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-dark hover:bg-neutral-light hover:text-primary transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">
+                          admin_panel_settings
+                        </span>
+                        Quản trị
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        logout
+                      </span>
+                      Đăng xuất
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <Link
@@ -162,6 +218,56 @@ export default function Header() {
           )}
         </div>
       </div>
+
+      {mobileMenuOpen && (
+        <div className="md:hidden mt-4 max-w-[1440px] mx-auto bg-white rounded-xl border border-neutral-light shadow-sm p-3">
+          <nav className="flex flex-col gap-1">
+            <Link
+              href="/"
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                pathname === "/"
+                  ? "bg-primary/10 text-primary"
+                  : "text-neutral-dark hover:bg-neutral-light"
+              }`}
+            >
+              Cửa hàng
+            </Link>
+            <Link
+              href="/about"
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                pathname === "/about"
+                  ? "bg-primary/10 text-primary"
+                  : "text-neutral-dark hover:bg-neutral-light"
+              }`}
+            >
+              Về chúng tôi
+            </Link>
+            <Link
+              href="/contact"
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                pathname === "/contact"
+                  ? "bg-primary/10 text-primary"
+                  : "text-neutral-dark hover:bg-neutral-light"
+              }`}
+            >
+              Liên hệ
+            </Link>
+
+            {!isAuthenticated && (
+              <Link
+                href="/login"
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  pathname === "/login"
+                    ? "bg-primary/10 text-primary"
+                    : "text-neutral-dark hover:bg-neutral-light"
+                }`}
+              >
+                Đăng nhập
+              </Link>
+            )}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

@@ -145,3 +145,15 @@ async def get_order_by_id(db: AsyncSession, order_id: int) -> Order | None:
         .options(selectinload(Order.items).selectinload(OrderItem.product))
     )
     return result.scalar_one_or_none()
+
+
+async def update_order_status(db: AsyncSession, order_id: int, new_status: OrderStatus) -> Order | None:
+    """Cập nhật trạng thái đơn hàng và trả về bản ghi mới nhất."""
+    order = await get_order_by_id(db, order_id)
+    if order is None:
+        return None
+
+    order.status = new_status
+    await db.flush()
+    await db.refresh(order)
+    return order

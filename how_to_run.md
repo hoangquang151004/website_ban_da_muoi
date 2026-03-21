@@ -31,6 +31,21 @@ GOOGLE_API_KEY=your_google_api_key
 
 Neu config provider khong hop le hoac Gemini khong khoi tao duoc, he thong se fallback ve baseline.
 
+## VNPay config (.env)
+
+Dat them cac bien sau trong file backend/.env de bat thanh toan VNPay:
+
+VNPAY_TMN_CODE=your_vnpay_tmn_code
+VNPAY_HASH_SECRET=your_vnpay_hash_secret
+VNPAY_PAYMENT_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_RETURN_URL=http://localhost:8000/api/v1/payments/vnpay/return
+FRONTEND_URL=http://localhost:3000
+
+Luu y:
+
+- VNPAY_RETURN_URL phai trung voi URL callback da khai bao tren merchant VNPay.
+- FRONTEND_URL dung de redirect nguoi dung ve trang ket qua thanh toan tren frontend.
+
 ## Benchmark va AB test (Phase 6)
 
 Chay tu thu muc backend:

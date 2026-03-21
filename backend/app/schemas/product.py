@@ -88,6 +88,8 @@ class ProductListItem(BaseModel):
     is_featured: bool
     is_active: bool
     category_id: int
+    average_rating: float | None = None
+    review_count: int = 0
     uses: list[UseResponse] = []
     images: list[ProductImageResponse] = []
 

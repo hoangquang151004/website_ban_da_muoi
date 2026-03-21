@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Đèn Đá Muối Himalaya API"
     DEBUG: bool = False
     BACKEND_URL: str = "http://localhost:8000"  # Base URL for static files
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # Database
     DATABASE_URL: str = "mysql+aiomysql://root:password@localhost:3306/da_muoi_db"
@@ -33,6 +34,13 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+    # VNPay
+    VNPAY_TMN_CODE: str = ""
+    VNPAY_HASH_SECRET: str = ""
+    VNPAY_PAYMENT_URL: str = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+    VNPAY_RETURN_URL: str = "http://localhost:8000/api/v1/payments/vnpay/return"
+    VNPAY_ORDER_TYPE: str = "other"
 
     class Config:
         env_file = ".env"

@@ -37,6 +37,10 @@ class TestIntentDetection:
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("Thêm sản phẩm test 1 vào giỏ hàng") == ChatIntent.ORDER
 
+    def test_order_intent_xoa_san_pham_khoi_gio_hang(self):
+        from app.services.ai_agent.agent import detect_intent, ChatIntent
+        assert detect_intent("Xóa Đá muối hình bình khỏi giỏ hàng") == ChatIntent.ORDER
+
     def test_recommend_intent_goi_y(self):
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("Gợi ý cho tôi đèn phù hợp") == ChatIntent.RECOMMEND
@@ -631,6 +635,29 @@ class TestCheckoutChatContract:
         assert isinstance(item["quantity"], int)
         assert isinstance(item["subtotal"], float)
 
+    async def test_add_to_cart_returns_text_not_checkout_panel(self):
+        from app.services.ai_agent.agent import run_chat
+
+        mocked_result = {
+            "answer": "Đã thêm 1 × 'Đá muối hình bình' vào giỏ hàng.",
+            "cart_updated": True,
+            "cart_item": {
+                "product_id": 20,
+                "product_name": "Đá muối hình bình",
+                "product_slug": "da-muoi-hinh-binh",
+                "image_url": "/static/uploads/demo.jpg",
+                "price": 4520000,
+                "quantity": 1,
+            },
+        }
+
+        with patch("app.services.ai_agent.agent.run_ordering_agent", new=AsyncMock(return_value=mocked_result)):
+            result = await run_chat("Thêm Đá muối hình bình vào giỏ hàng", user_id=1)
+
+        assert result["response_type"] == "text"
+        assert result["intent"] == "order"
+        assert result.get("cart_updated") is True
+
     async def test_checkout_requires_login(self):
         from app.services.ai_agent.agent import run_chat
 
@@ -672,6 +699,27 @@ class TestCheckoutChatContract:
         assert result["response_type"] == "text"
         assert result.get("cart_updated") is False
         assert "giỏ hàng" in result["answer"].lower()
+
+    async def test_remove_from_cart_message_not_fallback_to_rag(self):
+        from app.services.ai_agent.agent import run_chat
+
+        mocked_result = {
+            "answer": "Đã xóa 'Đá muối hình bình' khỏi giỏ hàng.",
+            "cart_updated": False,
+            "cart_removed": True,
+            "cart_item": {
+                "product_id": 20,
+                "product_name": "Đá muối hình bình",
+                "quantity": 0,
+            },
+        }
+
+        with patch("app.services.ai_agent.agent.run_ordering_agent", new=AsyncMock(return_value=mocked_result)):
+            result = await run_chat("Xóa Đá muối hình bình khỏi giỏ hàng", user_id=1)
+
+        assert result["intent"] == "order"
+        assert result["response_type"] == "text"
+        assert "xóa" in result["answer"].lower()
 
 
 @pytest.mark.asyncio

@@ -56,11 +56,17 @@ class OrderResponse(BaseModel):
     payment_method: PaymentMethod
     status: OrderStatus
     total_amount: Decimal
+    payment_url: str | None = None
     items: list[OrderItemResponse] = []
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class OrderPaymentLinkResponse(BaseModel):
+    order_id: int
+    payment_url: str
 
 
 class OrderStatusUpdate(BaseModel):

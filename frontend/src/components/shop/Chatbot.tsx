@@ -42,7 +42,6 @@ const ADMIN_STATS_SUGGESTIONS = [
   "Tỷ lệ trạng thái đơn",
   "Báo cáo doanh thu theo danh mục",
   "Còn tuần trước thì sao?",
-  "Lọc 30 ngày gần nhất",
   "Top 10 sản phẩm",
 ];
 
@@ -53,6 +52,16 @@ const CART_VIEW_KEYWORDS = [
   "xem cart",
   "mo gio hang",
   "xem gio hang",
+];
+
+const CART_REMOVE_KEYWORDS = [
+  "xóa khỏi giỏ",
+  "xóa khỏi giỏ hàng",
+  "xóa sản phẩm",
+  "bo khoi gio",
+  "bỏ khỏi giỏ",
+  "remove from cart",
+  "remove khỏi giỏ",
 ];
 
 const PAYMENT_METHOD_LABEL: Record<"cod" | "bank_transfer", string> = {
@@ -303,10 +312,12 @@ function OrderDetailPanel({
   order,
   onReorder,
   onViewOrderPage,
+  onRetryPayment,
 }: {
   order?: ChatOrderDetail;
   onReorder: (order: ChatOrderDetail) => void;
   onViewOrderPage: (orderId: number) => void;
+  onRetryPayment: (order: ChatOrderDetail) => void;
 }) {
   if (!order) {
     return (
@@ -325,6 +336,10 @@ function OrderDetailPanel({
   const paymentMethodLabel =
     PAYMENT_METHOD_LABEL[order.payment_method as "cod" | "bank_transfer"] ??
     order.payment_method;
+
+  const canRetryPayment =
+    order.payment_method === "bank_transfer" &&
+    String(order.status).toLowerCase() === "pending";
 
   return (
     <div className="mt-1 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -429,6 +444,14 @@ function OrderDetailPanel({
         >
           Mua lại
         </button>
+        {canRetryPayment && (
+          <button
+            onClick={() => onRetryPayment(order)}
+            className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+          >
+            Thanh toán lại
+          </button>
+        )}
         <button
           onClick={() => onViewOrderPage(order.id)}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:border-primary hover:text-primary"
@@ -763,6 +786,57 @@ function ProductCardList({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function CartPreviewPanel({ cartItems }: { cartItems: ChatCheckoutItem[] }) {
+  if (!Array.isArray(cartItems) || cartItems.length === 0) {
+    return (
+      <div className="mt-1 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500">
+        Giỏ hàng của bạn đang trống.
+      </div>
+    );
+  }
+
+  const total = cartItems.reduce((sum, item) => sum + Number(item.subtotal), 0);
+
+  return (
+    <div className="mt-1 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        Giỏ hàng hiện tại
+      </p>
+      <div className="max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-100 bg-white">
+        {cartItems.map((item) => (
+          <div
+            key={`${item.product_id}-${item.product_slug}`}
+            className="flex items-center justify-between gap-2 p-2.5"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-slate-800">
+                {item.product_name}
+              </p>
+              <p className="text-[11px] text-slate-500">
+                {item.quantity} x {formatCurrency(item.unit_price)}
+              </p>
+            </div>
+            <p className="text-xs font-bold text-slate-800">
+              {formatCurrency(item.subtotal)}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-2 flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/70 px-2.5 py-2">
+        <p className="text-xs font-semibold text-slate-600">Tạm tính</p>
+        <p className="text-sm font-extrabold text-primary">
+          {formatCurrency(total)}
+        </p>
+      </div>
+
+      <p className="mt-2 text-[11px] text-slate-500">
+        Nhắn "thanh toán" để mở form thanh toán ngay trong chat.
+      </p>
     </div>
   );
 }
@@ -1234,6 +1308,7 @@ function MessageRenderer({
   onBuyNow,
   onOpenOrder,
   onReorderFromChat,
+  onRetryPaymentFromChat,
   onViewOrderPage,
   onCheckoutSubmit,
   checkoutSubmitting,
@@ -1250,6 +1325,7 @@ function MessageRenderer({
   onBuyNow: (product: ChatProductCard) => void;
   onOpenOrder: (orderId: number) => void;
   onReorderFromChat: (order: ChatOrderDetail) => void;
+  onRetryPaymentFromChat: (order: ChatOrderDetail) => void;
   onViewOrderPage: (orderId: number) => void;
   onCheckoutSubmit: (payload: CheckoutSubmitPayload) => Promise<void>;
   checkoutSubmitting: boolean;
@@ -1309,6 +1385,21 @@ function MessageRenderer({
       );
     }
 
+    case "cart_view": {
+      const cartItems = sanitizeCheckoutItems(
+        message.data?.cart_items && message.data.cart_items.length > 0
+          ? message.data.cart_items
+          : fallbackCartItems,
+      );
+
+      return (
+        <>
+          <TextBubble content={message.content} role={message.role} />
+          <CartPreviewPanel cartItems={cartItems} />
+        </>
+      );
+    }
+
     case "order_list":
       return (
         <>
@@ -1327,6 +1418,7 @@ function MessageRenderer({
           <OrderDetailPanel
             order={message.data?.order_detail}
             onReorder={onReorderFromChat}
+            onRetryPayment={onRetryPaymentFromChat}
             onViewOrderPage={onViewOrderPage}
           />
         </>
@@ -1454,6 +1546,42 @@ function isCheckoutViewMessage(text: string): boolean {
   );
 }
 
+function normalizeTextForCartMatch(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isRemoveFromCartMessage(text: string): boolean {
+  const normalized = normalizeTextForCartMatch(text);
+  return CART_REMOVE_KEYWORDS.some((kw) =>
+    normalized.includes(normalizeTextForCartMatch(kw)),
+  );
+}
+
+function extractRemoveProductName(text: string): string {
+  const normalized = text.trim();
+  const patterns = [
+    /x[oó]a\s+(.+?)\s+kh[oỏ]i\s+gi[oỏ]\s*h[aà]ng/i,
+    /x[oó]a\s+(.+?)\s+kh[oỏ]i\s+gi[oỏ]/i,
+    /b[oỏ]\s+(.+?)\s+kh[oỏ]i\s+gi[oỏ]\s*h[aà]ng/i,
+    /b[oỏ]\s+(.+?)\s+kh[oỏ]i\s+gi[oỏ]/i,
+    /remove\s+(.+?)\s+from\s+cart/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern);
+    if (!match) continue;
+    return match[1].trim();
+  }
+
+  return "";
+}
+
 function isAdminOnlyMessage(text: string): boolean {
   const normalized = text.trim().toLowerCase();
   return (
@@ -1489,6 +1617,7 @@ export default function Chatbot() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const checkoutSubmitLockRef = useRef(false);
   const addItem = useCartStore((s) => s.addItem);
+  const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
   const cartStoreItems = useCartStore((s) => s.items);
   const { user } = useAuthStore();
@@ -1598,7 +1727,7 @@ export default function Chatbot() {
           role: "bot",
           content:
             cartItems.length > 0
-              ? "Đây là giỏ hàng hiện tại của bạn. Bạn có thể xác nhận thanh toán ngay trong chat."
+              ? "Mình mở form thanh toán cho bạn ngay trong chat."
               : "Giỏ hàng của bạn đang trống. Hãy thêm sản phẩm rồi quay lại nhé.",
           response_type: cartItems.length > 0 ? "checkout_form" : "text",
           data: cartItems.length > 0 ? { cart_items: cartItems } : undefined,
@@ -1609,8 +1738,110 @@ export default function Chatbot() {
         setInputValue("");
       };
 
+      const removeCartItemFromStore = () => {
+        const userMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: text,
+          timestamp: Date.now(),
+        };
+
+        const normalizedCartItems = fallbackCheckoutItems;
+        if (normalizedCartItems.length === 0) {
+          const botMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: "bot",
+            content: "Giỏ hàng của bạn đang trống nên chưa có sản phẩm để xóa.",
+            response_type: "text",
+            timestamp: Date.now(),
+          };
+          setMessages((prev) => [...prev, userMsg, botMsg]);
+          setInputValue("");
+          return;
+        }
+
+        const requestedName = extractRemoveProductName(text);
+        if (!requestedName) {
+          const botMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: "bot",
+            content:
+              "Bạn muốn xóa sản phẩm nào khỏi giỏ? Ví dụ: xóa Đá muối hình bình khỏi giỏ hàng.",
+            response_type: "text",
+            timestamp: Date.now(),
+          };
+          setMessages((prev) => [...prev, userMsg, botMsg]);
+          setInputValue("");
+          return;
+        }
+
+        const requestedNorm = normalizeTextForCartMatch(requestedName);
+        const target = normalizedCartItems.find((item) => {
+          const itemNorm = normalizeTextForCartMatch(item.product_name);
+          return (
+            itemNorm.includes(requestedNorm) || requestedNorm.includes(itemNorm)
+          );
+        });
+
+        if (!target) {
+          const botMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: "bot",
+            content:
+              "Mình chưa thấy sản phẩm đó trong giỏ hàng của bạn. Bạn kiểm tra lại tên sản phẩm giúp mình nhé.",
+            response_type: "text",
+            timestamp: Date.now(),
+          };
+          setMessages((prev) => [...prev, userMsg, botMsg]);
+          setInputValue("");
+          return;
+        }
+
+        removeItem(target.product_id);
+
+        const botMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "bot",
+          content: `Đã xóa "${target.product_name}" khỏi giỏ hàng.`,
+          response_type: "text",
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, userMsg, botMsg]);
+        setInputValue("");
+      };
+
+      const openCartViewFromStore = () => {
+        const userMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: text,
+          timestamp: Date.now(),
+        };
+
+        const cartItems = sanitizeCheckoutItems(fallbackCheckoutItems);
+        const botMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "bot",
+          content:
+            cartItems.length > 0
+              ? "Đây là giỏ hàng hiện tại của bạn."
+              : "Giỏ hàng của bạn đang trống.",
+          response_type: "cart_view",
+          data: { cart_items: cartItems },
+          timestamp: Date.now(),
+        };
+
+        setMessages((prev) => [...prev, userMsg, botMsg]);
+        setInputValue("");
+      };
+
       if (isCartViewMessage(text)) {
-        openCheckoutFromStore();
+        openCartViewFromStore();
+        return;
+      }
+
+      if (isRemoveFromCartMessage(text)) {
+        removeCartItemFromStore();
         return;
       }
 
@@ -1665,6 +1896,10 @@ export default function Chatbot() {
           });
         }
 
+        if (mounted && apiRes.cart_removed && apiRes.cart_item?.product_id) {
+          removeItem(Number(apiRes.cart_item.product_id));
+        }
+
         const botMsg: ChatMessage = {
           id: loadingMsg.id,
           role: "bot",
@@ -1703,7 +1938,15 @@ export default function Chatbot() {
         setIsLoading(false);
       }
     },
-    [addItem, fallbackCheckoutItems, inputValue, isLoading, mounted, sessionId],
+    [
+      addItem,
+      fallbackCheckoutItems,
+      inputValue,
+      isLoading,
+      mounted,
+      removeItem,
+      sessionId,
+    ],
   );
 
   const handleBuyNow = useCallback(
@@ -1758,9 +2001,27 @@ export default function Chatbot() {
 
       try {
         const order = await orderService.createOrder(payload);
+        const isBankTransfer = order.payment_method === "bank_transfer";
+
+        // Với VNPay, chỉ chuyển hướng sang cổng thanh toán; chưa coi là thanh toán thành công.
+        if (isBankTransfer) {
+          if (!order.payment_url) {
+            throw new Error(
+              "Không thể khởi tạo phiên thanh toán VNPay. Vui lòng thử lại.",
+            );
+          }
+
+          setRetryCheckoutPayload(null);
+          toast.success("Đang chuyển sang cổng thanh toán VNPay...");
+          if (typeof window !== "undefined") {
+            window.location.href = order.payment_url;
+          }
+          return;
+        }
+
         toast.success(`Đặt hàng thành công! Mã đơn #${order.id}`);
 
-        // Clear cart only after order creation succeeds.
+        // COD: tạo đơn xong là hoàn tất, có thể xóa giỏ.
         clearCart();
         setRetryCheckoutPayload(null);
 
@@ -1828,15 +2089,11 @@ export default function Chatbot() {
       if (isLoading) return;
 
       if (action === "checkout") {
-        await handleSend("Xem giỏ hàng");
+        await handleSend("Thanh toán giỏ hàng");
         return;
       }
 
-      const intentMessage =
-        action === "buy_now"
-          ? "Mua ngay sản phẩm trong giỏ hàng"
-          : "Tôi muốn thanh toán giỏ hàng";
-      await handleSend(intentMessage);
+      await handleSend("Mua ngay sản phẩm trong giỏ hàng");
     },
     [handleSend, isLoading],
   );
@@ -1937,6 +2194,31 @@ export default function Chatbot() {
       router.push(`/account/orders/${orderId}`);
     },
     [router],
+  );
+
+  const handleRetryPaymentFromChat = useCallback(
+    async (order: ChatOrderDetail) => {
+      if (!order || order.payment_method !== "bank_transfer") return;
+      if (String(order.status).toLowerCase() !== "pending") {
+        toast.error("Đơn hàng này không còn ở trạng thái chờ thanh toán lại.");
+        return;
+      }
+
+      try {
+        const result = await orderService.retryPayment(order.id);
+        toast.success("Đang chuyển đến cổng thanh toán VNPay...");
+        if (typeof window !== "undefined") {
+          window.location.href = result.payment_url;
+        }
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Không thể tạo lại link thanh toán cho đơn hàng.";
+        toast.error(message);
+      }
+    },
+    [],
   );
 
   useEffect(() => {
@@ -2048,6 +2330,7 @@ export default function Chatbot() {
                     onBuyNow={handleBuyNow}
                     onOpenOrder={handleOpenOrder}
                     onReorderFromChat={handleReorderFromChat}
+                    onRetryPaymentFromChat={handleRetryPaymentFromChat}
                     onViewOrderPage={handleViewOrderPage}
                     onCheckoutSubmit={handleCheckoutSubmit}
                     checkoutSubmitting={checkoutSubmitting}
@@ -2087,13 +2370,7 @@ export default function Chatbot() {
                   {suggestion}
                 </button>
               ))}
-              <button
-                onClick={() => void handleCheckoutQuickAction("buy_now")}
-                disabled={isLoading}
-                className="shrink-0 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-medium transition-colors disabled:opacity-50"
-              >
-                Mua ngay
-              </button>
+
               <button
                 onClick={() => void handleCheckoutQuickAction("checkout")}
                 disabled={isLoading}

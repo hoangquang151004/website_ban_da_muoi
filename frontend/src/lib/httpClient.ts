@@ -1,7 +1,13 @@
 import axios from "axios";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const rawApiUrl = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+).replace(/\/$/, "");
+
+// Accept both forms: http://host and http://host/api/v1
+const BASE_URL = /\/api\/v1$/i.test(rawApiUrl)
+  ? rawApiUrl
+  : `${rawApiUrl}/api/v1`;
 
 const httpClient = axios.create({
   baseURL: BASE_URL,
