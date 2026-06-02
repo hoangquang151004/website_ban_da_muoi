@@ -2,7 +2,8 @@
 agent.py — LangGraph Agent orchestration.
 
 Gồm:
-- intent_detector(): phân loại intent từ câu chat
+- resolve_intent(): multi-thinking LLM intent (mặc định) hoặc keyword fallback
+- detect_intent(): phân loại keyword (INTENT_MODE=keyword)
 - run_recommendation_agent(): gợi ý sản phẩm
 - run_ordering_agent(): đặt hàng qua chat
 - run_chat(): endpoint duy nhất tự routing
@@ -24,7 +25,6 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections import deque
 from datetime import date, timedelta
 from enum import Enum
 from typing import Optional
@@ -115,12 +115,6 @@ _STATS_KEYWORDS = [
     "tỷ lệ đơn", "lợi nhuận", "doanh số",
 ]
 
-_FOLLOWUP_HINT_KEYWORDS = [
-    "cái đó", "mẫu đó", "loại đó", "sản phẩm đó", "nó",
-    "cái này", "mẫu này", "vừa rồi", "như vậy", "thế còn",
-    "đơn đó", "cái đầu tiên", "cái thứ", "món đó",
-]
-
 _CHECKOUT_HINT_KEYWORDS = [
     "checkout", "thanh toán", "mua ngay", "chốt đơn", "đặt đơn",
 ]
@@ -143,10 +137,6 @@ _ORDER_REGEX_PATTERNS_NO_ACCENT = [
     r"\bbo\b.*\bkhoi\s+gio(\s*hang)?\b",
 ]
 
-# Session memory nhẹ cho hội thoại multi-turn theo session_id.
-_SESSION_MEMORY: dict[str, dict] = {}
-
-
 # ---------------------------------------------------------------------------
 # Normalization helpers
 # ---------------------------------------------------------------------------
@@ -165,61 +155,27 @@ def _normalize_text_for_match(text: str) -> str:
     return re.sub(r"\s+", " ", normalized).strip()
 
 
-# ---------------------------------------------------------------------------
-# Session helpers
-# ---------------------------------------------------------------------------
-def _should_apply_context(message: str) -> bool:
-    msg = message.lower().strip()
-    # Chỉ áp context khi câu hỏi thể hiện rõ follow-up mơ hồ.
-    # Tránh việc câu ngắn nhưng độc lập (vd: "công dụng đèn đá muối")
-    # bị kéo theo intent của lượt chat trước.
-    if not msg:
-        return False
-    return any(kw in msg for kw in _FOLLOWUP_HINT_KEYWORDS)
-
-
-def _contextualize_message(message: str, session_id: Optional[str]) -> str:
-    if not session_id:
-        return message
-
-    session = _SESSION_MEMORY.get(session_id)
-    if not session:
-        return message
-
-    prev_messages = session.get("last_user_messages") or []
-    if not prev_messages or not _should_apply_context(message):
-        return message
-
-    last_user_message = prev_messages[-1]
-    last_products = session.get("last_products") or []
-    product_names = ", ".join(p.get("name", "") for p in last_products[:3] if p.get("name"))
-
-    context_parts = [f"Nguyen canh truoc do cua khach: {last_user_message}."]
-    if product_names:
-        context_parts.append(f"San pham vua goi y: {product_names}.")
-
-    context_parts.append(f"Yeu cau hien tai: {message}")
-    return " ".join(context_parts)
-
-
-def _update_session_memory(
+def _finalize_chat_response(
     session_id: Optional[str],
     user_message: str,
     intent: ChatIntent,
     result: dict,
-) -> None:
-    if not session_id:
-        return
+) -> dict:
+    from app.services.ai_agent.chat_memory import (
+        append_chat_turn,
+        get_memory_turn_count,
+    )
 
-    session = _SESSION_MEMORY.get(session_id)
-    if session is None:
-        session = {"last_user_messages": deque(maxlen=5), "last_products": []}
-        _SESSION_MEMORY[session_id] = session
-
-    session["last_user_messages"].append(user_message)
-    session["last_intent"] = intent.value
-    if isinstance(result.get("products"), list):
-        session["last_products"] = result.get("products") or []
+    append_chat_turn(
+        session_id,
+        user_message=user_message,
+        bot_answer=result.get("answer") or "",
+        intent=intent.value,
+        products=result.get("products") if isinstance(result.get("products"), list) else None,
+    )
+    result.setdefault("meta", {})
+    result["meta"]["memory_turns"] = get_memory_turn_count(session_id)
+    return result
 
 
 def _normalize_user_role(user_role: object) -> Optional[str]:
@@ -307,6 +263,76 @@ def detect_intent(message: str) -> ChatIntent:
     return ChatIntent.KNOWLEDGE
 
 
+def _intent_string_to_enum(intent: str) -> ChatIntent:
+    try:
+        return ChatIntent(intent.strip().lower())
+    except ValueError:
+        return ChatIntent.KNOWLEDGE
+
+
+async def resolve_intent(
+    message: str,
+    user_role: Optional[str] = None,
+    conversation_context: Optional[str] = None,
+) -> tuple[ChatIntent, Optional[dict]]:
+    """Phân loại intent theo INTENT_MODE. Trả về (intent, debug_meta hoặc None)."""
+    from app.core.config import settings
+    from app.services.ai_agent.chains.intent_chain import (
+        classify_intent,
+        classify_intent_multi,
+    )
+
+    mode = (settings.INTENT_MODE or "multi").strip().lower()
+    debug_meta: Optional[dict] = None
+
+    if mode == "keyword":
+        return detect_intent(message), debug_meta
+
+    if mode == "single_llm":
+        result = await classify_intent(
+            message, user_role=user_role, conversation_context=conversation_context
+        )
+        if result is None:
+            return ChatIntent.KNOWLEDGE, debug_meta
+        intent = _intent_string_to_enum(result.intent)
+        if settings.INTENT_DEBUG:
+            debug_meta = {
+                "intent_mode": mode,
+                "aggregated_confidence": result.confidence,
+                "intent_votes": [
+                    {
+                        "lens": "single",
+                        "intent": result.intent,
+                        "confidence": result.confidence,
+                        "reasoning": result.reasoning,
+                    }
+                ],
+            }
+        return intent, debug_meta
+
+    aggregated = await classify_intent_multi(
+        message, user_role=user_role, conversation_context=conversation_context
+    )
+    intent = _intent_string_to_enum(aggregated.intent)
+
+    if settings.INTENT_DEBUG:
+        debug_meta = {
+            "intent_mode": mode,
+            "aggregated_confidence": aggregated.confidence,
+            "intent_votes": [
+                {
+                    "lens": v.lens,
+                    "intent": v.intent,
+                    "confidence": v.confidence,
+                    "reasoning": v.reasoning,
+                }
+                for v in aggregated.votes
+            ],
+        }
+
+    return intent, debug_meta
+
+
 def _looks_like_admin_stats_query(message: str) -> bool:
     lower = (message or "").lower()
 
@@ -341,52 +367,91 @@ def _looks_like_admin_stats_query(message: str) -> bool:
 # ---------------------------------------------------------------------------
 # Recommendation Agent
 # ---------------------------------------------------------------------------
-async def run_recommendation_agent(message: str) -> dict:
+async def run_recommendation_agent(
+    message: str,
+    conversation_context: Optional[str] = None,
+) -> dict:
     """Phân tích câu chat, tìm sản phẩm và trả về answer + products list.
 
     Returns:
-        {"answer": str, "products": list[dict]}
+        {"answer": str, "products": list[dict], "meta": dict}
     """
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.output_parsers import StrOutputParser
     from app.services.ai_agent.llm import get_llm
-    from app.services.ai_agent.tools.product_search import search_products_structured
+    from app.services.ai_agent.tools.product_search import search_products_structured_with_meta
 
-    max_price = _extract_max_price(message)
-    min_price = _extract_min_price(message)
+    from app.services.ai_agent.chat_memory import build_message_with_context
 
-    products = await search_products_structured(
-        query=message,
-        max_price=max_price,
-        min_price=min_price,
+    products, search_filters = await search_products_structured_with_meta(
+        message, conversation_context=conversation_context
+    )
+
+    prompt_message = build_message_with_context(
+        message, conversation_context or ""
     )
 
     llm = get_llm()
+    meta: dict = {"search_filters": search_filters}
     if products:
         product_list_text = "\n".join(
-            f"- {i+1}. {p['name']} — {int(p['price']):,}đ"
+            f"- {i+1}. {p['name']} — {int(p['price']):,}đ (còn {p.get('stock', 0)})"
             for i, p in enumerate(products)
         )
         summary_prompt = ChatPromptTemplate.from_messages([
             (
                 "system",
                 "Bạn là trợ lý tư vấn bán hàng đèn đá muối Himalaya. "
-                "Hãy viết câu trả lời thân thiện, ngắn gọn giới thiệu danh sách sản phẩm cho khách.",
+                "CHỈ được giới thiệu các sản phẩm trong danh sách được cung cấp — không thêm sản phẩm khác. "
+                "Ngắn gọn, thân thiện, tiếng Việt.",
             ),
-            ("human", f"Khách hỏi: {message}\n\nDanh sách sản phẩm tìm được:\n{product_list_text}"),
+            (
+                "human",
+                f"Khách hỏi: {prompt_message}\n\n"
+                f"Danh sách sản phẩm (từ cơ sở dữ liệu):\n{product_list_text}",
+            ),
         ])
         try:
             answer = await (summary_prompt | llm | StrOutputParser()).ainvoke({})
         except Exception:
-            # Fallback an toàn để không làm vỡ luồng chat khi provider lỗi tạm thời.
             answer = "Mình tìm được một số sản phẩm phù hợp cho bạn. Bạn xem danh sách bên dưới nhé."
     else:
         answer = (
-            "Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn. "
-            "Bạn có thể mô tả thêm nhu cầu hoặc điều chỉnh ngân sách không?"
+            "Mình chưa tìm thấy sản phẩm khớp bộ lọc trong cửa hàng. "
+            "Bạn thử nới ngân sách, đổi công dụng (ví dụ ngủ hoặc thư giãn), "
+            "hoặc hỏi \"gợi ý đèn bán chạy\" nhé."
         )
 
-    return {"answer": answer, "products": products}
+    return {"answer": answer, "products": products, "meta": meta}
+
+
+def _looks_like_product_shopping_query(message: str) -> bool:
+    """Heuristic: câu hỏi tìm/gợi ý mua sản phẩm — ép RECOMMEND thay vì RAG."""
+    lower = (message or "").lower()
+
+    price_patterns = [
+        r"dưới\s*\d+\s*k\b",
+        r"tầm\s*\d+\s*k\b",
+        r"khoảng\s*\d+\s*k\b",
+        r"\d+\s*triệu",
+        r"\d{3,}\s*(?:đồng|vnd|đ)\b",
+        r"trên\s*\d+\s*k\b",
+        r"từ\s*\d+\s*k\b",
+    ]
+    if any(re.search(p, lower) for p in price_patterns):
+        return True
+
+    shopping_keywords = [
+        "gợi ý", "goi y", "tư vấn sản phẩm", "tu van san pham",
+        "tìm đèn", "tim den", "tìm sản phẩm", "mua đèn", "mua den",
+        "sản phẩm phù hợp", "san pham phu hop", "ngân sách", "ngan sach",
+        "dưới", "tầm", "khoảng", "giá rẻ", "gia re", "bán chạy", "ban chay",
+        "recommend", "catalog", "danh mục",
+    ]
+    product_hints = ["đèn", "den", "sản phẩm", "san pham", "đá muối", "da muoi"]
+    has_shopping = any(kw in lower for kw in shopping_keywords)
+    has_product = any(kw in lower for kw in product_hints)
+    return has_shopping and has_product
 
 
 def _extract_max_price(text: str) -> Optional[float]:
@@ -520,7 +585,11 @@ def _normalize_checkout_cart_items(result: dict) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Conversational Ordering Agent
 # ---------------------------------------------------------------------------
-async def run_ordering_agent(message: str, user_id: int) -> dict:
+async def run_ordering_agent(
+    message: str,
+    user_id: int,
+    conversation_context: Optional[str] = None,
+) -> dict:
     """Xử lý yêu cầu đặt hàng qua chat.
 
     Flow:
@@ -532,8 +601,11 @@ async def run_ordering_agent(message: str, user_id: int) -> dict:
     Returns:
         {"answer": str, "cart_updated": bool, "cart_item": dict | None}
     """
+    from app.services.ai_agent.chat_memory import build_message_with_context
     from app.services.ai_agent.tools.product_search import search_products_structured
     from app.services.ai_agent.tools.add_to_cart import add_to_cart_internal
+
+    search_query = build_message_with_context(message, conversation_context or "")
 
     quantity = _extract_quantity(message)
     is_remove_request = _is_remove_from_cart_request(message)
@@ -543,7 +615,9 @@ async def run_ordering_agent(message: str, user_id: int) -> dict:
     if requested_product_name:
         selected_product = await _find_best_product_by_name(requested_product_name)
 
-    products = await search_products_structured(query=message, max_price=None, min_price=None)
+    products = await search_products_structured(
+        query=search_query, max_price=None, min_price=None
+    )
 
     if selected_product is None and requested_product_name and products:
         ranked = sorted(
@@ -1016,9 +1090,25 @@ async def run_chat(
     Returns:
         dict với key "answer" và các key bổ sung tùy intent
     """
-    effective_message = _contextualize_message(message, session_id)
+    from app.services.ai_agent.chat_memory import (
+        build_message_with_context,
+        enrich_followup_products,
+        get_conversation_context,
+    )
+
+    conversation_context = get_conversation_context(session_id)
+    product_hint = enrich_followup_products(message, session_id)
+    effective_message = build_message_with_context(
+        message,
+        conversation_context,
+        extra_product_hint=product_hint,
+    )
     normalized_role = _normalize_user_role(user_role)
-    intent = detect_intent(effective_message)
+    intent, intent_debug_meta = await resolve_intent(
+        message,
+        user_role=normalized_role,
+        conversation_context=conversation_context or None,
+    )
 
     # Override 1: Admin hỏi dạng báo cáo/phân tích nhưng không trúng keyword cứng
     # vẫn phải vào luồng STATS thay vì rơi xuống RAG.
@@ -1038,9 +1128,22 @@ async def run_chat(
     ):
         intent = ChatIntent.STATS
 
+    # Override 3: Câu tư vấn/gợi ý mua sản phẩm (có giá/ngân sách) → RECOMMEND, không RAG.
+    if intent == ChatIntent.KNOWLEDGE and _looks_like_product_shopping_query(effective_message):
+        intent = ChatIntent.RECOMMEND
+
+    def _attach_response_meta(result: dict) -> dict:
+        from app.services.ai_agent.llm import get_llm_display_info
+
+        existing = result.get("meta") or {}
+        result["meta"] = {**existing, **get_llm_display_info()}
+        if intent_debug_meta:
+            result["meta"] = {**result["meta"], **intent_debug_meta}
+        return result
+
     # ── GREETING ──────────────────────────────────────────────────────────
     if intent == ChatIntent.GREETING:
-        result = {
+        result = _attach_response_meta({
             "answer": (
                 "Xin chào! Mình là trợ lý tư vấn của cửa hàng đèn đá muối Himalaya. "
                 "Mình có thể giúp bạn tìm sản phẩm, tư vấn công dụng, hoặc hỗ trợ đặt hàng. "
@@ -1048,25 +1151,27 @@ async def run_chat(
             ),
             "response_type": "text",
             "intent": intent.value,
-        }
-        _update_session_memory(session_id, message, intent, result)
-        return result
+        })
+        return _finalize_chat_response(session_id, message, intent, result)
 
     # ── ORDER ──────────────────────────────────────────────────────────────
     if intent == ChatIntent.ORDER:
         checkout_requested = _is_checkout_request(effective_message)
         if user_id is None:
-            result = {
+            result = _attach_response_meta({
                 "answer": "Vui lòng đăng nhập để tiếp tục đặt hàng hoặc thanh toán qua chat.",
                 "cart_updated": False,
                 "cart_item": None,
                 "response_type": "text",
                 "intent": intent.value,
-            }
-            _update_session_memory(session_id, message, intent, result)
-            return result
+            })
+            return _finalize_chat_response(session_id, message, intent, result)
 
-        result = await run_ordering_agent(effective_message, user_id)
+        result = await run_ordering_agent(
+            message,
+            user_id,
+            conversation_context=conversation_context or None,
+        )
 
         if result.get("cart_updated"):
             if checkout_requested:
@@ -1089,59 +1194,81 @@ async def run_chat(
             result["response_type"] = "text"
             result["intent"] = intent.value
 
-        _update_session_memory(session_id, message, intent, result)
-        return result
+        result = _attach_response_meta(result)
+        return _finalize_chat_response(session_id, message, intent, result)
 
     # ── ORDER_QUERY ────────────────────────────────────────────────────────
     elif intent == ChatIntent.ORDER_QUERY:
         if user_id is None:
-            result = {
+            result = _attach_response_meta({
                 "answer": "Vui lòng đăng nhập để xem đơn hàng của bạn.",
                 "response_type": "text",
                 "intent": intent.value,
-            }
-            _update_session_memory(session_id, message, intent, result)
-            return result
+            })
+            return _finalize_chat_response(session_id, message, intent, result)
         result = await run_order_query_agent(effective_message, user_id)
         result["intent"] = intent.value
         result["response_type"] = "order_detail" if result.get("order_detail") else "order_list"
-        _update_session_memory(session_id, message, intent, result)
-        return result
+        result = _attach_response_meta(result)
+        return _finalize_chat_response(session_id, message, intent, result)
 
     # ── STATS ──────────────────────────────────────────────────────────────
     elif intent == ChatIntent.STATS:
         if normalized_role != "admin":
-            result = {
+            result = _attach_response_meta({
                 "answer": "Chức năng thống kê chỉ dành cho quản trị viên.",
                 "response_type": "text",
                 "intent": intent.value,
                 "stats_data": None,
-            }
-            _update_session_memory(session_id, message, intent, result)
-            return result
+            })
+            return _finalize_chat_response(session_id, message, intent, result)
 
         result = await run_stats_agent(effective_message)
         result["intent"] = intent.value
         result["response_type"] = "stats"
         result.setdefault("stats_data", {})
         result.setdefault("meta", {"source": "rest"})
-        _update_session_memory(session_id, message, intent, result)
-        return result
+        result = _attach_response_meta(result)
+        return _finalize_chat_response(session_id, message, intent, result)
 
     # ── RECOMMEND ─────────────────────────────────────────────────────────
     elif intent == ChatIntent.RECOMMEND:
-        result = await run_recommendation_agent(effective_message)
+        result = await run_recommendation_agent(
+            message,
+            conversation_context=conversation_context or None,
+        )
         result["intent"] = intent.value
         result["response_type"] = "product_cards" if result.get("products") else "text"
-        _update_session_memory(session_id, message, intent, result)
-        return result
+        result = _attach_response_meta(result)
+        return _finalize_chat_response(session_id, message, intent, result)
 
     # ── KNOWLEDGE (default) ───────────────────────────────────────────────
     else:
-        from app.services.ai_agent.chains.rag_chain import create_rag_chain_with_sources
-        chain = create_rag_chain_with_sources()
-        result = await chain.ainvoke({"question": effective_message})
+        from app.services.ai_agent.chains.rag_chain import (
+            RAG_ERROR_ANSWER,
+            create_rag_chain_with_sources,
+        )
+
+        try:
+            chain = create_rag_chain_with_sources()
+            result = await chain.ainvoke({"question": effective_message})
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "Knowledge RAG chain failed for message=%r",
+                effective_message[:200],
+            )
+            result = {
+                "answer": RAG_ERROR_ANSWER,
+                "sources": [],
+                "rag_status": "error",
+            }
+
         result["intent"] = intent.value
         result["response_type"] = "text"
-        _update_session_memory(session_id, message, intent, result)
-        return result
+        rag_status = result.pop("rag_status", None)
+        if rag_status:
+            result.setdefault("meta", {})["rag_status"] = rag_status
+        result = _attach_response_meta(result)
+        return _finalize_chat_response(session_id, message, intent, result)

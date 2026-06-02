@@ -1,0 +1,36 @@
+# Git & IDE
+.git
+.gitignore
+.cursor
+.vscode
+*.md
+!DEPLOY.md
+
+# Frontend (rebuilt in image)
+frontend/node_modules
+frontend/.next
+frontend/out
+
+# Backend dev artifacts
+backend/__pycache__
+backend/**/__pycache__
+backend/.pytest_cache
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/chroma_db
+backend/static/uploads/*
+!backend/static/uploads/.gitkeep
+
+# Root misc
+UI
+tasks
+docs
+test_*.py
+huggiface_api.py
+*.pyc
+**/.DS_Store
+
+# Local DB / caches
+**/.pytest_cache
+**/*.pyc

@@ -6,6 +6,8 @@ Chain: RunnablePassthrough | retriever | prompt | llm | StrOutputParser
 
 from __future__ import annotations
 
+import logging
+
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
@@ -13,13 +15,61 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from app.services.ai_agent.llm import get_llm
 from app.services.ai_agent.vector_store import get_vector_store
 
+logger = logging.getLogger(__name__)
+
+# Khi ChromaDB không có chunk phù hợp — hướng khách về mua hàng / gợi ý SP
+RAG_NO_CONTEXT_ANSWER = (
+    "Mình chưa tìm thấy tài liệu tư vấn phù hợp cho câu hỏi này trong kho kiến thức. "
+    "Bạn có thể thử:\n"
+    "• Hỏi gợi ý sản phẩm (ví dụ: \"gợi ý đèn đá muối dưới 500k\")\n"
+    "• Xem danh mục sản phẩm trên website để chọn mua\n"
+    "• Mô tả nhu cầu (phòng ngủ, quà tặng, ngân sách...) để mình gợi ý đèn phù hợp"
+)
+
+# Lỗi kỹ thuật khi truy vấn vector DB hoặc gọi LLM — đã log server-side
+RAG_ERROR_ANSWER = (
+    "Mình tạm thời không tra cứu được thông tin tư vấn do sự cố kỹ thuật. "
+    "Bạn vui lòng thử lại sau, hoặc hỏi mình gợi ý sản phẩm để xem đèn phù hợp nhé!"
+)
+
+# Câu hỏi ngoài phạm vi cửa hàng / LLM từ chối kiểu "chưa có thông tin"
+RAG_REDIRECT_SHOPPING_ANSWER = (
+    "Mình là trợ lý của cửa hàng đèn đá muối Himalaya, nên chỉ hỗ trợ các vấn đề "
+    "liên quan mua sắm trên website. Bạn có thể:\n"
+    "• Hỏi gợi ý đèn theo nhu cầu hoặc ngân sách (ví dụ: \"gợi ý đèn phòng ngủ dưới 500k\")\n"
+    "• Tìm hiểu công dụng, cách dùng, bảo quản đèn đá muối\n"
+    "• Nhờ mình hướng dẫn đặt hàng: \"thêm vào giỏ\", \"xem giỏ hàng\", \"thanh toán\"\n"
+    "• Xem danh mục sản phẩm trên website để chọn mua"
+)
+
+# Cụm từ LLM hay trả khi không muốn trả lời — thay bằng hướng dẫn mua hàng
+_NO_INFO_PHRASES = (
+    "tôi chưa có thông tin",
+    "chưa có thông tin",
+    "không có thông tin",
+    "không tìm thấy thông tin",
+    "tôi không có thông tin",
+    "không có trong context",
+    "không có trong ngữ cảnh",
+    "i don't have information",
+    "i do not have information",
+)
+
 # ---------------------------------------------------------------------------
 # Prompt
 # ---------------------------------------------------------------------------
-RAG_SYSTEM_PROMPT = """Bạn là trợ lý tư vấn sản phẩm đèn đá muối Himalaya chuyên nghiệp.
-Chỉ trả lời dựa trên context được cung cấp dưới đây.
-Nếu không có thông tin trong context, hãy nói "Tôi chưa có thông tin về điều này."
-Trả lời bằng tiếng Việt, ngắn gọn, thân thiện và hữu ích.
+RAG_SYSTEM_PROMPT = """Bạn là trợ lý BÁN HÀNG đèn đá muối Himalaya trên website cửa hàng.
+Phạm vi: đèn đá muối, tư vấn sản phẩm, mua hàng, đặt hàng, tra cứu đơn.
+
+Quy tắc (theo thứ tự ưu tiên):
+1. Câu hỏi KHÔNG liên quan shop (thời tiết, tin tức, bài văn, lập trình, game, chính trị...):
+   → KHÔNG trả lời nội dung đó. Từ chối lịch sự và HƯỚNG khách: gợi ý sản phẩm, hỏi công dụng đèn, hoặc hướng dẫn đặt hàng/xem giỏ.
+2. Câu hỏi về đèn/shop nhưng Context dưới đây THIẾU chi tiết:
+   → KHÔNG nói "Tôi chưa có thông tin". Gợi khách mô tả nhu cầu mua, hỏi gợi ý theo ngân sách, hoặc xem sản phẩm trên web.
+3. Context đủ: trả lời ngắn gọn dựa trên Context.
+
+TUYỆT ĐỐI KHÔNG dùng: "Tôi chưa có thông tin về điều này."
+Trả lời tiếng Việt, thân thiện, tối đa 4–6 câu.
 
 Context:
 {context}
@@ -42,6 +92,25 @@ def _format_docs(docs) -> str:
         f"[{doc.metadata.get('title', 'Kiến thức')}]\n{doc.page_content}"
         for doc in docs
     )
+
+
+def _normalize_for_match(text: str) -> str:
+    return (text or "").lower().strip()
+
+
+def _is_no_info_answer(answer: str) -> bool:
+    """Phát hiện câu trả lời từ chối kiểu cũ để thay bằng hướng dẫn mua hàng."""
+    normalized = _normalize_for_match(answer)
+    if not normalized:
+        return True
+    return any(phrase in normalized for phrase in _NO_INFO_PHRASES)
+
+
+def polish_rag_answer(answer: str) -> str:
+    """Đảm bảo không trả 'chưa có thông tin' — luôn hướng về mua hàng."""
+    if _is_no_info_answer(answer):
+        return RAG_REDIRECT_SHOPPING_ANSWER
+    return (answer or "").strip() or RAG_REDIRECT_SHOPPING_ANSWER
 
 
 def _get_sources(docs) -> list[dict]:
@@ -90,20 +159,56 @@ def create_rag_chain_with_sources():
     retriever = vs.as_retriever(search_kwargs={"k": 5})
     llm = get_llm()
 
-    def run_with_sources(inputs: dict) -> dict:
-        question = inputs["question"]
-        docs = retriever.invoke(question)
-        if not docs:
+    async def run_with_sources(inputs: dict) -> dict:
+        question = (inputs.get("question") or "").strip()
+        if not question:
             return {
-                "answer": "Kho du lieu tu van hien dang chua co noi dung phu hop. Vui long cap nhat vector store hoac thu cau hoi cu the hon.",
+                "answer": RAG_NO_CONTEXT_ANSWER,
                 "sources": [],
+                "rag_status": "no_context",
             }
-        context = _format_docs(docs)
-        prompt_value = _rag_prompt.invoke({"context": context, "question": question})
-        answer = (llm | StrOutputParser()).invoke(prompt_value)
+
+        try:
+            docs = await retriever.ainvoke(question)
+        except Exception:
+            logger.exception("RAG vector retrieval failed for question=%r", question[:200])
+            return {
+                "answer": RAG_ERROR_ANSWER,
+                "sources": [],
+                "rag_status": "error",
+            }
+
+        if not docs:
+            logger.info("RAG no documents for question=%r", question[:200])
+            return {
+                "answer": RAG_NO_CONTEXT_ANSWER,
+                "sources": [],
+                "rag_status": "no_context",
+            }
+
+        try:
+            context = _format_docs(docs)
+            prompt_value = _rag_prompt.invoke({"context": context, "question": question})
+            raw_answer = await (llm | StrOutputParser()).ainvoke(prompt_value)
+            answer = polish_rag_answer(raw_answer)
+            if answer == RAG_REDIRECT_SHOPPING_ANSWER and _is_no_info_answer(raw_answer):
+                rag_status = "off_topic"
+            elif answer == RAG_REDIRECT_SHOPPING_ANSWER:
+                rag_status = "redirect"
+            else:
+                rag_status = "ok"
+        except Exception:
+            logger.exception("RAG LLM generation failed for question=%r", question[:200])
+            return {
+                "answer": RAG_ERROR_ANSWER,
+                "sources": _get_sources(docs),
+                "rag_status": "error",
+            }
+
         return {
             "answer": answer,
             "sources": _get_sources(docs),
+            "rag_status": rag_status,
         }
 
     return RunnableLambda(run_with_sources)

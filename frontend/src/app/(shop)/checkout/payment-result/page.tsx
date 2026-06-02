@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import DownloadInvoiceButton from "@/components/shop/DownloadInvoiceButton";
 import { loadOrderForInvoice } from "@/lib/invoiceOrderStorage";
@@ -11,7 +11,7 @@ import { useCartStore } from "@/store/cartStore";
 import { onlinePaymentLabel } from "@/lib/paymentLabels";
 import type { Order } from "@/types";
 
-export default function PaymentResultPage() {
+function PaymentResultContent() {
   const searchParams = useSearchParams();
   const clearCart = useCartStore((s) => s.clearCart);
   const { isAuthenticated } = useAuthStore();
@@ -153,5 +153,19 @@ export default function PaymentResultPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function PaymentResultPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex-grow container mx-auto px-4 py-16 max-w-[640px] text-center">
+          <p className="text-neutral-medium">Đang tải kết quả thanh toán...</p>
+        </main>
+      }
+    >
+      <PaymentResultContent />
+    </Suspense>
   );
 }

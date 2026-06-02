@@ -222,8 +222,29 @@ export type ChatStatsWidgetType =
   | "order_status"
   | "table";
 
-export interface ChatStatsMeta {
+export interface ChatResponseMeta {
   source?: "rest" | "text_to_sql";
+  rag_status?: "ok" | "no_context" | "error" | "off_topic" | "redirect";
+  chat_error?: boolean;
+  search_filters?: Record<string, unknown>;
+  llm_provider?: string;
+  llm_model?: string;
+  intent_mode?: string;
+  aggregated_confidence?: number;
+  intent_votes?: Array<{
+    lens?: string | null;
+    intent?: string;
+    confidence?: number;
+    reasoning?: string;
+  }>;
+}
+
+/** @deprecated Dùng ChatResponseMeta */
+export type ChatStatsMeta = ChatResponseMeta;
+
+export interface ChatLlmInfo {
+  llm_provider: string;
+  llm_model: string;
 }
 
 export type ChatStatsItem = Record<string, unknown>;
@@ -266,7 +287,7 @@ export interface ChatApiResponse {
   order_detail?: ChatOrderDetail | null;
   // stats
   stats_data?: ChatStatsData | null;
-  meta?: ChatStatsMeta | null;
+  meta?: ChatResponseMeta | null;
 }
 
 /** 1 tin nhan trong UI chat */
@@ -283,7 +304,7 @@ export interface ChatMessage {
     orders?: ChatOrderSummary[];
     order_detail?: ChatOrderDetail;
     stats_data?: ChatStatsData;
-    meta?: ChatStatsMeta;
+    meta?: ChatResponseMeta;
     sources?: ChatApiResponse["sources"];
   };
   timestamp: number; // Date.now()

@@ -70,6 +70,49 @@ const CART_REMOVE_KEYWORDS = [
   "remove khỏi giỏ",
 ];
 
+const CHAT_SESSION_ID_KEY = "himalayan-chat-session-id";
+const CHAT_MESSAGES_KEY = "himalayan-chat-messages";
+
+const CHAT_WELCOME_MESSAGE: ChatMessage = {
+  id: "welcome",
+  role: "bot",
+  content:
+    "Chào ban! Tôi có thể giúp gì cho sức khỏe và không gian sống của bạn hôm nay?",
+  response_type: "text",
+  timestamp: Date.now(),
+};
+
+function loadChatSessionId(): string {
+  if (typeof window === "undefined") return crypto.randomUUID();
+  const stored = sessionStorage.getItem(CHAT_SESSION_ID_KEY);
+  if (stored) return stored;
+  const id = crypto.randomUUID();
+  sessionStorage.setItem(CHAT_SESSION_ID_KEY, id);
+  return id;
+}
+
+function loadChatMessages(): ChatMessage[] {
+  if (typeof window === "undefined") return [CHAT_WELCOME_MESSAGE];
+  try {
+    const raw = sessionStorage.getItem(CHAT_MESSAGES_KEY);
+    if (!raw) return [CHAT_WELCOME_MESSAGE];
+    const parsed = JSON.parse(raw) as ChatMessage[];
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return [CHAT_WELCOME_MESSAGE];
+    }
+    return parsed;
+  } catch {
+    return [CHAT_WELCOME_MESSAGE];
+  }
+}
+
+function persistChatSession(sessionId: string, messages: ChatMessage[]) {
+  if (typeof window === "undefined") return;
+  const toSave = messages.filter((m) => !m.isLoading);
+  sessionStorage.setItem(CHAT_SESSION_ID_KEY, sessionId);
+  sessionStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(toSave));
+}
+
 function formatVnd(value: number) {
   return Number(value).toLocaleString("vi-VN") + "đ";
 }
@@ -699,6 +742,34 @@ function MarkdownBubble({ content }: { content: string }) {
   );
 }
 
+function formatSearchFiltersHint(meta?: ChatStatsMeta): string | null {
+  const sf = meta?.search_filters as Record<string, unknown> | undefined;
+  if (!sf || Object.keys(sf).length === 0) return null;
+
+  const parts: string[] = [];
+  if (sf.min_price != null) {
+    parts.push(`từ ${Number(sf.min_price).toLocaleString("vi-VN")}đ`);
+  }
+  if (sf.max_price != null) {
+    parts.push(`≤ ${Number(sf.max_price).toLocaleString("vi-VN")}đ`);
+  }
+  const useLabels = sf.use_labels as string[] | undefined;
+  if (useLabels?.length) {
+    const joiner = sf.use_match === "all" ? " và " : " hoặc ";
+    parts.push(`công dụng: ${useLabels.join(joiner)}`);
+  }
+  const keywords = sf.keywords as string[] | undefined;
+  if (keywords?.length) {
+    const joiner = sf.keyword_match === "all" ? " + " : " | ";
+    parts.push(`từ khóa: ${keywords.join(joiner)}`);
+  }
+  if (sf.category_label) {
+    parts.push(`danh mục: ${String(sf.category_label)}`);
+  }
+  if (!parts.length) return null;
+  return `Đã lọc: ${parts.join(" · ")}`;
+}
+
 function TypingIndicator() {
   return (
     <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 flex gap-1 items-center w-16">
@@ -749,8 +820,8 @@ function ProductCardList({
                   {product.name}
                 </h4>
                 <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
-                  {product.short_description ??
-                    "San pham den da muoi phu hop cho nhu cau cua ban."}
+                  {product.short_description?.trim() ||
+                    "Đèn đá muối Himalaya — xem chi tiết để biết thêm."}
                 </p>
               </div>
               <div className="flex items-center justify-between mt-1 gap-2 min-w-0">
@@ -1347,6 +1418,11 @@ function MessageRenderer({
       return (
         <>
           <TextBubble content={message.content} role={message.role} />
+          {formatSearchFiltersHint(message.data?.meta) ? (
+            <p className="text-[10px] text-slate-500 ml-1 mt-0.5">
+              {formatSearchFiltersHint(message.data?.meta)}
+            </p>
+          ) : null}
           {message.data?.products && message.data.products.length > 0 ? (
             <ProductCardList
               products={message.data.products}
@@ -1600,22 +1676,17 @@ export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "bot",
-      content:
-        "Chào ban! Tôi có thể giúp gì cho sức khỏe và không gian sống của bạn hôm nay?",
-      response_type: "text",
-      timestamp: Date.now(),
-    },
-  ]);
+  const [sessionId, setSessionId] = useState(() => loadChatSessionId());
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatMessages());
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
   const [retryCheckoutPayload, setRetryCheckoutPayload] =
     useState<CheckoutSubmitPayload | null>(null);
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [llmInfo, setLlmInfo] = useState<{
+    llm_provider: string;
+    llm_model: string;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const checkoutSubmitLockRef = useRef(false);
   const addItem = useCartStore((s) => s.addItem);
@@ -1658,6 +1729,47 @@ export default function Chatbot() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    persistChatSession(sessionId, messages);
+  }, [mounted, sessionId, messages]);
+
+  const handleNewConversation = useCallback(async () => {
+    try {
+      await chatService.clearSession(sessionId);
+    } catch {
+      /* backend clear optional */
+    }
+    const newId = crypto.randomUUID();
+    setSessionId(newId);
+    setMessages([{ ...CHAT_WELCOME_MESSAGE, timestamp: Date.now() }]);
+    setInputValue("");
+    setIsLoading(false);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    void chatService
+      .getLlmInfo()
+      .then((info) => {
+        if (!cancelled && info?.llm_model) {
+          setLlmInfo({
+            llm_provider: info.llm_provider,
+            llm_model: info.llm_model,
+          });
+        }
+      })
+      .catch(() => {
+        /* giữ label cũ nếu API lỗi */
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   const createCartItemFromProduct = useCallback((product: ChatProductCard) => {
     return {
@@ -1876,7 +1988,15 @@ export default function Chatbot() {
           message: text,
           session_id: sessionId,
         });
-        console.log(apiRes.response_type);
+
+        if (apiRes.meta?.llm_model) {
+          setLlmInfo({
+            llm_provider: apiRes.meta.llm_provider ?? "unknown",
+            llm_model: apiRes.meta.llm_model,
+          });
+        }
+
+        const mergedMeta = { ...(apiRes.meta ?? {}) };
 
         const normalizedCheckoutItems = normalizeCheckoutItems(apiRes);
 
@@ -1914,7 +2034,7 @@ export default function Chatbot() {
             orders: apiRes.orders ?? undefined,
             order_detail: apiRes.order_detail ?? undefined,
             stats_data: apiRes.stats_data ?? undefined,
-            meta: apiRes.meta ?? undefined,
+            meta: Object.keys(mergedMeta).length ? mergedMeta : undefined,
             sources: apiRes.sources ?? undefined,
           },
           timestamp: Date.now(),
@@ -1923,14 +2043,33 @@ export default function Chatbot() {
         setMessages((prev) =>
           prev.map((m) => (m.id === loadingMsg.id ? botMsg : m)),
         );
-      } catch {
+      } catch (error: unknown) {
+        console.error("[Chatbot] sendMessage failed:", error);
+
+        let content =
+          "Không kết nối được máy chủ chat. Vui lòng kiểm tra mạng hoặc thử lại sau.";
+
+        const axiosError = error as {
+          code?: string;
+          response?: { data?: { data?: ChatApiResponse; message?: string } };
+        };
+
+        if (axiosError.code === "ECONNABORTED") {
+          content =
+            "Phản hồi quá lâu (AI đang xử lý). Bạn thử lại hoặc hỏi ngắn hơn, ví dụ: \"gợi ý đèn dưới 500k\".";
+        } else if (axiosError.response?.data?.data?.answer) {
+          content = axiosError.response.data.data.answer;
+        } else if (axiosError.response?.data?.message) {
+          content = axiosError.response.data.message;
+        }
+
         setMessages((prev) =>
           prev.map((m) =>
             m.id === loadingMsg.id
               ? {
                   ...m,
                   isLoading: false,
-                  content: "Đã xảy ra lỗi vui lòng thử lại.",
+                  content,
                   response_type: "text",
                 }
               : m,
@@ -2275,6 +2414,17 @@ export default function Chatbot() {
             </div>
             <div className="flex items-center gap-1">
               <button
+                type="button"
+                onClick={() => void handleNewConversation()}
+                className="text-slate-400 hover:text-slate-900 transition-colors p-1 rounded-full hover:bg-black/5"
+                title="Cuộc trò chuyện mới"
+                aria-label="Cuộc trò chuyện mới"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  restart_alt
+                </span>
+              </button>
+              <button
                 onClick={() => setIsExpanded((v) => !v)}
                 className="text-slate-400 hover:text-slate-900 transition-colors p-1 rounded-full hover:bg-black/5"
                 title={
@@ -2439,8 +2589,20 @@ export default function Chatbot() {
                 </span>
               </button>
             </div>
-            <div className="text-center mt-2">
-              <span className="text-[10px] text-slate-400">
+            <div className="text-center mt-2 space-y-0.5">
+              {llmInfo && (
+                <p
+                  className="text-[10px] text-slate-500 font-mono truncate px-2"
+                  title={`${llmInfo.llm_model} (${llmInfo.llm_provider})`}
+                >
+                  Model: {llmInfo.llm_model}
+                  <span className="text-slate-400">
+                    {" "}
+                    · {llmInfo.llm_provider}
+                  </span>
+                </p>
+              )}
+              <span className="text-[10px] text-slate-400 block">
                 Được hỗ trợ bởi Quang
               </span>
             </div>

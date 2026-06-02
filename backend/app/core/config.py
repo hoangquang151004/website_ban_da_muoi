@@ -20,9 +20,24 @@ class Settings(BaseSettings):
     # AI / LLM
     OPENAI_API_KEY: str = ""
     GOOGLE_API_KEY: str = ""  # Gemini API key (tuỳ chọn)
-    HF_TOKEN: str = ""  # HuggingFace API token
-    LLM_PROVIDER: str = "openai"  # "openai" | "gemini" | "ollama" | "huggingface"
-    LLM_MODEL: str = "gpt-4o-mini"  # Model name, thay đổi theo provider
+    HF_TOKEN: str = ""  # HuggingFace Router (legacy rollback)
+    LLM_PROVIDER: str = "opencode"  # "openai" | "gemini" | "ollama" | "opencode" | "huggingface"
+    LLM_BASE_URL: str = "https://opencode.ai/zen/v1"
+    LLM_API_KEY: str = ""
+    LLM_MODEL: str = "deepseek-v4-flash-free"
+
+    # Intent detection (chatbot routing)
+    INTENT_MODE: str = "multi"  # "multi" | "keyword" | "single_llm"
+    INTENT_MIN_CONFIDENCE: float = 0.45
+    INTENT_DEBUG: bool = False
+
+    # Product search (chat recommend)
+    PRODUCT_SEARCH_MODE: str = "db"  # "db" | "vector_legacy"
+    PRODUCT_RECOMMEND_LIMIT: int = 6
+
+    # Chat session memory (in-process per session_id)
+    CHAT_MEMORY_ENABLED: bool = True
+    CHAT_MEMORY_MAX_TURNS: int = 8
 
     # Embeddings
     EMBEDDING_PROVIDER: str = "baseline"  # "baseline" | "gemini"

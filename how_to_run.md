@@ -9,6 +9,19 @@ uvicorn app.main:app --reload --port 8000
 cd frontend
 npm run dev
 
+## LLM config (.env) — OpenCode Zen
+
+Chatbot và intent dùng LLM qua endpoint OpenAI-compatible (OpenCode Zen):
+
+LLM_PROVIDER=opencode
+LLM_BASE_URL=https://opencode.ai/zen/v1
+LLM_API_KEY=your_api_key
+LLM_MODEL=deepseek-v4-flash-free
+
+Rollback HuggingFace Router: `LLM_PROVIDER=huggingface`, `HF_TOKEN=...`, `LLM_MODEL=openai/gpt-oss-120b:groq`.
+
+Sau khi doi .env, restart uvicorn. Thu nhanh: `python huggiface_api.py` (doc tu `backend/.env`).
+
 ## Embedding Provider Config (.env)
 
 Dat cac bien sau trong file .env (thu muc backend):

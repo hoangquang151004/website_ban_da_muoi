@@ -58,6 +58,14 @@ async def validation_exception_handler(
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    import logging
+
+    logging.getLogger("uvicorn.error").exception(
+        "Unhandled exception on %s %s",
+        request.method,
+        request.url.path,
+        exc_info=exc,
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=BaseResponse.error(message="Internal server error").model_dump(),
