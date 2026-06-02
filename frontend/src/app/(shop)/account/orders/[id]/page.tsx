@@ -5,8 +5,14 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/authStore";
+import DownloadInvoiceButton from "@/components/shop/DownloadInvoiceButton";
 import { orderService } from "@/services/orderService";
 import { getAbsoluteImageUrl } from "@/lib/imageUrl";
+import {
+  PAYMENT_METHOD_LABEL,
+  isOnlinePayment,
+  onlinePaymentLabel,
+} from "@/lib/paymentLabels";
 import type { Order, OrderStatus } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -28,11 +34,6 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
   shipping: "bg-orange-100 text-orange-700",
   delivered: "bg-green-100 text-green-700",
   cancelled: "bg-red-100 text-red-700",
-};
-
-const PAYMENT_LABEL: Record<string, string> = {
-  cod: "Thanh toán khi nhận hàng (COD)",
-  bank_transfer: "Chuyển khoản ngân hàng",
 };
 
 const STATUS_STEP: Record<OrderStatus, number> = {
@@ -158,14 +159,18 @@ export default function OrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const canRetryPayment =
-    order?.payment_method === "bank_transfer" && order.status === "pending";
+    order != null &&
+    isOnlinePayment(order.payment_method) &&
+    order.status === "pending";
 
   const handleRetryPayment = async () => {
     if (!order || retryingPayment) return;
     setRetryingPayment(true);
     try {
       const result = await orderService.retryPayment(order.id);
-      toast.success("Đang chuyển đến cổng thanh toán VNPay...");
+      toast.success(
+        `Đang chuyển đến cổng thanh toán ${onlinePaymentLabel(order.payment_method)}...`,
+      );
       window.location.href = result.payment_url;
     } catch (err: unknown) {
       const message =
@@ -246,11 +251,14 @@ export default function OrderDetailPage() {
                   Đặt lúc {formatDate(order.created_at)}
                 </p>
               </div>
-              <span
-                className={`self-start sm:self-auto px-3 py-1.5 rounded-full text-xs font-bold uppercase ${STATUS_COLOR[order.status]}`}
-              >
-                {STATUS_LABEL[order.status]}
-              </span>
+              <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+                <DownloadInvoiceButton order={order} variant="outline" />
+                <span
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase ${STATUS_COLOR[order.status]}`}
+                >
+                  {STATUS_LABEL[order.status]}
+                </span>
+              </div>
             </div>
 
             {/* Progress tracker */}
@@ -354,7 +362,8 @@ export default function OrderDetailPage() {
                   Phương thức thanh toán
                 </h3>
                 <p className="text-sm text-slate-700 font-medium">
-                  {PAYMENT_LABEL[order.payment_method] ?? order.payment_method}
+                  {PAYMENT_METHOD_LABEL[order.payment_method] ??
+                    order.payment_method}
                 </p>
                 {canRetryPayment && (
                   <button
@@ -364,7 +373,7 @@ export default function OrderDetailPage() {
                   >
                     {retryingPayment
                       ? "Đang tạo link thanh toán..."
-                      : "Thanh toán lại qua VNPay"}
+                      : `Thanh toán lại qua ${onlinePaymentLabel(order.payment_method)}`}
                   </button>
                 )}
               </div>

@@ -231,12 +231,23 @@ export default function CheckoutPanel({
               <input
                 type="radio"
                 name="payment_method"
-                value="bank_transfer"
-                checked={paymentMethod === "bank_transfer"}
-                onChange={() => setPaymentMethod("bank_transfer")}
+                value="vnpay"
+                checked={paymentMethod === "vnpay"}
+                onChange={() => setPaymentMethod("vnpay")}
                 disabled={isSubmitting}
               />
-              Chuyển khoản ngân hàng
+              VNPay
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="payment_method"
+                value="momo"
+                checked={paymentMethod === "momo"}
+                onChange={() => setPaymentMethod("momo")}
+                disabled={isSubmitting}
+              />
+              MoMo (thẻ/ATM - nhập TK)
             </label>
           </div>
         </section>

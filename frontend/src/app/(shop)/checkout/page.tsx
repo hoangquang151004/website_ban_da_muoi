@@ -4,8 +4,11 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
+import DownloadInvoiceButton from "@/components/shop/DownloadInvoiceButton";
+import { saveOrderForInvoice } from "@/lib/invoiceOrderStorage";
 import { orderService } from "@/services/orderService";
-import type { PaymentMethod } from "@/types";
+import { isOnlinePayment, onlinePaymentLabel } from "@/lib/paymentLabels";
+import type { Order, PaymentMethod } from "@/types";
 
 const SHIPPING_FEE = 30000;
 
@@ -26,7 +29,7 @@ export default function CheckoutPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [orderId, setOrderId] = useState<number | null>(null);
+  const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
   const subtotal = totalPrice();
   const total = subtotal + SHIPPING_FEE;
@@ -49,19 +52,21 @@ export default function CheckoutPage() {
         })),
       });
 
-      if (payment === "bank_transfer") {
+      if (isOnlinePayment(payment)) {
         if (!order.payment_url) {
           setError(
-            "Không thể tạo liên kết thanh toán VNPay. Vui lòng thử lại.",
+            `Không thể tạo liên kết thanh toán ${onlinePaymentLabel(payment)}. Vui lòng thử lại.`,
           );
           return;
         }
+        saveOrderForInvoice(order);
         window.location.href = order.payment_url;
         return;
       }
 
       clearCart();
-      setOrderId(order.id);
+      saveOrderForInvoice(order);
+      setCompletedOrder(order);
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -74,7 +79,7 @@ export default function CheckoutPage() {
   };
 
   // ── Success screen ─────────────────────────────────────────
-  if (orderId !== null) {
+  if (completedOrder !== null) {
     return (
       <main className="flex-grow container mx-auto px-4 py-16 max-w-[600px] text-center">
         <div className="bg-white rounded-2xl shadow-sm border border-neutral-light p-12 flex flex-col items-center gap-6">
@@ -94,8 +99,15 @@ export default function CheckoutPage() {
           </div>
           <div className="bg-neutral-light/60 rounded-xl px-6 py-4 w-full">
             <p className="text-sm text-neutral-medium">Mã đơn hàng</p>
-            <p className="text-xl font-bold text-primary">#{orderId}</p>
+            <p className="text-xl font-bold text-primary">
+              #{completedOrder.id}
+            </p>
           </div>
+          <DownloadInvoiceButton
+            order={completedOrder}
+            fullWidth
+            variant="primary"
+          />
           <div className="flex gap-3 w-full">
             <Link
               href="/account/orders"
@@ -319,16 +331,35 @@ export default function CheckoutPage() {
                     className="size-5 border-neutral-light text-primary focus:ring-primary cursor-pointer"
                     name="payment"
                     type="radio"
-                    value="bank_transfer"
-                    checked={payment === "bank_transfer"}
-                    onChange={() => setPayment("bank_transfer")}
+                    value="vnpay"
+                    checked={payment === "vnpay"}
+                    onChange={() => setPayment("vnpay")}
                   />
                   <span className="ml-3 flex items-center gap-3">
                     <span className="material-symbols-outlined text-neutral-medium group-has-[:checked]:text-primary">
                       account_balance
                     </span>
                     <span className="font-medium text-neutral-dark">
-                      Chuyển khoản ngân hàng
+                      VNPay (thẻ / chuyển khoản)
+                    </span>
+                  </span>
+                </label>
+
+                <label className="relative flex items-center p-4 rounded-xl border border-neutral-light cursor-pointer hover:bg-neutral-light/30 transition-colors group has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                  <input
+                    className="size-5 border-neutral-light text-primary focus:ring-primary cursor-pointer"
+                    name="payment"
+                    type="radio"
+                    value="momo"
+                    checked={payment === "momo"}
+                    onChange={() => setPayment("momo")}
+                  />
+                  <span className="ml-3 flex items-center gap-3">
+                    <span className="material-symbols-outlined text-neutral-medium group-has-[:checked]:text-primary">
+                      account_balance_wallet
+                    </span>
+                    <span className="font-medium text-neutral-dark">
+                      MoMo (thẻ / ATM - nhập tài khoản)
                     </span>
                   </span>
                 </label>

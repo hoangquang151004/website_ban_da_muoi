@@ -9,7 +9,9 @@ from app.db.base import Base
 
 class PaymentMethod(str, enum.Enum):
     cod = "cod"
-    bank_transfer = "bank_transfer"
+    bank_transfer = "bank_transfer"  # legacy → VNPay
+    vnpay = "vnpay"
+    momo = "momo"
 
 
 class OrderStatus(str, enum.Enum):

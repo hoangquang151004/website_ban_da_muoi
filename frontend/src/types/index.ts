@@ -78,7 +78,7 @@ export type OrderStatus =
   | "delivered"
   | "cancelled";
 
-export type PaymentMethod = "cod" | "bank_transfer";
+export type PaymentMethod = "cod" | "bank_transfer" | "vnpay" | "momo";
 
 export interface CheckoutSubmitPayload {
   receiver_name: string;

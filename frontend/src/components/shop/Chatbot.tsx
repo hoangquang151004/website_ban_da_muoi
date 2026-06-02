@@ -14,6 +14,12 @@ import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { getAbsoluteImageUrl } from "@/lib/imageUrl";
+import {
+  PAYMENT_METHOD_LABEL,
+  isOnlinePayment,
+  onlinePaymentLabel,
+} from "@/lib/paymentLabels";
+import { saveOrderForInvoice } from "@/lib/invoiceOrderStorage";
 import { chatService } from "@/services/chatService";
 import { orderService } from "@/services/orderService";
 import CheckoutPanel from "@/components/shop/CheckoutPanel";
@@ -63,11 +69,6 @@ const CART_REMOVE_KEYWORDS = [
   "remove from cart",
   "remove khỏi giỏ",
 ];
-
-const PAYMENT_METHOD_LABEL: Record<"cod" | "bank_transfer", string> = {
-  cod: "Thanh toán khi nhận hàng (COD)",
-  bank_transfer: "Chuyển khoản ngân hàng",
-};
 
 function formatVnd(value: number) {
   return Number(value).toLocaleString("vi-VN") + "đ";
@@ -334,11 +335,12 @@ function OrderDetailPanel({
   };
 
   const paymentMethodLabel =
-    PAYMENT_METHOD_LABEL[order.payment_method as "cod" | "bank_transfer"] ??
-    order.payment_method;
+    PAYMENT_METHOD_LABEL[
+      order.payment_method as keyof typeof PAYMENT_METHOD_LABEL
+    ] ?? order.payment_method;
 
   const canRetryPayment =
-    order.payment_method === "bank_transfer" &&
+    isOnlinePayment(order.payment_method) &&
     String(order.status).toLowerCase() === "pending";
 
   return (
@@ -2001,18 +2003,20 @@ export default function Chatbot() {
 
       try {
         const order = await orderService.createOrder(payload);
-        const isBankTransfer = order.payment_method === "bank_transfer";
 
-        // Với VNPay, chỉ chuyển hướng sang cổng thanh toán; chưa coi là thanh toán thành công.
-        if (isBankTransfer) {
+        // Thanh toán trực tuyến: chuyển sang cổng VNPay / MoMo.
+        if (isOnlinePayment(order.payment_method)) {
           if (!order.payment_url) {
             throw new Error(
-              "Không thể khởi tạo phiên thanh toán VNPay. Vui lòng thử lại.",
+              `Không thể khởi tạo phiên thanh toán ${onlinePaymentLabel(order.payment_method)}. Vui lòng thử lại.`,
             );
           }
 
+          saveOrderForInvoice(order);
           setRetryCheckoutPayload(null);
-          toast.success("Đang chuyển sang cổng thanh toán VNPay...");
+          toast.success(
+            `Đang chuyển sang cổng thanh toán ${onlinePaymentLabel(order.payment_method)}...`,
+          );
           if (typeof window !== "undefined") {
             window.location.href = order.payment_url;
           }
@@ -2198,7 +2202,7 @@ export default function Chatbot() {
 
   const handleRetryPaymentFromChat = useCallback(
     async (order: ChatOrderDetail) => {
-      if (!order || order.payment_method !== "bank_transfer") return;
+      if (!order || !isOnlinePayment(order.payment_method)) return;
       if (String(order.status).toLowerCase() !== "pending") {
         toast.error("Đơn hàng này không còn ở trạng thái chờ thanh toán lại.");
         return;
@@ -2206,7 +2210,9 @@ export default function Chatbot() {
 
       try {
         const result = await orderService.retryPayment(order.id);
-        toast.success("Đang chuyển đến cổng thanh toán VNPay...");
+        toast.success(
+          `Đang chuyển đến cổng thanh toán ${onlinePaymentLabel(order.payment_method)}...`,
+        );
         if (typeof window !== "undefined") {
           window.location.href = result.payment_url;
         }
@@ -2259,7 +2265,7 @@ export default function Chatbot() {
               </div>
               <div>
                 <h3 className="text-slate-900 text-base font-bold leading-tight">
-                  Trợ lý Đá Muối
+                  Đá muối trợ lý AI
                 </h3>
                 <span className="text-primary/70 text-xs font-medium flex items-center gap-1">
                   <span className="w-1 h-1 rounded-full bg-primary inline-block"></span>
@@ -2435,7 +2441,7 @@ export default function Chatbot() {
             </div>
             <div className="text-center mt-2">
               <span className="text-[10px] text-slate-400">
-                Được hỗ trợ bởi AI Chatbot
+                Được hỗ trợ bởi Quang
               </span>
             </div>
           </div>

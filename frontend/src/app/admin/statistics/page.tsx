@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import AdminHeader from "@/components/admin/Header";
+import ExportStatisticsModal from "@/components/admin/ExportStatisticsModal";
 import {
   adminStatisticsService,
   type StatisticsKPI,
@@ -9,7 +10,10 @@ import {
   type OrderStatusItem,
   type TopProductItem,
   type CategoryRevenueItem,
+  type ProductStatsItem,
+  type CustomerStatsItem,
   type ChartPeriod,
+  type StatsTab,
 } from "@/services/adminStatisticsService";
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -27,6 +31,18 @@ function fmtVND(val: number): string {
 function fmtPct(val: number): string {
   return (val >= 0 ? "+" : "") + val.toFixed(1) + "%";
 }
+
+function marginBadgeClass(marginPct: number): string {
+  if (marginPct >= 30) return "bg-emerald-100 text-emerald-700";
+  if (marginPct >= 15) return "bg-yellow-100 text-yellow-700";
+  return "bg-red-100 text-red-700";
+}
+
+const STATS_TABS: { id: StatsTab; label: string; icon: string }[] = [
+  { id: "category", label: "Theo danh mục", icon: "category" },
+  { id: "product", label: "Theo sản phẩm", icon: "inventory_2" },
+  { id: "customer", label: "Theo khách hàng", icon: "groups" },
+];
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Chờ xác nhận",
@@ -183,6 +199,12 @@ function OrderStatusDonut({ data }: { data: OrderStatusItem[] }) {
 
 // ─── Skeleton ─────────────────────────────────────────────────
 
+function EmptyStats({ message }: { message: string }) {
+  return (
+    <div className="p-8 text-center text-slate-400 text-sm">{message}</div>
+  );
+}
+
 function SkeletonCard() {
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-pulse">
@@ -194,74 +216,6 @@ function SkeletonCard() {
       <div className="h-7 w-36 bg-slate-100 rounded" />
     </div>
   );
-}
-
-// ─── Export ──────────────────────────────────────────────────
-
-function exportReport(
-  dateFrom: string,
-  dateTo: string,
-  kpi: StatisticsKPI | null,
-  revenueChart: RevenuePoint[],
-  topProducts: TopProductItem[],
-  categoryRevenue: CategoryRevenueItem[],
-) {
-  const BOM = "\uFEFF";
-  const sections: string[] = [];
-
-  // Section 1: KPI
-  sections.push("=== KPI TỔNG HỢP ===");
-  sections.push(`Kỳ báo cáo,${dateFrom} - ${dateTo}`);
-  if (kpi) {
-    sections.push(`Doanh thu,${kpi.total_revenue}`);
-    sections.push(`Lợi nhuận gộp,${kpi.gross_profit}`);
-    sections.push(`Giá vốn hàng bán,${kpi.total_cost}`);
-    sections.push(`Giá trị đơn trung bình,${kpi.avg_order_value}`);
-    sections.push(`Đơn hoàn thành,${kpi.completed_orders}`);
-    sections.push(`Khách hàng mới,${kpi.new_customers}`);
-    sections.push(`Tăng trưởng doanh thu,${kpi.growth_pct}%`);
-  }
-
-  // Section 2: Revenue chart
-  sections.push("");
-  sections.push("=== DOANH THU THEO THỜI GIAN ===");
-  sections.push("Nhãn,Doanh thu,Số đơn");
-  revenueChart.forEach((p) => {
-    sections.push(`${p.label},${p.revenue},${p.order_count}`);
-  });
-
-  // Section 3: Top products
-  sections.push("");
-  sections.push("=== TOP SẢN PHẨM BÁN CHẠY ===");
-  sections.push("Hạng,Tên sản phẩm,Số lượng bán,Doanh thu");
-  topProducts.forEach((p, idx) => {
-    sections.push(
-      `${idx + 1},"${p.product_name.replace(/"/g, '""')}",${p.total_sold},${p.total_revenue}`,
-    );
-  });
-
-  // Section 4: Category revenue
-  sections.push("");
-  sections.push("=== DOANH THU THEO DANH MỤC ===");
-  sections.push(
-    "Danh mục,Số lượng bán,Doanh thu,Giá vốn,Lợi nhuận,Tỷ suất LN (%)",
-  );
-  categoryRevenue.forEach((c) => {
-    sections.push(
-      `"${c.category_name.replace(/"/g, '""')}",${c.qty_sold},${c.revenue},${c.cost},${c.profit},${c.margin_pct}`,
-    );
-  });
-
-  const csv = BOM + sections.join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `bao-cao-kinh-doanh_${dateFrom}_${dateTo}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }
 
 // ─── Page ─────────────────────────────────────────────────────
@@ -282,6 +236,10 @@ export default function AdminStatisticsPage() {
   const [categoryRevenue, setCategoryRevenue] = useState<CategoryRevenueItem[]>(
     [],
   );
+  const [productStats, setProductStats] = useState<ProductStatsItem[]>([]);
+  const [customerStats, setCustomerStats] = useState<CustomerStatsItem[]>([]);
+  const [activeTab, setActiveTab] = useState<StatsTab>("category");
+  const [exportOpen, setExportOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -289,19 +247,30 @@ export default function AdminStatisticsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [kpiData, chartData, statusData, topData, catData] =
-        await Promise.all([
-          adminStatisticsService.getKPI(dateFrom, dateTo),
-          adminStatisticsService.getRevenueChart(period, dateFrom, dateTo),
-          adminStatisticsService.getOrderStatus(dateFrom, dateTo),
-          adminStatisticsService.getTopProducts(dateFrom, dateTo, 5),
-          adminStatisticsService.getCategoryRevenue(dateFrom, dateTo),
-        ]);
+      const [
+        kpiData,
+        chartData,
+        statusData,
+        topData,
+        catData,
+        prodData,
+        custData,
+      ] = await Promise.all([
+        adminStatisticsService.getKPI(dateFrom, dateTo),
+        adminStatisticsService.getRevenueChart(period, dateFrom, dateTo),
+        adminStatisticsService.getOrderStatus(dateFrom, dateTo),
+        adminStatisticsService.getTopProducts(dateFrom, dateTo, 5),
+        adminStatisticsService.getCategoryRevenue(dateFrom, dateTo),
+        adminStatisticsService.getProductStats(dateFrom, dateTo),
+        adminStatisticsService.getCustomerStats(dateFrom, dateTo),
+      ]);
       setKpi(kpiData);
       setRevenueChart(chartData);
       setOrderStatus(statusData);
       setTopProducts(topData);
       setCategoryRevenue(catData);
+      setProductStats(prodData);
+      setCustomerStats(custData);
     } catch {
       setError("Không thể tải dữ liệu. Vui lòng thử lại.");
     } finally {
@@ -361,16 +330,23 @@ export default function AdminStatisticsPage() {
         hideSearch
         actionLabel="Xuất báo cáo"
         actionIcon="download"
-        onAction={() =>
-          exportReport(
-            dateFrom,
-            dateTo,
-            kpi,
-            revenueChart,
-            topProducts,
-            categoryRevenue,
-          )
-        }
+        onAction={() => setExportOpen(true)}
+      />
+
+      <ExportStatisticsModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        reportData={{
+          dateFrom,
+          dateTo,
+          kpi,
+          revenueChart,
+          orderStatus,
+          topProducts,
+          categoryRevenue,
+          productStats,
+          customerStats,
+        }}
       />
 
       <div className="p-8 space-y-6">
@@ -508,78 +484,103 @@ export default function AdminStatisticsPage() {
           </div>
         </div>
 
-        {/* ── Top Products + Category Revenue ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-6">
-              Top sản phẩm bán chạy
+        {/* ── Top Products ── */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 mb-6">
+            Top sản phẩm bán chạy
+          </h2>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-16 bg-slate-100 rounded animate-pulse"
+                />
+              ))}
+            </div>
+          ) : topProducts.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">
+              Không có dữ liệu.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {topProducts.map((prod, idx) => (
+                <div
+                  key={prod.product_id}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-slate-50"
+                >
+                  <span className="text-lg font-bold text-slate-300 w-4 shrink-0">
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">
+                      {prod.product_name}
+                    </p>
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 mt-1">
+                      <div
+                        className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${(prod.total_revenue / maxProductRevenue) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {prod.total_sold} đã bán
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-primary shrink-0">
+                    {fmtVND(prod.total_revenue)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Tabbed detailed statistics ── */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100">
+            <h2 className="text-lg font-bold text-slate-900 mb-1">
+              Thống kê chi tiết
             </h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Phân tích theo danh mục, sản phẩm hoặc khách hàng trong khoảng{" "}
+              {dateFrom} → {dateTo}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {STATS_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? "bg-primary text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base">
+                    {tab.icon}
+                  </span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
             {loading ? (
-              <div className="space-y-4">
-                {Array.from({ length: 4 }).map((_, i) => (
+              <div className="p-6 space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
                   <div
                     key={i}
                     className="h-10 bg-slate-100 rounded animate-pulse"
                   />
                 ))}
               </div>
-            ) : topProducts.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-8">
-                Không có dữ liệu.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {topProducts.map((prod, idx) => (
-                  <div
-                    key={prod.product_id}
-                    className="flex items-center gap-3"
-                  >
-                    <span className="text-lg font-bold text-slate-300 w-4 shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        {prod.product_name}
-                      </p>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1">
-                        <div
-                          className="bg-primary h-1.5 rounded-full transition-all duration-500"
-                          style={{
-                            width: `${(prod.total_revenue / maxProductRevenue) * 100}%`,
-                            opacity: 1 - idx * 0.15,
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-primary shrink-0">
-                      {fmtVND(prod.total_revenue)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h2 className="text-lg font-bold text-slate-900">
-                Doanh thu theo danh mục
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              {loading ? (
-                <div className="p-6 space-y-3">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-10 bg-slate-100 rounded animate-pulse"
-                    />
-                  ))}
-                </div>
-              ) : categoryRevenue.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 text-sm">
-                  Không có dữ liệu trong khoảng thời gian này.
-                </div>
+            ) : activeTab === "category" ? (
+              categoryRevenue.length === 0 ? (
+                <EmptyStats message="Không có dữ liệu danh mục trong khoảng thời gian này." />
               ) : (
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
@@ -593,49 +594,136 @@ export default function AdminStatisticsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {categoryRevenue.map((cat) => {
-                      const marginColor =
-                        cat.margin_pct >= 30
-                          ? "bg-emerald-100 text-emerald-700"
-                          : cat.margin_pct >= 15
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-red-100 text-red-700";
-                      return (
-                        <tr
-                          key={cat.category_id}
-                          className="hover:bg-slate-50 transition-colors"
-                        >
-                          <td className="px-6 py-4">
-                            <span className="text-sm font-medium text-slate-900">
-                              {cat.category_name}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-slate-600">
-                            {cat.qty_sold.toLocaleString("vi-VN")}
-                          </td>
-                          <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                            {fmtVND(cat.revenue)}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-slate-600">
-                            {fmtVND(cat.cost)}
-                          </td>
-                          <td className="px-6 py-4 text-sm font-bold text-emerald-600">
-                            {fmtVND(cat.profit)}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-right">
-                            <span
-                              className={`px-2 py-1 text-xs font-bold rounded-full ${marginColor}`}
-                            >
-                              {cat.margin_pct}%
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {categoryRevenue.map((cat) => (
+                      <tr
+                        key={cat.category_id}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                          {cat.category_name}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600">
+                          {cat.qty_sold.toLocaleString("vi-VN")}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold text-slate-900">
+                          {fmtVND(cat.revenue)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600">
+                          {fmtVND(cat.cost)}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold text-emerald-600">
+                          {fmtVND(cat.profit)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-right">
+                          <span
+                            className={`px-2 py-1 text-xs font-bold rounded-full ${marginBadgeClass(cat.margin_pct)}`}
+                          >
+                            {cat.margin_pct}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
-              )}
-            </div>
+              )
+            ) : activeTab === "product" ? (
+              productStats.length === 0 ? (
+                <EmptyStats message="Không có dữ liệu sản phẩm trong khoảng thời gian này." />
+              ) : (
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                    <tr>
+                      <th className="px-6 py-3">Sản phẩm</th>
+                      <th className="px-6 py-3">Danh mục</th>
+                      <th className="px-6 py-3">SL bán</th>
+                      <th className="px-6 py-3">Doanh thu</th>
+                      <th className="px-6 py-3">Giá vốn</th>
+                      <th className="px-6 py-3">Lợi nhuận</th>
+                      <th className="px-6 py-3 text-right">Tỷ suất LN</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {productStats.map((prod) => (
+                      <tr
+                        key={prod.product_id}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 text-sm font-medium text-slate-900 max-w-[200px] truncate">
+                          {prod.product_name}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600">
+                          {prod.category_name}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600">
+                          {prod.qty_sold.toLocaleString("vi-VN")}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold text-slate-900">
+                          {fmtVND(prod.revenue)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600">
+                          {fmtVND(prod.cost)}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold text-emerald-600">
+                          {fmtVND(prod.profit)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-right">
+                          <span
+                            className={`px-2 py-1 text-xs font-bold rounded-full ${marginBadgeClass(prod.margin_pct)}`}
+                          >
+                            {prod.margin_pct}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+            ) : customerStats.length === 0 ? (
+              <EmptyStats message="Không có dữ liệu khách hàng trong khoảng thời gian này." />
+            ) : (
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                  <tr>
+                    <th className="px-6 py-3">Khách hàng</th>
+                    <th className="px-6 py-3">Email</th>
+                    <th className="px-6 py-3">Số đơn</th>
+                    <th className="px-6 py-3">Doanh thu</th>
+                    <th className="px-6 py-3 text-right">Giá trị đơn TB</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {customerStats.map((cust) => (
+                    <tr
+                      key={cust.customer_id ?? "guest"}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-medium text-slate-900">
+                          {cust.customer_name}
+                        </span>
+                        {cust.customer_id === null && (
+                          <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                            Guest
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {cust.customer_email ?? "—"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {cust.order_count.toLocaleString("vi-VN")}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-bold text-slate-900">
+                        {fmtVND(cust.total_revenue)}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-bold text-primary text-right">
+                        {fmtVND(cust.avg_order_value)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>

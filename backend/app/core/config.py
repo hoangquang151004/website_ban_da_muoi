@@ -42,6 +42,29 @@ class Settings(BaseSettings):
     VNPAY_RETURN_URL: str = "http://localhost:8000/api/v1/payments/vnpay/return"
     VNPAY_ORDER_TYPE: str = "other"
 
+    # MoMo Payment Gateway
+    MOMO_PARTNER_CODE: str = ""
+    MOMO_ACCESS_KEY: str = ""
+    MOMO_SECRET_KEY: str = ""
+    MOMO_PARTNER_NAME: str = "Himalayan Glow"
+    MOMO_STORE_ID: str = "HimalayanGlow"
+    MOMO_ENDPOINT: str = "https://test-payment.momo.vn/v2/gateway/api/create"
+    MOMO_RETURN_URL: str = "http://localhost:8000/api/v1/payments/momo/return"
+    MOMO_IPN_URL: str = "http://localhost:8000/api/v1/payments/momo/ipn"
+    # captureWallet = quét QR ví MoMo | payWithATM = thẻ/ATM, nhập TK ngân hàng
+    MOMO_REQUEST_TYPE: str = "payWithATM"
+    # Tên biến cũ (tương thích .env có sẵn)
+    MOMO_API_URL: str = ""
+    MOMO_NOTIFY_URL: str = ""
+
+    @property
+    def momo_create_endpoint(self) -> str:
+        return self.MOMO_ENDPOINT or self.MOMO_API_URL
+
+    @property
+    def momo_ipn_endpoint(self) -> str:
+        return self.MOMO_IPN_URL or self.MOMO_NOTIFY_URL
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

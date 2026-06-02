@@ -1,28 +1,70 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import DownloadInvoiceButton from "@/components/shop/DownloadInvoiceButton";
+import { loadOrderForInvoice } from "@/lib/invoiceOrderStorage";
+import { orderService } from "@/services/orderService";
+import { useAuthStore } from "@/store/authStore";
 import { useCartStore } from "@/store/cartStore";
+import { onlinePaymentLabel } from "@/lib/paymentLabels";
+import type { Order } from "@/types";
 
 export default function PaymentResultPage() {
   const searchParams = useSearchParams();
   const clearCart = useCartStore((s) => s.clearCart);
+  const { isAuthenticated } = useAuthStore();
 
-  const { isSuccess, orderId, responseCode } = useMemo(() => {
+  const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
+
+  const { isSuccess, orderId, responseCode, gateway } = useMemo(() => {
     const status = searchParams.get("status") || "failed";
     return {
       isSuccess: status === "success",
       orderId: searchParams.get("order_id"),
       responseCode: searchParams.get("response_code"),
+      gateway: searchParams.get("gateway") || "vnpay",
     };
   }, [searchParams]);
+
+  const numericOrderId = orderId ? Number(orderId) : NaN;
 
   useEffect(() => {
     if (isSuccess) {
       clearCart();
     }
   }, [clearCart, isSuccess]);
+
+  useEffect(() => {
+    if (!isSuccess || !orderId || Number.isNaN(numericOrderId)) {
+      setInvoiceOrder(null);
+      return;
+    }
+
+    const cached = loadOrderForInvoice(numericOrderId);
+    if (cached) {
+      setInvoiceOrder(
+        isSuccess && cached.status === "pending"
+          ? { ...cached, status: "confirmed" }
+          : cached,
+      );
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setInvoiceOrder(null);
+      return;
+    }
+
+    setLoadingInvoice(true);
+    orderService
+      .getOrderById(numericOrderId)
+      .then(setInvoiceOrder)
+      .catch(() => setInvoiceOrder(null))
+      .finally(() => setLoadingInvoice(false));
+  }, [isSuccess, orderId, numericOrderId, isAuthenticated]);
 
   return (
     <main className="flex-grow container mx-auto px-4 py-16 max-w-[640px] text-center">
@@ -59,26 +101,54 @@ export default function PaymentResultPage() {
               #{orderId ?? "N/A"}
             </span>
           </p>
-          <p className="text-sm text-neutral-medium">
-            Mã phản hồi VNPay:{" "}
-            <span className="font-semibold text-neutral-dark">
-              {responseCode ?? "N/A"}
-            </span>
-          </p>
+          {responseCode && (
+            <p className="text-sm text-neutral-medium">
+              Mã phản hồi {onlinePaymentLabel(gateway)}:{" "}
+              <span className="font-semibold text-neutral-dark">
+                {responseCode}
+              </span>
+            </p>
+          )}
         </div>
+
+        {isSuccess && (
+          <div className="w-full space-y-2">
+            {loadingInvoice ? (
+              <p className="text-sm text-neutral-medium">
+                Đang tải thông tin hóa đơn...
+              </p>
+            ) : (
+              <DownloadInvoiceButton
+                order={invoiceOrder}
+                fullWidth
+                variant="primary"
+              />
+            )}
+            {!loadingInvoice && !invoiceOrder && (
+              <p className="text-xs text-neutral-medium">
+                Đăng nhập và xem chi tiết đơn hàng để tải hóa đơn nếu bạn đã
+                thanh toán trên thiết bị khác.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-3 w-full">
           <Link
-            href="/account/orders"
+            href={
+              isSuccess && orderId
+                ? `/account/orders/${orderId}`
+                : "/account/orders"
+            }
             className="flex-1 py-3 rounded-xl border border-border-color text-sm font-bold text-neutral-dark hover:bg-neutral-light transition-colors text-center"
           >
-            Xem đơn hàng
+            {isSuccess ? "Chi tiết đơn" : "Xem đơn hàng"}
           </Link>
           <Link
-            href="/checkout"
+            href={isSuccess ? "/" : "/checkout"}
             className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors text-center"
           >
-            Quay lại thanh toán
+            {isSuccess ? "Tiếp tục mua sắm" : "Quay lại thanh toán"}
           </Link>
         </div>
       </div>

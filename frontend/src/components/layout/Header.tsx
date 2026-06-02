@@ -6,10 +6,13 @@ import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
 
+import { useThemeStore } from "@/store/themeStore";
+
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const totalItems = useCartStore((s) => s.totalItems());
+  const { isLit, toggleLit } = useThemeStore();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -47,12 +50,12 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-background-light/95 backdrop-blur-sm border-b border-neutral-light px-6 py-4">
+    <header className={`sticky top-0 z-50 px-6 py-4 transition-all duration-1000 border-b ${isLit && pathname === '/landing' ? 'bg-neutral-dark/95 border-white/5 backdrop-blur-sm' : 'bg-background-light/95 border-neutral-light backdrop-blur-sm'}`}>
       <div className="max-w-[1440px] mx-auto flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="flex items-center gap-3 text-neutral-dark group"
+            className={`flex items-center gap-3 group transition-colors duration-1000 ${isLit && pathname === '/landing' ? 'text-white' : 'text-neutral-dark'}`}
           >
             <div className="size-8 text-primary transition-transform group-hover:scale-110">
               <span className="material-symbols-outlined text-[32px]">
@@ -64,11 +67,11 @@ export default function Header() {
             </h2>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 pl-8 border-l border-neutral-light/50">
+          <nav className={`hidden md:flex items-center gap-8 pl-8 border-l transition-all duration-1000 ${isLit && pathname === '/landing' ? 'border-white/10' : 'border-neutral-light/50'}`}>
             <Link
               href="/"
-              className={`text-sm font-bold transition-colors hover:text-primary ${
-                pathname === "/" ? "text-primary" : "text-neutral-dark"
+              className={`text-sm font-bold transition-all duration-1000 hover:text-primary ${
+                pathname === "/" ? "text-primary" : (isLit && pathname === '/landing' ? 'text-white' : 'text-neutral-dark')
               }`}
             >
               Cửa hàng
@@ -76,20 +79,20 @@ export default function Header() {
 
             <Link
               href="/about"
-              className={`text-sm font-bold transition-colors hover:text-primary ${
+              className={`text-sm font-bold transition-all duration-1000 hover:text-primary ${
                 pathname === "/about"
                   ? "text-primary font-semibold"
-                  : "text-neutral-dark"
+                  : (isLit && pathname === '/landing' ? 'text-white' : 'text-neutral-dark')
               }`}
             >
               Về chúng tôi
             </Link>
             <Link
               href="/contact"
-              className={`text-sm font-bold transition-colors hover:text-primary ${
+              className={`text-sm font-bold transition-all duration-1000 hover:text-primary ${
                 pathname === "/contact"
                   ? "text-primary font-semibold"
-                  : "text-neutral-dark"
+                  : (isLit && pathname === '/landing' ? 'text-white' : 'text-neutral-dark')
               }`}
             >
               Liên hệ
@@ -98,6 +101,19 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* Night Mode Toggle - Only shown on Landing page for now or as desired */}
+          {pathname === '/landing' && (
+            <button 
+              onClick={toggleLit}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 text-xs font-bold uppercase tracking-widest ${isLit ? 'bg-primary/20 border-primary/50 text-primary glow-primary' : 'bg-neutral-dark/5 border-neutral-dark/10 text-neutral-medium'}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {isLit ? 'dark_mode' : 'light_mode'}
+              </span>
+              <span className="hidden sm:inline">{isLit ? 'Đêm' : 'Ngày'}</span>
+            </button>
+          )}
+
           <button
             type="button"
             aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"}
@@ -105,17 +121,17 @@ export default function Header() {
               setMobileMenuOpen((prev) => !prev);
               setAccountMenuOpen(false);
             }}
-            className="md:hidden p-2 text-neutral-dark hover:text-primary transition-colors rounded-full hover:bg-neutral-light"
+            className={`md:hidden p-2 transition-colors duration-1000 rounded-full hover:bg-neutral-light ${isLit && pathname === '/landing' ? 'text-white' : 'text-neutral-dark'}`}
           >
             <span className="material-symbols-outlined">
               {mobileMenuOpen ? "close" : "menu"}
             </span>
           </button>
 
-          {/* Cart button with item count badge */}
+          {/* Cart button */}
           <Link
             href="/cart"
-            className="relative p-2 text-neutral-dark hover:text-primary transition-colors rounded-full hover:bg-neutral-light"
+            className={`relative p-2 transition-colors duration-1000 rounded-full hover:bg-neutral-light ${isLit && pathname === '/landing' ? 'text-white hover:text-primary' : 'text-neutral-dark hover:text-primary'}`}
           >
             <span className="material-symbols-outlined">shopping_cart</span>
             {mounted && totalItems > 0 && (

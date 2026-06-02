@@ -21,7 +21,7 @@ export default function AboutPage() {
                 <div>
                   <h3 className="font-bold text-[#1c1917]">Địa chỉ</h3>
                   <p className="text-[#57534e]">
-                    123 Đường Nam Kỳ Khởi Nghĩa, Quận 1, TP. Hồ Chí Minh
+                    Mỹ đình 2, Nam Từ Liêm, Hà Nội
                   </p>
                 </div>
               </div>
@@ -31,7 +31,7 @@ export default function AboutPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-[#1c1917]">Điện thoại</h3>
-                  <p className="text-[#57534e]">+84 (028) 3822 1234</p>
+                  <p className="text-[#57534e]">+84 866 096 023</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -40,7 +40,7 @@ export default function AboutPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-[#1c1917]">Email</h3>
-                  <p className="text-[#57534e]">hello@himalayasalt.vn</p>
+                  <p className="text-[#57534e]">quangh@gmail.vn</p>
                 </div>
               </div>
             </div>

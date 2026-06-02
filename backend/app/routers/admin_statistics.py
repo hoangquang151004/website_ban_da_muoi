@@ -8,7 +8,9 @@ from app.core.dependencies import get_db, require_admin
 from app.schemas.base import BaseResponse
 from app.schemas.statistics import (
     CategoryRevenueItem,
+    CustomerStatsItem,
     OrderStatusItem,
+    ProductStatsItem,
     RevenuePoint,
     StatisticsKPI,
     StatisticsOverview,
@@ -77,3 +79,25 @@ async def category_revenue(
 ):
     data = await svc.get_category_revenue(db, date_from, date_to)
     return BaseResponse.success(data=[CategoryRevenueItem(**item) for item in data])
+
+
+@router.get("/statistics/by-product", response_model=BaseResponse[list[ProductStatsItem]])
+async def product_stats(
+    db: AsyncSession = Depends(get_db),
+    date_from: date = Query(default_factory=lambda: date.today() - timedelta(days=29)),
+    date_to: date = Query(default_factory=date.today),
+    limit: int = Query(50, ge=1, le=100),
+):
+    data = await svc.get_product_stats(db, date_from, date_to, limit)
+    return BaseResponse.success(data=[ProductStatsItem(**item) for item in data])
+
+
+@router.get("/statistics/by-customer", response_model=BaseResponse[list[CustomerStatsItem]])
+async def customer_stats(
+    db: AsyncSession = Depends(get_db),
+    date_from: date = Query(default_factory=lambda: date.today() - timedelta(days=29)),
+    date_to: date = Query(default_factory=date.today),
+    limit: int = Query(50, ge=1, le=100),
+):
+    data = await svc.get_customer_stats(db, date_from, date_to, limit)
+    return BaseResponse.success(data=[CustomerStatsItem(**item) for item in data])

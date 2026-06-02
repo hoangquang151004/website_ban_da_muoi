@@ -14,16 +14,41 @@ from app.schemas.order import (
     OrderPaymentLinkResponse,
 )
 from app.services.crud import order as order_crud
-from app.services.payment import vnpay
+from app.services.payment import gateway as payment_gateway
 
 router = APIRouter()
 
 
-def _build_vnpay_order_info(order_id: int) -> str:
+def _build_payment_order_info(order_id: int) -> str:
     return f"Thanh toan don hang #{order_id}"
 
 
-def _build_order_response(order) -> OrderResponse:
+def _resolve_payment_method(
+    order,
+    override: PaymentMethod | None = None,
+) -> PaymentMethod:
+    if override is not None:
+        return override
+    pm = order.payment_method
+    if isinstance(pm, PaymentMethod):
+        raw = pm.value
+    else:
+        raw = str(pm or "").strip()
+    if raw in {m.value for m in PaymentMethod}:
+        return PaymentMethod(raw)
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=(
+            "Phương thức thanh toán không hợp lệ trong database. "
+            "Chạy migration: alembic upgrade head"
+        ),
+    )
+
+
+def _build_order_response(
+    order,
+    payment_method_override: PaymentMethod | None = None,
+) -> OrderResponse:
     """Builds OrderResponse from ORM Order, populating product info in items."""
     items_data = [
         OrderItemResponse(
@@ -45,7 +70,7 @@ def _build_order_response(order) -> OrderResponse:
         receiver_phone=order.receiver_phone,
         receiver_address=order.receiver_address,
         note=order.note,
-        payment_method=order.payment_method,
+        payment_method=_resolve_payment_method(order, payment_method_override),
         status=order.status,
         total_amount=order.total_amount,
         items=items_data,
@@ -69,22 +94,33 @@ async def create_order(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_optional_user),
 ):
-    if body.payment_method == PaymentMethod.bank_transfer and not vnpay.is_vnpay_enabled():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="VNPay chưa được cấu hình trên hệ thống",
-        )
+    if payment_gateway.is_online_payment(body.payment_method):
+        if not payment_gateway.is_online_payment_enabled(body.payment_method):
+            provider = payment_gateway.normalize_online_method(body.payment_method)
+            label = "VNPay" if provider == PaymentMethod.vnpay else "MoMo"
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"{label} chưa được cấu hình trên hệ thống",
+            )
 
     user_id = current_user.id if current_user else None
     order = await order_crud.create_order(db=db, data=body, user_id=user_id)
 
-    order_response = OrderResponse.model_validate(order)
-    if body.payment_method == PaymentMethod.bank_transfer:
+    # Reload with items/products; dùng payment_method từ request nếu DB enum chưa migrate
+    order = await order_crud.get_order_by_id(db, order.id)
+    if order is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Không thể tải đơn hàng vừa tạo",
+        )
+    order_response = _build_order_response(order, payment_method_override=body.payment_method)
+    if payment_gateway.is_online_payment(body.payment_method):
         client_ip = request.client.host if request.client else "127.0.0.1"
-        payment_url = vnpay.build_payment_url(
+        payment_url = await payment_gateway.build_payment_url(
+            method=body.payment_method,
             order_id=order.id,
             amount_vnd=int(order.total_amount),
-            order_info=_build_vnpay_order_info(order.id),
+            order_info=_build_payment_order_info(order.id),
             client_ip=client_ip,
         )
         order_response = order_response.model_copy(update={"payment_url": payment_url})
@@ -98,7 +134,7 @@ async def create_order(
 @router.post(
     "/{order_id}/retry-payment",
     response_model=BaseResponse[OrderPaymentLinkResponse],
-    summary="Tạo lại link thanh toán VNPay cho đơn chuyển khoản chưa thanh toán",
+    summary="Tạo lại link thanh toán trực tuyến (VNPay / MoMo)",
 )
 async def retry_order_payment(
     order_id: int,
@@ -106,12 +142,6 @@ async def retry_order_payment(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if not vnpay.is_vnpay_enabled():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="VNPay chưa được cấu hình trên hệ thống",
-        )
-
     order = await order_crud.get_order_by_id(db, order_id)
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Đơn hàng không tồn tại")
@@ -123,10 +153,18 @@ async def retry_order_payment(
             detail="Bạn không có quyền thanh toán đơn hàng này",
         )
 
-    if order.payment_method != PaymentMethod.bank_transfer:
+    if not payment_gateway.is_online_payment(order.payment_method):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Đơn hàng này không dùng phương thức chuyển khoản VNPay",
+            detail="Đơn hàng này không dùng thanh toán trực tuyến",
+        )
+
+    if not payment_gateway.is_online_payment_enabled(order.payment_method):
+        provider = payment_gateway.normalize_online_method(order.payment_method)
+        label = "VNPay" if provider == PaymentMethod.vnpay else "MoMo"
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{label} chưa được cấu hình trên hệ thống",
         )
 
     if order.status != OrderStatus.pending:
@@ -136,10 +174,11 @@ async def retry_order_payment(
         )
 
     client_ip = request.client.host if request.client else "127.0.0.1"
-    payment_url = vnpay.build_payment_url(
+    payment_url = await payment_gateway.build_payment_url(
+        method=order.payment_method,
         order_id=order.id,
         amount_vnd=int(order.total_amount),
-        order_info=_build_vnpay_order_info(order.id),
+        order_info=_build_payment_order_info(order.id),
         client_ip=client_ip,
     )
     return BaseResponse.success(

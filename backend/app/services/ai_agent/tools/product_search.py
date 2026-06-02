@@ -213,7 +213,7 @@ async def search_products_structured(
             key=lambda p: (0 if p.id in candidate_product_ids else 1, not p.is_featured),
         )
 
-        for p in sorted_products[:6]:
+        for p in sorted_products[:3]:
             short_description = (p.description[:120] + "...") if p.description and len(p.description) > 120 else p.description
             output.append({
                 "id": p.id,

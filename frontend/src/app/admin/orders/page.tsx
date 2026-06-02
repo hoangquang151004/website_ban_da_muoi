@@ -87,7 +87,9 @@ const ALLOWED_NEXT: Record<OrderStatus, OrderStatus[]> = {
 
 const PAYMENT_LABEL: Record<string, string> = {
   cod: "COD",
-  bank_transfer: "Chuyển khoản",
+  bank_transfer: "VNPay",
+  vnpay: "VNPay",
+  momo: "MoMo",
 };
 
 const TABS: { key: TabKey; label: string }[] = [
