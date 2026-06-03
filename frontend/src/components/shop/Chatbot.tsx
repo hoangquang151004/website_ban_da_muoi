@@ -1412,7 +1412,11 @@ function MessageRenderer({
   defaultAddress?: string;
   mounted: boolean;
 }) {
-  if (message.isLoading && !message.isStreaming) {
+  const showTypingDots =
+    message.isLoading ||
+    (message.isStreaming && !(message.content || "").trim());
+
+  if (showTypingDots) {
     return (
       <>
         <TypingIndicator />
@@ -1426,7 +1430,7 @@ function MessageRenderer({
   if (message.isStreaming) {
     return (
       <>
-        <TextBubble content={message.content || " "} role={message.role} />
+        <TextBubble content={message.content} role={message.role} />
         {message.streamStatus ? (
           <p className="text-[10px] text-slate-400 ml-1 mt-1">{message.streamStatus}</p>
         ) : null}
@@ -2079,7 +2083,6 @@ export default function Chatbot() {
                   m.id === loadingMsg.id
                     ? {
                         ...m,
-                        isLoading: false,
                         isStreaming: true,
                         streamStatus: status.message,
                       }
