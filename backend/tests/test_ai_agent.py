@@ -57,6 +57,18 @@ class TestIntentDetection:
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("Phong thủy đặt đèn ở đâu?") == ChatIntent.KNOWLEDGE
 
+    def test_knowledge_intent_nhu_the_nao(self):
+        from app.services.ai_agent.agent import detect_intent, ChatIntent
+        assert detect_intent("Đèn đá muối hoạt động như thế nào?") == ChatIntent.KNOWLEDGE
+
+    def test_knowledge_intent_nhu_the_nao_overrides_price_recommend(self):
+        from app.services.ai_agent.agent import detect_intent, ChatIntent
+        assert detect_intent("Đèn dưới 500k dùng như thế nào") == ChatIntent.KNOWLEDGE
+
+    def test_contains_how_phrase_no_accent(self):
+        from app.services.ai_agent.agent import _contains_how_phrase
+        assert _contains_how_phrase("den hoat dong nhu the nao") is True
+
     def test_order_query_intent_my_orders(self):
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("xem đơn hàng của tôi") == ChatIntent.ORDER_QUERY
@@ -181,6 +193,30 @@ class TestMultiIntentDetection:
             ):
                 intent, _ = await resolve_intent("đèn dưới 500k ngủ ngon")
         assert intent == ChatIntent.RECOMMEND
+
+    @pytest.mark.asyncio
+    async def test_resolve_nhu_the_nao_forces_knowledge_even_if_llm_recommend(self):
+        from app.services.ai_agent.agent import resolve_intent, ChatIntent
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, AggregatedIntent
+
+        async def mock_multi(message, user_role=None):
+            return AggregatedIntent(
+                intent="recommend",
+                confidence=1.4,
+                votes=[
+                    ThinkerVote(intent="recommend", confidence=0.9, reasoning="r", lens="discovery"),
+                ],
+            )
+
+        with patch("app.core.config.settings") as mock_settings:
+            mock_settings.INTENT_MODE = "multi"
+            mock_settings.INTENT_DEBUG = False
+            with patch(
+                "app.services.ai_agent.chains.intent_chain.classify_intent_multi",
+                side_effect=mock_multi,
+            ):
+                intent, _ = await resolve_intent("đèn dưới 500k dùng như thế nào")
+        assert intent == ChatIntent.KNOWLEDGE
 
     @pytest.mark.asyncio
     async def test_resolve_order_query_from_votes(self):

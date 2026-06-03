@@ -155,6 +155,14 @@ def _normalize_text_for_match(text: str) -> str:
     return re.sub(r"\s+", " ", normalized).strip()
 
 
+def _contains_how_phrase(message: str) -> bool:
+    """Câu hỏi dạng 'như thế nào' — luôn route RAG (KNOWLEDGE)."""
+    lower = (message or "").lower()
+    if "như thế nào" in lower:
+        return True
+    return "nhu the nao" in _strip_accents(lower)
+
+
 def _finalize_chat_response(
     session_id: Optional[str],
     user_message: str,
@@ -215,6 +223,10 @@ def detect_intent(message: str) -> ChatIntent:
     # FIX #7: Tránh gọi RAG chain lãng phí
     if len(msg_lower) < 40 and any(kw in msg_lower for kw in _GREETING_KEYWORDS):
         return ChatIntent.GREETING
+
+    # 1b. Câu hỏi "như thế nào" — luôn RAG (trước ORDER_QUERY/RECOMMEND)
+    if _contains_how_phrase(message):
+        return ChatIntent.KNOWLEDGE
 
     # 2. ORDER_QUERY — ưu tiên cao để tránh "order này" → ORDER nhầm
     for kw in _ORDER_QUERY_KEYWORDS:
@@ -284,6 +296,9 @@ async def resolve_intent(
 
     mode = (settings.INTENT_MODE or "multi").strip().lower()
     debug_meta: Optional[dict] = None
+
+    if _contains_how_phrase(message):
+        return ChatIntent.KNOWLEDGE, debug_meta
 
     if mode == "keyword":
         return detect_intent(message), debug_meta
@@ -1131,6 +1146,10 @@ async def run_chat(
     # Override 3: Câu tư vấn/gợi ý mua sản phẩm (có giá/ngân sách) → RECOMMEND, không RAG.
     if intent == ChatIntent.KNOWLEDGE and _looks_like_product_shopping_query(effective_message):
         intent = ChatIntent.RECOMMEND
+
+    # Override 4: "như thế nào" — luôn RAG, không bị LLM/heuristic đẩy sang RECOMMEND.
+    if _contains_how_phrase(message) or _contains_how_phrase(effective_message):
+        intent = ChatIntent.KNOWLEDGE
 
     def _attach_response_meta(result: dict) -> dict:
         from app.services.ai_agent.llm import get_llm_display_info
