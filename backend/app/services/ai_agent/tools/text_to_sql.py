@@ -23,7 +23,7 @@ DANGEROUS_KEYWORDS = frozenset([
 # Quan trọng: LLM dùng schema này để sinh SQL đúng cột
 # ---------------------------------------------------------------------------
 DB_SCHEMA = """
-== SCHEMA DATABASE: da_muoi_db (MySQL) ==
+== SCHEMA DATABASE (MySQL) ==
 
 -- users
 users (
