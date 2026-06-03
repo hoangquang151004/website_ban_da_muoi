@@ -149,6 +149,13 @@ def _strip_accents(text: str) -> str:
     )
 
 
+def _normalize_intent_text(text: str) -> str:
+    """Lowercase + bỏ dấu; đ/Đ -> d (đèn vs đến)."""
+    text = (text or "").lower().replace("đ", "d").replace("Đ", "d")
+    normalized = unicodedata.normalize("NFD", text)
+    return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+
+
 def _normalize_text_for_match(text: str) -> str:
     normalized = unicodedata.normalize("NFD", (text or "").lower())
     normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
@@ -225,7 +232,7 @@ def detect_intent(message: str) -> ChatIntent:
     if len(msg_lower) < 40 and any(kw in msg_lower for kw in _GREETING_KEYWORDS):
         return ChatIntent.GREETING
 
-    # 1b. Câu hỏi "như thế nào" — luôn RAG (trước ORDER_QUERY/RECOMMEND)
+    # 1b. Câu hỏi "như thế nào" — luôn RAG (trước tư vấn SP / tra đơn)
     if _contains_how_phrase(message):
         return ChatIntent.KNOWLEDGE
 
@@ -234,10 +241,14 @@ def detect_intent(message: str) -> ChatIntent:
         if kw in msg_lower:
             return ChatIntent.ORDER_QUERY
 
-    # 3. STATS
+    # 3. STATS (trước tư vấn SP — "top sản phẩm bán chạy" là báo cáo)
     for kw in _STATS_KEYWORDS:
         if kw in msg_lower:
             return ChatIntent.STATS
+
+    # 3b. Tư vấn / gợi ý sản phẩm (linh hoạt, trước KNOWLEDGE/ORDER keyword)
+    if _is_product_consultation_message(message):
+        return ChatIntent.RECOMMEND
 
     # 4. KNOWLEDGE fast-path — domain đá muối
     # FIX #8: Check trước RECOMMEND/ORDER để tránh regex giá override
@@ -414,6 +425,12 @@ async def run_recommendation_agent(
             f"- {i+1}. {p['name']} — {int(p['price']):,}đ (còn {p.get('stock', 0)})"
             for i, p in enumerate(products)
         )
+        name_focus = ""
+        if search_filters.get("name_hint"):
+            name_focus = (
+                f"\nKhách đang hỏi về sản phẩm cụ thể: «{search_filters['name_hint']}». "
+                "Ưu tiên giới thiệu sản phẩm đầu tiên trong danh sách (khớp tên nhất)."
+            )
         summary_prompt = ChatPromptTemplate.from_messages([
             (
                 "system",
@@ -423,7 +440,7 @@ async def run_recommendation_agent(
             ),
             (
                 "human",
-                f"Khách hỏi: {prompt_message}\n\n"
+                f"Khách hỏi: {prompt_message}{name_focus}\n\n"
                 f"Danh sách sản phẩm (từ cơ sở dữ liệu):\n{product_list_text}",
             ),
         ])
@@ -441,33 +458,71 @@ async def run_recommendation_agent(
     return {"answer": answer, "products": products, "meta": meta}
 
 
-def _looks_like_product_shopping_query(message: str) -> bool:
-    """Heuristic: câu hỏi tìm/gợi ý mua sản phẩm — ép RECOMMEND thay vì RAG."""
+def _has_strong_order_query_signal(message: str) -> bool:
+    """Câu tra cứu đơn / giỏ rõ ràng — không ép RECOMMEND."""
     lower = (message or "").lower()
+    for kw in _ORDER_QUERY_KEYWORDS:
+        if kw in lower:
+            return True
+    norm = _normalize_intent_text(message)
+    order_patterns = [
+        r"\b(don hang|lich su don|xem don|tra don|theo doi don)\b",
+        r"\border\s*(hang|#|\d)",
+        r"\bdon\s*#\s*\d+",
+        r"\bkiem tra don\b",
+    ]
+    return any(re.search(p, norm) for p in order_patterns)
+
+
+def _is_product_consultation_message(message: str) -> bool:
+    """Tư vấn/gợi ý/tìm sản phẩm — route RECOMMEND (không nhầm order_query)."""
+    if _has_strong_order_query_signal(message):
+        return False
+
+    lower = (message or "").lower()
+    norm = _normalize_intent_text(message)
 
     price_patterns = [
-        r"dưới\s*\d+\s*k\b",
-        r"tầm\s*\d+\s*k\b",
-        r"khoảng\s*\d+\s*k\b",
-        r"\d+\s*triệu",
-        r"\d{3,}\s*(?:đồng|vnd|đ)\b",
-        r"trên\s*\d+\s*k\b",
-        r"từ\s*\d+\s*k\b",
+        r"duoi\s*\d+\s*k\b",
+        r"tam\s*\d+\s*k\b",
+        r"khoang\s*\d+\s*k\b",
+        r"\d+\s*trieu",
+        r"\d{3,}\s*(?:dong|vnd|d)\b",
+        r"tren\s*\d+\s*k\b",
+        r"tu\s*\d+\s*k\b",
     ]
-    if any(re.search(p, lower) for p in price_patterns):
+    if any(re.search(p, norm) for p in price_patterns):
         return True
 
     shopping_keywords = [
         "gợi ý", "goi y", "tư vấn sản phẩm", "tu van san pham",
-        "tìm đèn", "tim den", "tìm sản phẩm", "mua đèn", "mua den",
-        "sản phẩm phù hợp", "san pham phu hop", "ngân sách", "ngan sach",
-        "dưới", "tầm", "khoảng", "giá rẻ", "gia re", "bán chạy", "ban chay",
-        "recommend", "catalog", "danh mục",
+        "tìm đèn", "tim den", "tìm sản phẩm", "tim san pham",
+        "mua đèn", "mua den", "sản phẩm phù hợp", "san pham phu hop",
+        "ngân sách", "ngan sach", "recommend", "catalog", "danh mục", "danh muc",
+        "dưới", "tầm", "khoảng", "giá rẻ", "gia re",
     ]
     product_hints = ["đèn", "den", "sản phẩm", "san pham", "đá muối", "da muoi"]
-    has_shopping = any(kw in lower for kw in shopping_keywords)
-    has_product = any(kw in lower for kw in product_hints)
-    return has_shopping and has_product
+    if any(kw in lower for kw in shopping_keywords) and any(
+        kw in lower for kw in product_hints
+    ):
+        return True
+
+    has_consult = bool(
+        re.search(r"\b(tu\s+van|goi\s+y)\b", norm)
+        or "tu van san pham" in norm
+        or "goi y" in lower
+        or "gợi ý" in lower
+    )
+    has_product = bool(
+        re.search(r"\b(san\s+pham|den\s+da|den\s+muoi|tim\s+den|tim\s+san\s+pham)\b", norm)
+        or any(kw in lower for kw in product_hints)
+    )
+    return has_consult and has_product
+
+
+def _looks_like_product_shopping_query(message: str) -> bool:
+    """Heuristic: câu hỏi tìm/gợi ý mua sản phẩm — ép RECOMMEND thay vì RAG."""
+    return _is_product_consultation_message(message)
 
 
 def _extract_max_price(text: str) -> Optional[float]:
@@ -1147,7 +1202,10 @@ async def _resolve_chat_route(
     ):
         intent = ChatIntent.STATS
 
-    if intent == ChatIntent.KNOWLEDGE and _looks_like_product_shopping_query(effective_message):
+    if (
+        _is_product_consultation_message(message)
+        or _is_product_consultation_message(effective_message)
+    ):
         intent = ChatIntent.RECOMMEND
 
     if _contains_how_phrase(message) or _contains_how_phrase(effective_message):
@@ -1207,6 +1265,12 @@ async def stream_recommendation_agent(
             f"- {i+1}. {p['name']} — {int(p['price']):,}đ (còn {p.get('stock', 0)})"
             for i, p in enumerate(products)
         )
+        name_focus = ""
+        if search_filters.get("name_hint"):
+            name_focus = (
+                f"\nKhách đang hỏi về sản phẩm cụ thể: «{search_filters['name_hint']}». "
+                "Ưu tiên giới thiệu sản phẩm đầu tiên trong danh sách (khớp tên nhất)."
+            )
         summary_prompt = ChatPromptTemplate.from_messages([
             (
                 "system",
@@ -1216,7 +1280,7 @@ async def stream_recommendation_agent(
             ),
             (
                 "human",
-                f"Khách hỏi: {prompt_message}\n\n"
+                f"Khách hỏi: {prompt_message}{name_focus}\n\n"
                 f"Danh sách sản phẩm (từ cơ sở dữ liệu):\n{product_list_text}",
             ),
         ])

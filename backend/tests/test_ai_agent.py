@@ -85,6 +85,32 @@ class TestIntentDetection:
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("top sản phẩm bán chạy") == ChatIntent.STATS
 
+    def test_product_consultation_flexible_phrasing(self):
+        from app.services.ai_agent.agent import (
+            _is_product_consultation_message,
+            detect_intent,
+            ChatIntent,
+        )
+
+        msg = "Tư vấn cho tôi sản phẩm Đèn đá muối tự nhiên dài"
+        assert _is_product_consultation_message(msg) is True
+        assert detect_intent(msg) == ChatIntent.RECOMMEND
+
+    def test_product_consultation_not_order_query(self):
+        from app.services.ai_agent.agent import _is_product_consultation_message
+
+        assert _is_product_consultation_message("xem đơn hàng của tôi") is False
+
+    def test_product_consultation_price_regression(self):
+        from app.services.ai_agent.agent import (
+            _is_product_consultation_message,
+            detect_intent,
+            ChatIntent,
+        )
+
+        assert _is_product_consultation_message("tư vấn sản phẩm dưới 500k") is True
+        assert detect_intent("tư vấn sản phẩm dưới 500k") == ChatIntent.RECOMMEND
+
 
 class TestIntentAggregation:
     """Test multi-thinking vote aggregator (no LLM)."""
@@ -138,6 +164,27 @@ class TestIntentAggregation:
         ]
         result = aggregate_votes(votes, user_role="admin")
         assert result.intent == "stats"
+
+    def test_consultation_guard_overrides_order_query_votes(self):
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, aggregate_votes
+
+        msg = "Tư vấn cho tôi sản phẩm Đèn đá muối tự nhiên dài"
+        votes = [
+            ThinkerVote(intent="order_query", confidence=0.9, reasoning="a", lens="transaction"),
+            ThinkerVote(intent="order_query", confidence=0.85, reasoning="b", lens="social_admin"),
+        ]
+        result = aggregate_votes(votes, message=msg)
+        assert result.intent == "recommend"
+
+    def test_tie_break_recommend_over_order_query(self):
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, aggregate_votes
+
+        votes = [
+            ThinkerVote(intent="recommend", confidence=0.8, reasoning="a", lens="discovery"),
+            ThinkerVote(intent="order_query", confidence=0.8, reasoning="b", lens="transaction"),
+        ]
+        result = aggregate_votes(votes)
+        assert result.intent == "recommend"
 
 
 class TestMultiIntentDetection:
@@ -217,6 +264,33 @@ class TestMultiIntentDetection:
             ):
                 intent, _ = await resolve_intent("đèn dưới 500k dùng như thế nào")
         assert intent == ChatIntent.KNOWLEDGE
+
+    @pytest.mark.asyncio
+    async def test_resolve_chat_route_consultation_overrides_order_query(self):
+        from app.services.ai_agent.agent import _resolve_chat_route, ChatIntent
+
+        msg = "Tư vấn cho tôi sản phẩm Đèn đá muối tự nhiên dài"
+
+        async def mock_resolve(message, user_role=None, conversation_context=None):
+            return ChatIntent.ORDER_QUERY, None
+
+        with patch("app.services.ai_agent.agent.resolve_intent", side_effect=mock_resolve):
+            with patch(
+                "app.services.ai_agent.chat_memory.get_conversation_context",
+                return_value="",
+            ):
+                with patch(
+                    "app.services.ai_agent.chat_memory.enrich_followup_products",
+                    return_value=None,
+                ):
+                    with patch(
+                        "app.services.ai_agent.chat_memory.build_message_with_context",
+                        side_effect=lambda m, *a, **k: m,
+                    ):
+                        ctx = await _resolve_chat_route(
+                            msg, user_id=1, user_role="user",
+                        )
+        assert ctx.intent == ChatIntent.RECOMMEND
 
     @pytest.mark.asyncio
     async def test_resolve_order_query_from_votes(self):

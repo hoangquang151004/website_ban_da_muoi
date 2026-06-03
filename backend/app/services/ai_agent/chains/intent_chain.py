@@ -29,10 +29,10 @@ VALID_INTENTS = frozenset({
 INTENT_TIE_PRIORITY = (
     "greeting",
     "knowledge",
-    "recommend",
     "stats",
     "order",
     "order_query",
+    "recommend",
 )
 
 THINKER_ALLOWED: dict[ThinkerLens, frozenset[str]] = {
@@ -47,7 +47,9 @@ THINKER_SYSTEM_PROMPTS: dict[ThinkerLens, str] = {
 Chỉ chọn MỘT intent trong: `order`, `order_query`.
 
 - `order`: thêm/xóa giỏ, mua ngay, thanh toán, checkout.
-- `order_query`: xem đơn của tôi, tra cứu đơn #, trạng thái đơn, xem giỏ hàng hiện tại.
+- `order_query`: xem đơn của tôi, tra cứu đơn #, trạng thái đơn, lịch sử đơn — KHÔNG phải tư vấn sản phẩm.
+
+KHÔNG chọn `order_query` khi khách hỏi tư vấn/gợi ý sản phẩm (vd: "Tư vấn cho tôi sản phẩm Đèn X" — đó là recommend, không phải đơn hàng).
 
 Nếu câu không liên quan giao dịch/đơn hàng, chọn intent gần đúng nhất với độ confidence THẤP (<0.4).
 Trả về JSON: intent, confidence (0.0-1.0), reasoning (1-2 câu tiếng Việt).""",
@@ -73,6 +75,8 @@ Chỉ chọn MỘT intent trong: `greeting`, `stats`, `order_query`.
 - `greeting`: chào hỏi, cảm ơn, tạm biệt, chitchat ngắn.
 - `stats`: báo cáo doanh thu, KPI, top sản phẩm, thống kê hệ thống (chỉ khi user_role=admin).
 - `order_query`: admin tra cứu đơn cụ thể (không phải báo cáo tổng hợp).
+
+KHÔNG chọn `order_query` cho câu "Tư vấn cho tôi sản phẩm ..." / "gợi ý đèn ..." — đó là tìm sản phẩm (recommend), không phải tra đơn.
 
 user_role được cung cấp: nếu không phải admin, KHÔNG chọn `stats` (confidence thấp nếu buộc phải chọn).
 Trả về JSON: intent, confidence (0.0-1.0), reasoning (1-2 câu tiếng Việt).""",
@@ -120,6 +124,7 @@ def aggregate_votes(
     *,
     user_role: Optional[str] = None,
     min_confidence: Optional[float] = None,
+    message: Optional[str] = None,
 ) -> AggregatedIntent:
     """Weighted vote + tie-break + role guard for stats."""
     threshold = min_confidence if min_confidence is not None else settings.INTENT_MIN_CONFIDENCE
@@ -145,6 +150,12 @@ def aggregate_votes(
     normalized_role = (user_role or "").strip().lower()
     if winner == "stats" and normalized_role != "admin":
         winner = "knowledge"
+
+    if message:
+        from app.services.ai_agent.agent import _is_product_consultation_message
+
+        if _is_product_consultation_message(message):
+            winner = "recommend"
 
     return AggregatedIntent(intent=winner, confidence=max_score, votes=votes)
 
@@ -241,10 +252,10 @@ async def classify_intent_multi(
             len(votes),
         )
         if votes:
-            return aggregate_votes(votes, user_role=user_role)
+            return aggregate_votes(votes, user_role=user_role, message=message)
         return AggregatedIntent(intent="knowledge", confidence=0.0, votes=[])
 
-    return aggregate_votes(votes, user_role=user_role)
+    return aggregate_votes(votes, user_role=user_role, message=message)
 
 
 # ---------------------------------------------------------------------------
