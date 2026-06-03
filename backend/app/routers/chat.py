@@ -14,6 +14,7 @@ import logging
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.core.dependencies import get_optional_user, get_current_user
@@ -125,6 +126,69 @@ async def chat_unified(
                 "meta": {**get_llm_display_info(), "chat_error": True},
             }
         )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/chat/stream — Chat tổng hợp (SSE)
+# ---------------------------------------------------------------------------
+@router.post("/chat/stream", summary="Chat tổng hợp (SSE streaming)")
+async def chat_stream_unified(
+    req: ChatRequest,
+    current_user=Depends(get_optional_user),
+):
+    """Stream SSE: status → token → done (payload giống POST /chat)."""
+    from app.core.config import settings
+    from app.services.ai_agent.agent import run_chat_stream
+    from app.services.ai_agent.streaming import format_sse_line
+
+    if not settings.CHAT_STREAM_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chat streaming is disabled",
+        )
+
+    user_id = current_user.id if current_user else None
+    user_role = current_user.role if current_user else None
+
+    async def event_generator():
+        try:
+            async for frame in run_chat_stream(
+                message=req.message,
+                user_id=user_id,
+                user_role=user_role,
+                session_id=req.session_id,
+            ):
+                yield format_sse_line(frame)
+        except Exception:
+            logger.exception(
+                "POST /chat/stream failed message=%r session_id=%r",
+                (req.message or "")[:200],
+                req.session_id,
+            )
+            from app.services.ai_agent.llm import get_llm_display_info
+            from app.services.ai_agent.streaming import done_event, error_event
+
+            yield format_sse_line(
+                error_event("Hệ thống tạm thời không xử lý được tin nhắn.")
+            )
+            yield format_sse_line(
+                done_event({
+                    "answer": CHAT_SYSTEM_ERROR_ANSWER,
+                    "response_type": "text",
+                    "intent": "knowledge",
+                    "meta": {**get_llm_display_info(), "chat_error": True},
+                })
+            )
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # ---------------------------------------------------------------------------

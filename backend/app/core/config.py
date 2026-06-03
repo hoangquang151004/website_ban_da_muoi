@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     # Chat session memory (in-process per session_id)
     CHAT_MEMORY_ENABLED: bool = True
     CHAT_MEMORY_MAX_TURNS: int = 8
+    CHAT_STREAM_ENABLED: bool = True
 
     # Embeddings
     EMBEDDING_PROVIDER: str = "baseline"  # "baseline" | "gemini"

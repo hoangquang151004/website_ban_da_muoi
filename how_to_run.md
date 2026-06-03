@@ -22,6 +22,20 @@ Rollback HuggingFace Router: `LLM_PROVIDER=huggingface`, `HF_TOKEN=...`, `LLM_MO
 
 Sau khi doi .env, restart uvicorn. Thu nhanh: `python huggiface_api.py` (doc tu `backend/.env`).
 
+## Chat streaming (SSE)
+
+Backend (trong `backend/.env`):
+
+CHAT_STREAM_ENABLED=true
+
+Frontend (tùy chọn, mặc định bật):
+
+NEXT_PUBLIC_CHAT_STREAM=true
+
+- API stream: `POST /api/v1/chat/stream` — body JSON giống `POST /api/v1/chat`, response `text/event-stream` với các event `status`, `token`, `done`.
+- API cũ `POST /api/v1/chat` vẫn dùng được (fallback khi stream lỗi).
+- Chatbot hiển thị chữ dần khi nhận `token`; product cards / stats / đơn hàng gắn sau event `done`.
+
 ## Embedding Provider Config (.env)
 
 Dat cac bien sau trong file .env (thu muc backend):

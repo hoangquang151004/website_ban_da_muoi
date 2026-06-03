@@ -20,7 +20,10 @@ import {
   onlinePaymentLabel,
 } from "@/lib/paymentLabels";
 import { saveOrderForInvoice } from "@/lib/invoiceOrderStorage";
-import { chatService } from "@/services/chatService";
+import {
+  CHAT_STREAM_ENABLED,
+  chatService,
+} from "@/services/chatService";
 import { orderService } from "@/services/orderService";
 import CheckoutPanel from "@/components/shop/CheckoutPanel";
 import type {
@@ -1409,8 +1412,26 @@ function MessageRenderer({
   defaultAddress?: string;
   mounted: boolean;
 }) {
-  if (message.isLoading) {
-    return <TypingIndicator />;
+  if (message.isLoading && !message.isStreaming) {
+    return (
+      <>
+        <TypingIndicator />
+        {message.streamStatus ? (
+          <p className="text-[10px] text-slate-400 ml-1 mt-1">{message.streamStatus}</p>
+        ) : null}
+      </>
+    );
+  }
+
+  if (message.isStreaming) {
+    return (
+      <>
+        <TextBubble content={message.content || " "} role={message.role} />
+        {message.streamStatus ? (
+          <p className="text-[10px] text-slate-400 ml-1 mt-1">{message.streamStatus}</p>
+        ) : null}
+      </>
+    );
   }
 
   switch (message.response_type) {
@@ -1689,6 +1710,7 @@ export default function Chatbot() {
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const checkoutSubmitLockRef = useRef(false);
+  const chatStreamAbortRef = useRef<AbortController | null>(null);
   const addItem = useCartStore((s) => s.addItem);
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
@@ -1983,12 +2005,11 @@ export default function Chatbot() {
       setInputValue("");
       setIsLoading(true);
 
-      try {
-        const apiRes = await chatService.sendMessage({
-          message: text,
-          session_id: sessionId,
-        });
+      chatStreamAbortRef.current?.abort();
+      const streamAbort = new AbortController();
+      chatStreamAbortRef.current = streamAbort;
 
+      const applyChatResponse = (apiRes: ChatApiResponse) => {
         if (apiRes.meta?.llm_model) {
           setLlmInfo({
             llm_provider: apiRes.meta.llm_provider ?? "unknown",
@@ -1997,7 +2018,6 @@ export default function Chatbot() {
         }
 
         const mergedMeta = { ...(apiRes.meta ?? {}) };
-
         const normalizedCheckoutItems = normalizeCheckoutItems(apiRes);
 
         if (
@@ -2025,7 +2045,7 @@ export default function Chatbot() {
         const botMsg: ChatMessage = {
           id: loadingMsg.id,
           role: "bot",
-          content: apiRes.answer,
+          content: apiRes.answer ?? "",
           response_type: apiRes.response_type,
           data: {
             products: apiRes.products ?? undefined,
@@ -2038,11 +2058,85 @@ export default function Chatbot() {
             sources: apiRes.sources ?? undefined,
           },
           timestamp: Date.now(),
+          isLoading: false,
+          isStreaming: false,
+          streamStatus: undefined,
         };
 
         setMessages((prev) =>
           prev.map((m) => (m.id === loadingMsg.id ? botMsg : m)),
         );
+      };
+
+      const fetchWithStream = async (): Promise<ChatApiResponse> => {
+        let streamedContent = "";
+        return chatService.streamMessage(
+          { message: text, session_id: sessionId },
+          {
+            onStatus: (status) => {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === loadingMsg.id
+                    ? {
+                        ...m,
+                        isLoading: false,
+                        isStreaming: true,
+                        streamStatus: status.message,
+                      }
+                    : m,
+                ),
+              );
+            },
+            onToken: (chunk) => {
+              streamedContent += chunk;
+              const snapshot = streamedContent;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === loadingMsg.id
+                    ? {
+                        ...m,
+                        isLoading: false,
+                        isStreaming: true,
+                        content: snapshot,
+                      }
+                    : m,
+                ),
+              );
+            },
+            onDone: (payload) => {
+              applyChatResponse(payload);
+            },
+            onError: (msg) => {
+              console.warn("[Chatbot] stream error:", msg);
+            },
+          },
+          streamAbort.signal,
+        );
+      };
+
+      const fetchWithPost = () =>
+        chatService.sendMessage({
+          message: text,
+          session_id: sessionId,
+        });
+
+      try {
+        let apiRes: ChatApiResponse;
+        if (CHAT_STREAM_ENABLED) {
+          try {
+            apiRes = await fetchWithStream();
+          } catch (streamErr) {
+            if (streamAbort.signal.aborted) {
+              throw streamErr;
+            }
+            console.warn("[Chatbot] stream failed, fallback POST /chat", streamErr);
+            apiRes = await fetchWithPost();
+            applyChatResponse(apiRes);
+          }
+        } else {
+          apiRes = await fetchWithPost();
+          applyChatResponse(apiRes);
+        }
       } catch (error: unknown) {
         console.error("[Chatbot] sendMessage failed:", error);
 

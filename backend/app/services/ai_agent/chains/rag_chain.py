@@ -7,6 +7,7 @@ Chain: RunnablePassthrough | retriever | prompt | llm | StrOutputParser
 from __future__ import annotations
 
 import logging
+from typing import Any, AsyncIterator
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -212,3 +213,94 @@ def create_rag_chain_with_sources():
         }
 
     return RunnableLambda(run_with_sources)
+
+
+def _rag_status_from_answer(raw_answer: str, answer: str) -> str:
+    if answer == RAG_REDIRECT_SHOPPING_ANSWER and _is_no_info_answer(raw_answer):
+        return "off_topic"
+    if answer == RAG_REDIRECT_SHOPPING_ANSWER:
+        return "redirect"
+    return "ok"
+
+
+async def stream_rag_with_sources(question: str) -> AsyncIterator[dict[str, Any]]:
+    """Stream SSE frames: status → token chunks → done (answer, sources, rag_status)."""
+    from app.services.ai_agent.streaming import (
+        done_event,
+        status_event,
+        stream_llm_text,
+        token_event,
+        yield_text_as_token_events,
+    )
+
+    q = (question or "").strip()
+    if not q:
+        payload = {
+            "answer": RAG_NO_CONTEXT_ANSWER,
+            "sources": [],
+            "rag_status": "no_context",
+        }
+        async for frame in yield_text_as_token_events(RAG_NO_CONTEXT_ANSWER):
+            yield frame
+        yield done_event(payload)
+        return
+
+    vs = get_vector_store()
+    retriever = vs.as_retriever(search_kwargs={"k": 5})
+    llm = get_llm()
+
+    yield status_event("retrieval", "Đang tra cứu tài liệu...")
+
+    try:
+        docs = await retriever.ainvoke(q)
+    except Exception:
+        logger.exception("RAG vector retrieval failed for question=%r", q[:200])
+        async for frame in yield_text_as_token_events(RAG_ERROR_ANSWER):
+            yield frame
+        yield done_event({
+            "answer": RAG_ERROR_ANSWER,
+            "sources": [],
+            "rag_status": "error",
+        })
+        return
+
+    if not docs:
+        logger.info("RAG no documents for question=%r", q[:200])
+        async for frame in yield_text_as_token_events(RAG_NO_CONTEXT_ANSWER):
+            yield frame
+        yield done_event({
+            "answer": RAG_NO_CONTEXT_ANSWER,
+            "sources": [],
+            "rag_status": "no_context",
+        })
+        return
+
+    sources = _get_sources(docs)
+    try:
+        context = _format_docs(docs)
+        prompt_value = _rag_prompt.invoke({"context": context, "question": q})
+        gen_chain = llm | StrOutputParser()
+        raw_parts: list[str] = []
+        yield status_event("generation", "Đang soạn câu trả lời...")
+        async for chunk in stream_llm_text(gen_chain, prompt_value):
+            raw_parts.append(chunk)
+            yield token_event(chunk)
+        raw_answer = "".join(raw_parts)
+        answer = polish_rag_answer(raw_answer)
+        rag_status = _rag_status_from_answer(raw_answer, answer)
+    except Exception:
+        logger.exception("RAG LLM generation failed for question=%r", q[:200])
+        async for frame in yield_text_as_token_events(RAG_ERROR_ANSWER):
+            yield frame
+        yield done_event({
+            "answer": RAG_ERROR_ANSWER,
+            "sources": sources,
+            "rag_status": "error",
+        })
+        return
+
+    yield done_event({
+        "answer": answer,
+        "sources": sources,
+        "rag_status": rag_status,
+    })

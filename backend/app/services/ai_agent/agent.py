@@ -26,8 +26,9 @@ from __future__ import annotations
 import re
 import unicodedata
 from datetime import date, timedelta
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Any, AsyncIterator, Optional
 
 
 # ---------------------------------------------------------------------------
@@ -1092,26 +1093,33 @@ async def run_stats_agent(message: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Main Chat Router
+# Chat route context (shared by run_chat / run_chat_stream)
 # ---------------------------------------------------------------------------
-async def run_chat(
+@dataclass
+class ChatRouteContext:
+    message: str
+    effective_message: str
+    conversation_context: str
+    normalized_role: Optional[str]
+    intent: ChatIntent
+    intent_debug_meta: Optional[dict]
+    user_id: Optional[int]
+    session_id: Optional[str]
+
+
+async def _resolve_chat_route(
     message: str,
     user_id: Optional[int] = None,
     user_role: Optional[str] = None,
     session_id: Optional[str] = None,
-) -> dict:
-    """Endpoint tổng hợp — tự routing đến đúng chain/agent.
-
-    Returns:
-        dict với key "answer" và các key bổ sung tùy intent
-    """
+) -> ChatRouteContext:
     from app.services.ai_agent.chat_memory import (
         build_message_with_context,
         enrich_followup_products,
         get_conversation_context,
     )
 
-    conversation_context = get_conversation_context(session_id)
+    conversation_context = get_conversation_context(session_id) or ""
     product_hint = enrich_followup_products(message, session_id)
     effective_message = build_message_with_context(
         message,
@@ -1125,8 +1133,6 @@ async def run_chat(
         conversation_context=conversation_context or None,
     )
 
-    # Override 1: Admin hỏi dạng báo cáo/phân tích nhưng không trúng keyword cứng
-    # vẫn phải vào luồng STATS thay vì rơi xuống RAG.
     if (
         intent == ChatIntent.KNOWLEDGE
         and normalized_role == "admin"
@@ -1134,8 +1140,6 @@ async def run_chat(
     ):
         intent = ChatIntent.STATS
 
-    # Override 2 (FIX #6): Admin hỏi "trạng thái đơn" → detect_intent trả ORDER_QUERY
-    # nhưng với admin thì đây là câu hỏi STATS (phân bố đơn theo trạng thái).
     if (
         intent == ChatIntent.ORDER_QUERY
         and normalized_role == "admin"
@@ -1143,22 +1147,342 @@ async def run_chat(
     ):
         intent = ChatIntent.STATS
 
-    # Override 3: Câu tư vấn/gợi ý mua sản phẩm (có giá/ngân sách) → RECOMMEND, không RAG.
     if intent == ChatIntent.KNOWLEDGE and _looks_like_product_shopping_query(effective_message):
         intent = ChatIntent.RECOMMEND
 
-    # Override 4: "như thế nào" — luôn RAG, không bị LLM/heuristic đẩy sang RECOMMEND.
     if _contains_how_phrase(message) or _contains_how_phrase(effective_message):
         intent = ChatIntent.KNOWLEDGE
 
-    def _attach_response_meta(result: dict) -> dict:
+    return ChatRouteContext(
+        message=message,
+        effective_message=effective_message,
+        conversation_context=conversation_context,
+        normalized_role=normalized_role,
+        intent=intent,
+        intent_debug_meta=intent_debug_meta,
+        user_id=user_id,
+        session_id=session_id,
+    )
+
+
+def _attach_route_meta(result: dict, ctx: ChatRouteContext) -> dict:
+    from app.services.ai_agent.llm import get_llm_display_info
+
+    existing = result.get("meta") or {}
+    result["meta"] = {**existing, **get_llm_display_info()}
+    if ctx.intent_debug_meta:
+        result["meta"] = {**result["meta"], **ctx.intent_debug_meta}
+    return result
+
+
+async def stream_recommendation_agent(
+    message: str,
+    conversation_context: Optional[str] = None,
+) -> AsyncIterator[dict[str, Any]]:
+    """Stream SSE frames cho gợi ý sản phẩm."""
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.output_parsers import StrOutputParser
+
+    from app.services.ai_agent.chat_memory import build_message_with_context
+    from app.services.ai_agent.llm import get_llm
+    from app.services.ai_agent.streaming import (
+        done_event,
+        status_event,
+        stream_llm_text,
+        token_event,
+        yield_text_as_token_events,
+    )
+    from app.services.ai_agent.tools.product_search import search_products_structured_with_meta
+
+    yield status_event("search_products", "Đang tìm sản phẩm phù hợp...")
+
+    products, search_filters = await search_products_structured_with_meta(
+        message, conversation_context=conversation_context
+    )
+    prompt_message = build_message_with_context(message, conversation_context or "")
+    meta: dict = {"search_filters": search_filters}
+
+    if products:
+        product_list_text = "\n".join(
+            f"- {i+1}. {p['name']} — {int(p['price']):,}đ (còn {p.get('stock', 0)})"
+            for i, p in enumerate(products)
+        )
+        summary_prompt = ChatPromptTemplate.from_messages([
+            (
+                "system",
+                "Bạn là trợ lý tư vấn bán hàng đèn đá muối Himalaya. "
+                "CHỈ được giới thiệu các sản phẩm trong danh sách được cung cấp — không thêm sản phẩm khác. "
+                "Ngắn gọn, thân thiện, tiếng Việt.",
+            ),
+            (
+                "human",
+                f"Khách hỏi: {prompt_message}\n\n"
+                f"Danh sách sản phẩm (từ cơ sở dữ liệu):\n{product_list_text}",
+            ),
+        ])
+        yield status_event("generation", "Đang soạn gợi ý...")
+        llm = get_llm()
+        gen_chain = summary_prompt | llm | StrOutputParser()
+        parts: list[str] = []
+        try:
+            async for chunk in stream_llm_text(gen_chain, {}):
+                parts.append(chunk)
+                yield token_event(chunk)
+            answer = "".join(parts) or (
+                "Mình tìm được một số sản phẩm phù hợp cho bạn. Bạn xem danh sách bên dưới nhé."
+            )
+        except Exception:
+            answer = "Mình tìm được một số sản phẩm phù hợp cho bạn. Bạn xem danh sách bên dưới nhé."
+            async for frame in yield_text_as_token_events(answer):
+                yield frame
+    else:
+        answer = (
+            "Mình chưa tìm thấy sản phẩm khớp bộ lọc trong cửa hàng. "
+            "Bạn thử nới ngân sách, đổi công dụng (ví dụ ngủ hoặc thư giãn), "
+            "hoặc hỏi \"gợi ý đèn bán chạy\" nhé."
+        )
+        async for frame in yield_text_as_token_events(answer):
+            yield frame
+
+    yield done_event({"answer": answer, "products": products, "meta": meta})
+
+
+async def _stream_result_payload(
+    ctx: ChatRouteContext,
+    result: dict,
+    *,
+    response_type: Optional[str] = None,
+    extra_finalize: Optional[dict] = None,
+) -> AsyncIterator[dict[str, Any]]:
+    """Stream answer text rồi emit done với payload đã finalize."""
+    from app.services.ai_agent.streaming import done_event, yield_text_as_token_events
+
+    answer = (result.get("answer") or "").strip()
+    if answer:
+        async for frame in yield_text_as_token_events(answer):
+            yield frame
+
+    result = dict(result)
+    if response_type:
+        result["response_type"] = response_type
+    result["intent"] = ctx.intent.value
+    if extra_finalize:
+        result.update(extra_finalize)
+    result = _attach_route_meta(result, ctx)
+    result = _finalize_chat_response(ctx.session_id, ctx.message, ctx.intent, result)
+    yield done_event(result)
+
+
+async def run_chat_stream(
+    message: str,
+    user_id: Optional[int] = None,
+    user_role: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> AsyncIterator[dict[str, Any]]:
+    """Stream SSE frames cho toàn bộ luồng chat (mirror run_chat)."""
+    from app.services.ai_agent.streaming import (
+        done_event,
+        error_event,
+        status_event,
+        yield_text_as_token_events,
+    )
+
+    ctx = await _resolve_chat_route(message, user_id, user_role, session_id)
+    yield status_event("intent", "Đang phân loại yêu cầu...", intent=ctx.intent.value)
+
+    try:
+        if ctx.intent == ChatIntent.GREETING:
+            result = {
+                "answer": (
+                    "Xin chào! Mình là trợ lý tư vấn của cửa hàng đèn đá muối Himalaya. "
+                    "Mình có thể giúp bạn tìm sản phẩm, tư vấn công dụng, hoặc hỗ trợ đặt hàng. "
+                    "Bạn cần hỗ trợ gì ạ?"
+                ),
+                "response_type": "text",
+            }
+            async for frame in _stream_result_payload(ctx, result, response_type="text"):
+                yield frame
+            return
+
+        if ctx.intent == ChatIntent.ORDER:
+            checkout_requested = _is_checkout_request(ctx.effective_message)
+            if ctx.user_id is None:
+                result = {
+                    "answer": "Vui lòng đăng nhập để tiếp tục đặt hàng hoặc thanh toán qua chat.",
+                    "cart_updated": False,
+                    "cart_item": None,
+                    "response_type": "text",
+                }
+                async for frame in _stream_result_payload(ctx, result, response_type="text"):
+                    yield frame
+                return
+
+            result = await run_ordering_agent(
+                ctx.message,
+                ctx.user_id,
+                conversation_context=ctx.conversation_context or None,
+            )
+            if result.get("cart_updated"):
+                if checkout_requested:
+                    cart_items = _normalize_checkout_cart_items(result)
+                    if cart_items:
+                        result["response_type"] = "checkout_form"
+                        result["intent"] = "checkout"
+                        result["data"] = {"cart_items": cart_items}
+                    else:
+                        result["answer"] = (
+                            "Giỏ hàng của bạn đang trống hoặc chưa đủ dữ liệu để thanh toán."
+                        )
+                        result["cart_updated"] = False
+                        result["response_type"] = "text"
+                else:
+                    result["response_type"] = "text"
+            else:
+                if checkout_requested:
+                    result["answer"] = (
+                        "Giỏ hàng của bạn đang trống. Hãy thêm sản phẩm trước khi thanh toán nhé."
+                    )
+                result["response_type"] = "text"
+            async for frame in _stream_result_payload(
+                ctx, result, response_type=result.get("response_type", "text")
+            ):
+                yield frame
+            return
+
+        if ctx.intent == ChatIntent.ORDER_QUERY:
+            if ctx.user_id is None:
+                result = {
+                    "answer": "Vui lòng đăng nhập để xem đơn hàng của bạn.",
+                    "response_type": "text",
+                }
+                async for frame in _stream_result_payload(ctx, result, response_type="text"):
+                    yield frame
+                return
+            result = await run_order_query_agent(ctx.effective_message, ctx.user_id)
+            rt = "order_detail" if result.get("order_detail") else "order_list"
+            async for frame in _stream_result_payload(ctx, result, response_type=rt):
+                yield frame
+            return
+
+        if ctx.intent == ChatIntent.STATS:
+            if ctx.normalized_role != "admin":
+                result = {
+                    "answer": "Chức năng thống kê chỉ dành cho quản trị viên.",
+                    "response_type": "text",
+                    "stats_data": None,
+                }
+                async for frame in _stream_result_payload(ctx, result, response_type="text"):
+                    yield frame
+                return
+
+            yield status_event("stats_query", "Đang truy vấn báo cáo...")
+            result = await run_stats_agent(ctx.effective_message)
+            result.setdefault("stats_data", {})
+            result.setdefault("meta", {"source": result.get("meta", {}).get("source", "rest")})
+            async for frame in _stream_result_payload(ctx, result, response_type="stats"):
+                yield frame
+            return
+
+        if ctx.intent == ChatIntent.RECOMMEND:
+            async for frame in stream_recommendation_agent(
+                ctx.message,
+                conversation_context=ctx.conversation_context or None,
+            ):
+                if frame.get("event") == "done":
+                    payload = dict(frame["data"])
+                    payload["intent"] = ctx.intent.value
+                    payload["response_type"] = (
+                        "product_cards" if payload.get("products") else "text"
+                    )
+                    payload = _attach_route_meta(payload, ctx)
+                    payload = _finalize_chat_response(
+                        ctx.session_id, ctx.message, ctx.intent, payload
+                    )
+                    yield done_event(payload)
+                else:
+                    yield frame
+            return
+
+        # KNOWLEDGE (RAG)
+        from app.services.ai_agent.chains.rag_chain import (
+            RAG_ERROR_ANSWER,
+            stream_rag_with_sources,
+        )
+
+        try:
+            async for frame in stream_rag_with_sources(ctx.effective_message):
+                if frame.get("event") == "done":
+                    payload = dict(frame["data"])
+                    payload["intent"] = ctx.intent.value
+                    payload["response_type"] = "text"
+                    rag_status = payload.pop("rag_status", None)
+                    if rag_status:
+                        payload.setdefault("meta", {})["rag_status"] = rag_status
+                    payload = _attach_route_meta(payload, ctx)
+                    payload = _finalize_chat_response(
+                        ctx.session_id, ctx.message, ctx.intent, payload
+                    )
+                    yield done_event(payload)
+                else:
+                    yield frame
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "Knowledge RAG stream failed for message=%r",
+                ctx.effective_message[:200],
+            )
+            async for frame in yield_text_as_token_events(RAG_ERROR_ANSWER):
+                yield frame
+            result = {
+                "answer": RAG_ERROR_ANSWER,
+                "sources": [],
+                "response_type": "text",
+            }
+            result = _attach_route_meta(result, ctx)
+            result = _finalize_chat_response(ctx.session_id, ctx.message, ctx.intent, result)
+            yield done_event(result)
+
+    except Exception:
+        import logging
         from app.services.ai_agent.llm import get_llm_display_info
 
-        existing = result.get("meta") or {}
-        result["meta"] = {**existing, **get_llm_display_info()}
-        if intent_debug_meta:
-            result["meta"] = {**result["meta"], **intent_debug_meta}
-        return result
+        logging.getLogger(__name__).exception("run_chat_stream failed")
+        yield error_event("Hệ thống tạm thời không xử lý được tin nhắn.")
+        result = {
+            "answer": (
+                "Hệ thống tạm thời không xử lý được tin nhắn do lỗi kỹ thuật. "
+                "Bạn vui lòng thử lại sau, hoặc hỏi gợi ý sản phẩm / xem danh mục để tiếp tục mua hàng nhé."
+            ),
+            "response_type": "text",
+            "intent": ChatIntent.KNOWLEDGE.value,
+            "meta": {**get_llm_display_info(), "chat_error": True},
+        }
+        yield done_event(result)
+
+
+# ---------------------------------------------------------------------------
+# Main Chat Router
+# ---------------------------------------------------------------------------
+async def run_chat(
+    message: str,
+    user_id: Optional[int] = None,
+    user_role: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> dict:
+    """Endpoint tổng hợp — tự routing đến đúng chain/agent.
+
+    Returns:
+        dict với key "answer" và các key bổ sung tùy intent
+    """
+    ctx = await _resolve_chat_route(message, user_id, user_role, session_id)
+    intent = ctx.intent
+    effective_message = ctx.effective_message
+    conversation_context = ctx.conversation_context
+    normalized_role = ctx.normalized_role
+
+    def _attach_response_meta(result: dict) -> dict:
+        return _attach_route_meta(result, ctx)
 
     # ── GREETING ──────────────────────────────────────────────────────────
     if intent == ChatIntent.GREETING:
