@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 
 # revision identifiers, used by Alembic.
@@ -19,14 +20,26 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE")
-    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(10)")
-    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)")
-    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS ward VARCHAR(100)")
-    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(100)")
-    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS city VARCHAR(100)")
-    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20)")
-    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS address_note VARCHAR(500)")
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('users')]
+    
+    if 'date_of_birth' not in columns:
+        op.add_column('users', sa.Column('date_of_birth', sa.Date(), nullable=True))
+    if 'gender' not in columns:
+        op.add_column('users', sa.Column('gender', sa.String(length=10), nullable=True))
+    if 'avatar_url' not in columns:
+        op.add_column('users', sa.Column('avatar_url', sa.String(length=500), nullable=True))
+    if 'ward' not in columns:
+        op.add_column('users', sa.Column('ward', sa.String(length=100), nullable=True))
+    if 'district' not in columns:
+        op.add_column('users', sa.Column('district', sa.String(length=100), nullable=True))
+    if 'city' not in columns:
+        op.add_column('users', sa.Column('city', sa.String(length=100), nullable=True))
+    if 'postal_code' not in columns:
+        op.add_column('users', sa.Column('postal_code', sa.String(length=20), nullable=True))
+    if 'address_note' not in columns:
+        op.add_column('users', sa.Column('address_note', sa.String(length=500), nullable=True))
 
 
 def downgrade() -> None:
