@@ -394,6 +394,79 @@ def _looks_like_admin_stats_query(message: str) -> bool:
 # ---------------------------------------------------------------------------
 # Recommendation Agent
 # ---------------------------------------------------------------------------
+def _format_vnd_price(amount: float) -> str:
+    return f"{int(round(amount)):,}".replace(",", ".") + "đ"
+
+
+def _recommendation_filter_summary(search_filters: dict) -> Optional[str]:
+    """Mô tả ngắn bộ lọc giá (cho intro gợi ý)."""
+    min_p = search_filters.get("min_price")
+    max_p = search_filters.get("max_price")
+    if min_p is not None and max_p is not None:
+        return (
+            f"khoảng {_format_vnd_price(float(min_p))} – "
+            f"{_format_vnd_price(float(max_p))}"
+        )
+    if min_p is not None:
+        return f"từ {_format_vnd_price(float(min_p))} trở lên"
+    if max_p is not None:
+        return f"dưới {_format_vnd_price(float(max_p))}"
+    return None
+
+
+def build_recommendation_answer(
+    products: list[dict],
+    search_filters: Optional[dict] = None,
+) -> str:
+    """Câu trả lời gợi ý dạng danh sách — dễ đọc, khớp thẻ sản phẩm bên dưới."""
+    filters = search_filters or {}
+    n = len(products)
+    if n == 0:
+        return (
+            "Mình chưa tìm thấy sản phẩm khớp bộ lọc trong cửa hàng. "
+            "Bạn thử nới ngân sách, đổi công dụng (ví dụ ngủ hoặc thư giãn), "
+            "hoặc hỏi \"gợi ý đèn bán chạy\" nhé."
+        )
+
+    filter_line = _recommendation_filter_summary(filters)
+    if n == 1:
+        intro = "Mình tìm thấy **1** sản phẩm phù hợp"
+    else:
+        intro = f"Mình tìm thấy **{n}** sản phẩm phù hợp"
+    if filter_line:
+        intro += f" ({filter_line})"
+    intro += ":\n\n"
+
+    blocks: list[str] = [intro]
+    for idx, product in enumerate(products, start=1):
+        name = product.get("name") or "Sản phẩm"
+        price = _format_vnd_price(float(product.get("price") or 0))
+        stock = int(product.get("stock") or 0)
+        blocks.append(f"{idx}. **{name}**")
+        blocks.append(f"   - Giá: {price}")
+        blocks.append(f"   - Còn hàng: {stock}")
+        blocks.append("")
+
+    name_hint = filters.get("name_hint")
+    if name_hint and n == 1:
+        closing = (
+            f"Bạn xem thẻ sản phẩm bên dưới để xem ảnh và đặt hàng. "
+            f"Cần tư vấn thêm về **{name_hint}** không?"
+        )
+    elif n == 1:
+        closing = (
+            "Bạn xem thẻ sản phẩm bên dưới để xem ảnh và đặt hàng. "
+            "Cần tư vấn thêm không?"
+        )
+    else:
+        closing = (
+            "Bạn xem các thẻ sản phẩm bên dưới (ảnh, giá, nút thêm giỏ). "
+            "Bạn quan tâm sản phẩm số mấy ạ?"
+        )
+    blocks.append(closing)
+    return "\n".join(blocks).strip()
+
+
 async def run_recommendation_agent(
     message: str,
     conversation_context: Optional[str] = None,
@@ -403,57 +476,14 @@ async def run_recommendation_agent(
     Returns:
         {"answer": str, "products": list[dict], "meta": dict}
     """
-    from langchain_core.prompts import ChatPromptTemplate
-    from langchain_core.output_parsers import StrOutputParser
-    from app.services.ai_agent.llm import get_llm
     from app.services.ai_agent.tools.product_search import search_products_structured_with_meta
-
-    from app.services.ai_agent.chat_memory import build_message_with_context
 
     products, search_filters = await search_products_structured_with_meta(
         message, conversation_context=conversation_context
     )
 
-    prompt_message = build_message_with_context(
-        message, conversation_context or ""
-    )
-
-    llm = get_llm()
     meta: dict = {"search_filters": search_filters}
-    if products:
-        product_list_text = "\n".join(
-            f"- {i+1}. {p['name']} — {int(p['price']):,}đ (còn {p.get('stock', 0)})"
-            for i, p in enumerate(products)
-        )
-        name_focus = ""
-        if search_filters.get("name_hint"):
-            name_focus = (
-                f"\nKhách đang hỏi về sản phẩm cụ thể: «{search_filters['name_hint']}». "
-                "Ưu tiên giới thiệu sản phẩm đầu tiên trong danh sách (khớp tên nhất)."
-            )
-        summary_prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                "Bạn là trợ lý tư vấn bán hàng đèn đá muối Himalaya. "
-                "CHỈ được giới thiệu các sản phẩm trong danh sách được cung cấp — không thêm sản phẩm khác. "
-                "Ngắn gọn, thân thiện, tiếng Việt.",
-            ),
-            (
-                "human",
-                f"Khách hỏi: {prompt_message}{name_focus}\n\n"
-                f"Danh sách sản phẩm (từ cơ sở dữ liệu):\n{product_list_text}",
-            ),
-        ])
-        try:
-            answer = await (summary_prompt | llm | StrOutputParser()).ainvoke({})
-        except Exception:
-            answer = "Mình tìm được một số sản phẩm phù hợp cho bạn. Bạn xem danh sách bên dưới nhé."
-    else:
-        answer = (
-            "Mình chưa tìm thấy sản phẩm khớp bộ lọc trong cửa hàng. "
-            "Bạn thử nới ngân sách, đổi công dụng (ví dụ ngủ hoặc thư giãn), "
-            "hoặc hỏi \"gợi ý đèn bán chạy\" nhé."
-        )
+    answer = build_recommendation_answer(products, search_filters)
 
     return {"answer": answer, "products": products, "meta": meta}
 
@@ -1238,16 +1268,9 @@ async def stream_recommendation_agent(
     conversation_context: Optional[str] = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Stream SSE frames cho gợi ý sản phẩm."""
-    from langchain_core.prompts import ChatPromptTemplate
-    from langchain_core.output_parsers import StrOutputParser
-
-    from app.services.ai_agent.chat_memory import build_message_with_context
-    from app.services.ai_agent.llm import get_llm
     from app.services.ai_agent.streaming import (
         done_event,
         status_event,
-        stream_llm_text,
-        token_event,
         yield_text_as_token_events,
     )
     from app.services.ai_agent.tools.product_search import search_products_structured_with_meta
@@ -1257,56 +1280,13 @@ async def stream_recommendation_agent(
     products, search_filters = await search_products_structured_with_meta(
         message, conversation_context=conversation_context
     )
-    prompt_message = build_message_with_context(message, conversation_context or "")
     meta: dict = {"search_filters": search_filters}
+    answer = build_recommendation_answer(products, search_filters)
 
     if products:
-        product_list_text = "\n".join(
-            f"- {i+1}. {p['name']} — {int(p['price']):,}đ (còn {p.get('stock', 0)})"
-            for i, p in enumerate(products)
-        )
-        name_focus = ""
-        if search_filters.get("name_hint"):
-            name_focus = (
-                f"\nKhách đang hỏi về sản phẩm cụ thể: «{search_filters['name_hint']}». "
-                "Ưu tiên giới thiệu sản phẩm đầu tiên trong danh sách (khớp tên nhất)."
-            )
-        summary_prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                "Bạn là trợ lý tư vấn bán hàng đèn đá muối Himalaya. "
-                "CHỈ được giới thiệu các sản phẩm trong danh sách được cung cấp — không thêm sản phẩm khác. "
-                "Ngắn gọn, thân thiện, tiếng Việt.",
-            ),
-            (
-                "human",
-                f"Khách hỏi: {prompt_message}{name_focus}\n\n"
-                f"Danh sách sản phẩm (từ cơ sở dữ liệu):\n{product_list_text}",
-            ),
-        ])
         yield status_event("generation", "Đang soạn gợi ý...")
-        llm = get_llm()
-        gen_chain = summary_prompt | llm | StrOutputParser()
-        parts: list[str] = []
-        try:
-            async for chunk in stream_llm_text(gen_chain, {}):
-                parts.append(chunk)
-                yield token_event(chunk)
-            answer = "".join(parts) or (
-                "Mình tìm được một số sản phẩm phù hợp cho bạn. Bạn xem danh sách bên dưới nhé."
-            )
-        except Exception:
-            answer = "Mình tìm được một số sản phẩm phù hợp cho bạn. Bạn xem danh sách bên dưới nhé."
-            async for frame in yield_text_as_token_events(answer):
-                yield frame
-    else:
-        answer = (
-            "Mình chưa tìm thấy sản phẩm khớp bộ lọc trong cửa hàng. "
-            "Bạn thử nới ngân sách, đổi công dụng (ví dụ ngủ hoặc thư giãn), "
-            "hoặc hỏi \"gợi ý đèn bán chạy\" nhé."
-        )
-        async for frame in yield_text_as_token_events(answer):
-            yield frame
+    async for frame in yield_text_as_token_events(answer):
+        yield frame
 
     yield done_event({"answer": answer, "products": products, "meta": meta})
 

@@ -1442,7 +1442,11 @@ function MessageRenderer({
     case "product_cards":
       return (
         <>
-          <TextBubble content={message.content} role={message.role} />
+          {shouldRenderMarkdownContent(message.content) ? (
+            <MarkdownBubble content={message.content} />
+          ) : (
+            <TextBubble content={message.content} role={message.role} />
+          )}
           {formatSearchFiltersHint(message.data?.meta) ? (
             <p className="text-[10px] text-slate-500 ml-1 mt-0.5">
               {formatSearchFiltersHint(message.data?.meta)}

@@ -22,6 +22,36 @@ from types import SimpleNamespace
 # Unit tests — không cần DB/LLM thực
 # ---------------------------------------------------------------------------
 
+class TestRecommendationAnswerFormat:
+    def test_multi_product_markdown_list(self):
+        from app.services.ai_agent.agent import build_recommendation_answer
+
+        products = [
+            {"name": "Đèn đá muối hình khối hộp", "price": 5_000_000, "stock": 77},
+            {"name": "Đèn đá hình mặt trăng", "price": 6_800_000, "stock": 7},
+        ]
+        text = build_recommendation_answer(
+            products,
+            {"min_price": 5_000_000, "max_price": 7_000_000},
+        )
+        assert "2** sản phẩm" in text or "**2** sản phẩm" in text
+        assert "1. **Đèn đá muối hình khối hộp**" in text
+        assert "2. **Đèn đá hình mặt trăng**" in text
+        assert "5.000.000đ" in text
+        assert "thẻ sản phẩm bên dưới" in text
+        assert "😊" not in text
+
+    def test_single_product_compact(self):
+        from app.services.ai_agent.agent import build_recommendation_answer
+
+        text = build_recommendation_answer(
+            [{"name": "Đèn đá muối tự nhiên dài", "price": 2_540_000, "stock": 63}],
+            {"name_hint": "Đèn đá muối tự nhiên dài"},
+        )
+        assert "**1** sản phẩm" in text
+        assert "2.540.000đ" in text
+
+
 class TestIntentDetection:
     """Test intent detection logic."""
 
