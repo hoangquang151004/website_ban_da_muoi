@@ -24,19 +24,14 @@ async def add_to_cart_tool(product_id: int, quantity: int, user_id: Optional[int
     Returns:
         Thông báo kết quả dạng text cho LLM đọc
     """
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-    from sqlalchemy.orm import sessionmaker
     from sqlalchemy import select
-    from app.core.config import settings
     from app.models.product import Product
+    from app.db.session import AsyncSessionLocal
 
     if quantity < 1:
         return "Số lượng phải ít nhất là 1."
 
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-    async with async_session() as session:
+    async with AsyncSessionLocal() as session:
         # Kiểm tra sản phẩm tồn tại
         result = await session.execute(
             select(Product).where(Product.id == product_id, Product.is_active == True)
@@ -44,15 +39,12 @@ async def add_to_cart_tool(product_id: int, quantity: int, user_id: Optional[int
         product = result.scalar_one_or_none()
 
         if not product:
-            await engine.dispose()
             return f"Không tìm thấy sản phẩm với ID {product_id}."
 
         if product.stock <= 0:
-            await engine.dispose()
             return f"Sản phẩm '{product.name}' hiện đã hết hàng."
 
         if product.stock < quantity:
-            await engine.dispose()
             return (
                 f"Sản phẩm '{product.name}' chỉ còn {product.stock} cái trong kho. "
                 f"Bạn có muốn mua {product.stock} cái không?"
@@ -70,7 +62,6 @@ async def add_to_cart_tool(product_id: int, quantity: int, user_id: Optional[int
                 f"Vui lòng đăng nhập để lưu giỏ hàng."
             )
 
-    await engine.dispose()
     return result_msg
 
 
@@ -125,30 +116,22 @@ async def add_to_cart_internal(
     user_id: int,
 ) -> dict:
     """Phiên bản nội bộ cho API endpoint, trả về dict thay vì chuỗi."""
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-    from sqlalchemy.orm import sessionmaker
     from sqlalchemy import select
-    from app.core.config import settings
     from app.models.product import Product
+    from app.db.session import AsyncSessionLocal
 
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-    async with async_session() as session:
+    async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(Product).where(Product.id == product_id, Product.is_active == True)
         )
         product = result.scalar_one_or_none()
 
         if not product:
-            await engine.dispose()
             return {"success": False, "message": f"Không tìm thấy sản phẩm ID {product_id}."}
 
         if product.stock < quantity:
-            await engine.dispose()
             return {"success": False, "message": f"Chỉ còn {product.stock} cái trong kho."}
 
-        await engine.dispose()
         return {
             "success": True,
             "message": f"Đã thêm {quantity} × '{product.name}' vào giỏ hàng.",

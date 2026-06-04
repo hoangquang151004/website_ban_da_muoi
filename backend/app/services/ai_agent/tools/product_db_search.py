@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import selectinload, sessionmaker
 
 from app.core.config import settings
+from app.db.session import AsyncSessionLocal
 from app.models.category import Category
 from app.models.product import Product
 from app.models.use import Use, product_uses
@@ -397,47 +398,43 @@ async def search_products_by_name_hint(
 ) -> list[dict]:
     """Tìm SP theo tên — ưu tiên khớp chính xác, không lọc category sai."""
     cap = limit if limit is not None else settings.PRODUCT_RECOMMEND_LIMIT
-    engine, async_session = await _get_async_session()
     output: list[dict] = []
 
-    try:
-        async with async_session() as session:
-            base = and_(
-                Product.is_active == True,  # noqa: E712
-                Product.stock > 0,
-            )
+    async with AsyncSessionLocal() as session:
+        base = and_(
+            Product.is_active == True,  # noqa: E712
+            Product.stock > 0,
+        )
 
-            query = (
-                select(Product)
-                .where(base, Product.name.ilike(f"%{name_hint}%"))
-                .options(selectinload(Product.uses))
-                .limit(50)
-            )
-            result = await session.execute(query)
-            products = list(result.scalars().unique().all())
+        query = (
+            select(Product)
+            .where(base, Product.name.ilike(f"%{name_hint}%"))
+            .options(selectinload(Product.uses))
+            .limit(50)
+        )
+        result = await session.execute(query)
+        products = list(result.scalars().unique().all())
 
-            if not products:
-                words = [w for w in re.split(r"\s+", name_hint.strip()) if len(w) >= 2]
-                if len(words) >= 2:
-                    name_conds = and_(
-                        *[Product.name.ilike(f"%{w}%") for w in words],
-                    )
-                    query = (
-                        select(Product)
-                        .where(base, name_conds)
-                        .options(selectinload(Product.uses))
-                        .limit(50)
-                    )
-                    result = await session.execute(query)
-                    products = list(result.scalars().unique().all())
+        if not products:
+            words = [w for w in re.split(r"\s+", name_hint.strip()) if len(w) >= 2]
+            if len(words) >= 2:
+                name_conds = and_(
+                    *[Product.name.ilike(f"%{w}%") for w in words],
+                )
+                query = (
+                    select(Product)
+                    .where(base, name_conds)
+                    .options(selectinload(Product.uses))
+                    .limit(50)
+                )
+                result = await session.execute(query)
+                products = list(result.scalars().unique().all())
 
-            ranked = _sort_products_by_name_hint(
-                [product_to_dict(p) for p in products],
-                name_hint,
-            )
-            output = ranked[:cap]
-    finally:
-        await engine.dispose()
+        ranked = _sort_products_by_name_hint(
+            [product_to_dict(p) for p in products],
+            name_hint,
+        )
+        output = ranked[:cap]
 
     return output
 
@@ -491,29 +488,24 @@ def product_to_dict(p: Product) -> dict:
     }
 
 
-async def _get_async_session() -> tuple[Any, Any]:
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    return engine, async_session
+async def _get_async_session():
+    """Legacy wrapper — dùng AsyncSessionLocal dùng chung thay vì tạo engine mới."""
+    return None, AsyncSessionLocal
 
 
 async def load_product_catalog() -> dict[str, Any]:
-    engine, async_session = await _get_async_session()
-    try:
-        async with async_session() as session:
-            uses_result = await session.execute(
-                select(Use.id, Use.name).where(Use.is_active == True)  # noqa: E712
-            )
-            categories_result = await session.execute(
-                select(Category.slug, Category.name).where(Category.is_active == True)  # noqa: E712
-            )
-            uses = [{"id": row.id, "name": row.name} for row in uses_result.all()]
-            categories = [
-                {"slug": row.slug, "name": row.name} for row in categories_result.all()
-            ]
-            return {"uses": uses, "categories": categories}
-    finally:
-        await engine.dispose()
+    async with AsyncSessionLocal() as session:
+        uses_result = await session.execute(
+            select(Use.id, Use.name).where(Use.is_active == True)  # noqa: E712
+        )
+        categories_result = await session.execute(
+            select(Category.slug, Category.name).where(Category.is_active == True)  # noqa: E712
+        )
+        uses = [{"id": row.id, "name": row.name} for row in uses_result.all()]
+        categories = [
+            {"slug": row.slug, "name": row.name} for row in categories_result.all()
+        ]
+        return {"uses": uses, "categories": categories}
 
 
 _catalog_cache: dict[str, Any] = {"data": None, "expires_at": 0.0}
@@ -591,75 +583,74 @@ async def parse_product_filters(
 
 
 async def query_products_by_filters(spec: ProductFilterSpec) -> list[dict]:
-    engine, async_session = await _get_async_session()
-    output: list[dict] = []
+    async with AsyncSessionLocal() as session:
+        conditions: list[Any] = [
+            Product.is_active == True,  # noqa: E712
+            Product.stock > 0,
+        ]
+        if spec.max_price is not None:
+            conditions.append(Product.price <= spec.max_price)
+        if spec.min_price is not None:
+            conditions.append(Product.price >= spec.min_price)
+        if spec.featured_only:
+            conditions.append(Product.is_featured == True)  # noqa: E712
 
-    try:
-        async with async_session() as session:
-            conditions: list[Any] = [
-                Product.is_active == True,  # noqa: E712
-                Product.stock > 0,
-            ]
-            if spec.max_price is not None:
-                conditions.append(Product.price <= spec.max_price)
-            if spec.min_price is not None:
-                conditions.append(Product.price >= spec.min_price)
-            if spec.featured_only:
-                conditions.append(Product.is_featured == True)  # noqa: E712
+        use_subq = build_use_product_ids_subquery(spec.use_ids, spec.use_match)
+        if use_subq is not None:
+            conditions.append(Product.id.in_(use_subq))
 
-            use_subq = build_use_product_ids_subquery(spec.use_ids, spec.use_match)
-            if use_subq is not None:
-                conditions.append(Product.id.in_(use_subq))
+        keyword_cond = build_keyword_condition(spec.keywords, spec.keyword_match)
+        if keyword_cond is not None:
+            conditions.append(keyword_cond)
 
-            keyword_cond = build_keyword_condition(spec.keywords, spec.keyword_match)
-            if keyword_cond is not None:
-                conditions.append(keyword_cond)
+        query = select(Product).where(and_(*conditions))
 
-            query = select(Product).where(and_(*conditions))
+        if spec.category_slug:
+            query = query.join(Category, Product.category_id == Category.id).where(
+                Category.slug == spec.category_slug,
+                Category.is_active == True,  # noqa: E712
+            )
 
-            if spec.category_slug:
-                query = query.join(Category, Product.category_id == Category.id).where(
-                    Category.slug == spec.category_slug,
-                    Category.is_active == True,  # noqa: E712
-                )
+        sort_by = spec.sort_by
+        if sort_by is None and spec.max_price is not None:
+            sort_by = "price_asc"
+        if sort_by == "price_asc":
+            query = query.order_by(Product.price.asc(), Product.id.asc())
+        elif sort_by == "price_desc":
+            query = query.order_by(Product.price.desc(), Product.id.desc())
+        elif sort_by == "newest":
+            query = query.order_by(Product.created_at.desc(), Product.id.desc())
+        else:
+            query = query.order_by(
+                Product.is_featured.desc(),
+                Product.created_at.desc(),
+                Product.id.desc(),
+            )
 
-            sort_by = spec.sort_by
-            if sort_by is None and spec.max_price is not None:
-                sort_by = "price_asc"
-            if sort_by == "price_asc":
-                query = query.order_by(Product.price.asc(), Product.id.asc())
-            elif sort_by == "price_desc":
-                query = query.order_by(Product.price.desc(), Product.id.desc())
-            elif sort_by == "newest":
-                query = query.order_by(Product.created_at.desc(), Product.id.desc())
-            else:
-                query = query.order_by(
-                    Product.is_featured.desc(),
-                    Product.created_at.desc(),
-                    Product.id.desc(),
-                )
+        query = query.options(selectinload(Product.uses)).limit(spec.limit)
+        result = await session.execute(query)
+        products = result.scalars().unique().all()
 
-            query = query.options(selectinload(Product.uses)).limit(spec.limit)
-            result = await session.execute(query)
-            products = result.scalars().unique().all()
+        # Đọc xong dữ liệu trong khi session còn mở
+        output = [product_to_dict(p) for p in products]
+        needs_fallback = not output and bool(spec.use_ids or spec.keywords)
+        fallback_sort = sort_by or "featured"
 
-            # Fallback: bỏ lọc use/keyword nếu quá hẹp nhưng vẫn giữ giá
-            if not products and (spec.use_ids or spec.keywords):
-                relaxed = ProductFilterSpec(
-                    max_price=spec.max_price,
-                    min_price=spec.min_price,
-                    category_slug=spec.category_slug,
-                    featured_only=spec.featured_only,
-                    sort_by=sort_by or "featured",
-                    limit=spec.limit,
-                )
-                return await query_products_by_filters(relaxed)
-
-            output = [product_to_dict(p) for p in products]
-    finally:
-        await engine.dispose()
+    # Fallback: bỏ lọc use/keyword nếu quá hẹp nhưng vẫn giữ giá
+    # Gọi đệ quy SAU KHI session đã đóng để tránh nested session
+    if needs_fallback:
+        relaxed = ProductFilterSpec(
+            max_price=spec.max_price,
+            min_price=spec.min_price,
+            category_slug=spec.category_slug,
+            featured_only=spec.featured_only,
+            sort_by=fallback_sort,
+            limit=spec.limit,
+        )
+        return await query_products_by_filters(relaxed)
 
     return output
+
 
 
 async def spec_to_meta_dict(spec: ProductFilterSpec) -> dict[str, Any]:

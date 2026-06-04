@@ -60,9 +60,10 @@ def get_llm():
         )
 
     if provider == "huggingface":
+        # Luôn dùng HF Router và HF_TOKEN, không bị ảnh hưởng bởi LLM_BASE_URL/LLM_API_KEY
         return _chat_openai_compatible(
-            base_url=settings.LLM_BASE_URL or "https://router.huggingface.co/v1",
-            api_key=settings.LLM_API_KEY or settings.HF_TOKEN,
+            base_url="https://router.huggingface.co/v1",
+            api_key=settings.HF_TOKEN,
             model=settings.LLM_MODEL or "openai/gpt-oss-120b:groq",
         )
 

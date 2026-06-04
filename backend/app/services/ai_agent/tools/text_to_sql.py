@@ -193,16 +193,14 @@ def validate_sql(sql: str) -> tuple[bool, str]:
 async def execute_safe_sql(sql: str) -> tuple[list[dict], str]:
     """Thực thi SQL SELECT, trả về (rows, error_message)."""
     import sqlalchemy
-    from sqlalchemy.ext.asyncio import create_async_engine
     from sqlalchemy import text
-    from app.core.config import settings
+    from app.db.session import AsyncSessionLocal
 
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
     rows: list[dict] = []
     error = ""
     try:
-        async with engine.connect() as conn:
-            result = await conn.execute(text(sql))
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(text(sql))
             columns = list(result.keys())
             for row in result.fetchall():
                 rows.append(dict(zip(columns, row)))
@@ -210,8 +208,6 @@ async def execute_safe_sql(sql: str) -> tuple[list[dict], str]:
         error = str(e)
     except Exception as e:
         error = f"Unexpected error: {str(e)}"
-    finally:
-        await engine.dispose()
     return rows, error
 
 

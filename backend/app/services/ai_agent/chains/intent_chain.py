@@ -261,10 +261,14 @@ async def classify_intent_multi(
 # ---------------------------------------------------------------------------
 # Single-LLM classifier (INTENT_MODE=single_llm)
 # ---------------------------------------------------------------------------
-INTENT_SYSTEM_PROMPT = """Bạn là chuyên gia phân loại ý định (Intent Classifier) cho chatbot cửa hàng đèn đá muối Himalaya.
-Chọn một intent: greeting, knowledge, recommend, order, order_query, stats (admin only).
-
-Trả về JSON: intent, confidence (0.0-1.0), reasoning."""
+INTENT_SYSTEM_PROMPT = """Phân loại intent người dùng cho chatbot đèn đá muối. Chọn 1 trong:
+- greeting: chào hỏi, cảm ơn
+- recommend: tìm / gợi ý / tư vấn sản phẩm, lọc giá
+- knowledge: công dụng, bảo quản, kiến thức đèn đá muối
+- order: thêm/xóa giỏ, mua ngay, checkout
+- order_query: xem đơn hàng, tra cứu đơn
+- stats: thống kê doanh thu (admin)
+Trả về JSON: {{"intent":"...","confidence":0.0-1.0,"reasoning":"..."}}"""
 
 _intent_prompt = ChatPromptTemplate.from_messages([
     ("system", INTENT_SYSTEM_PROMPT),
