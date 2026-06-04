@@ -129,7 +129,7 @@ export const chatService = {
       for (const frame of frames) {
         switch (frame.event) {
           case "status":
-            callbacks.onStatus?.(frame.data as ChatStreamStatusPayload);
+            callbacks.onStatus?.(frame.data as unknown as ChatStreamStatusPayload);
             break;
           case "token": {
             const content = String(frame.data.content ?? "");
@@ -137,7 +137,7 @@ export const chatService = {
             break;
           }
           case "done":
-            finalPayload = frame.data as ChatApiResponse;
+            finalPayload = frame.data as unknown as ChatApiResponse;
             callbacks.onDone?.(finalPayload);
             break;
           case "error":
@@ -153,7 +153,7 @@ export const chatService = {
       const { frames } = parseSseFrames(`${buffer}\n\n`);
       for (const frame of frames) {
         if (frame.event === "done") {
-          finalPayload = frame.data as ChatApiResponse;
+          finalPayload = frame.data as unknown as ChatApiResponse;
           callbacks.onDone?.(finalPayload);
         }
       }
