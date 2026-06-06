@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     MOMO_API_URL: str = ""
     MOMO_NOTIFY_URL: str = ""
 
+    # Facebook Messenger
+    FB_VERIFY_TOKEN: str = ""
+    FB_PAGE_ACCESS_TOKEN: str = ""
+    FB_APP_SECRET: str = ""
+
     @property
     def momo_create_endpoint(self) -> str:
         return self.MOMO_ENDPOINT or self.MOMO_API_URL

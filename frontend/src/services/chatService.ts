@@ -1,9 +1,19 @@
 import httpClient from "@/lib/httpClient";
 import type { ChatApiResponse, ChatLlmInfo } from "@/types";
 
-const rawApiUrl = (
+let rawApiUrl = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
 ).replace(/\/$/, "");
+
+// Ở client-side, nếu dùng URL tương đối trên localhost, tự động trỏ trực tiếp đến cổng backend 8000 để tránh buffering của Next.js rewrite proxy
+if (typeof window !== "undefined" && !rawApiUrl.startsWith("http")) {
+  if (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+  ) {
+    rawApiUrl = `http://${window.location.hostname}:8000${rawApiUrl}`;
+  }
+}
 
 export const CHAT_API_BASE_URL = /\/api\/v1$/i.test(rawApiUrl)
   ? rawApiUrl
@@ -48,12 +58,13 @@ function parseSseFrames(buffer: string): {
   rest: string;
 } {
   const frames: Array<{ event: string; data: Record<string, unknown> }> = [];
-  const parts = buffer.split("\n\n");
+  const parts = buffer.split(/\r?\n\r?\n/);
   const rest = parts.pop() ?? "";
 
   for (const part of parts) {
     const line = part
-      .split("\n")
+      .split(/\r?\n/)
+      .map((l) => l.trim())
       .find((l) => l.startsWith("data: "));
     if (!line) continue;
     try {

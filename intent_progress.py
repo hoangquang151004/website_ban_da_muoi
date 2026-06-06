@@ -77,11 +77,6 @@ Chỉ chọn MỘT intent trong: `order`, `order_query`.
 
 KHÔNG chọn `order_query` khi khách hỏi tư vấn/gợi ý sản phẩm.
 
-QUY TẮC NGỮ CẢNH HỘI THOẠI:
-1. Bạn sẽ nhận được Lịch sử hội thoại gần đây ([Lịch sử hội thoại gần đây]) và câu chat hiện tại (sau dòng "Câu chat: ").
-2. Hãy CHỈ PHÂN LOẠI ý định của câu chat hiện tại. KHÔNG phân loại ý định của các câu chat cũ trong lịch sử.
-3. Chỉ sử dụng lịch sử hội thoại gần đây để làm rõ nghĩa các đại từ hoặc từ thay thế (ví dụ: "nó", "cái này", "đó").
-
 VÍ DỤ (few-shot):
 Câu: "Thêm đèn A vào giỏ hàng" → {{"intent":"order","confidence":0.95,"reasoning":"Yêu cầu thêm giỏ hàng rõ ràng."}}
 Câu: "Cho tôi mua 2 cái đèn ngủ" → {{"intent":"order","confidence":0.92,"reasoning":"Ý định mua hàng trực tiếp."}}
@@ -99,11 +94,6 @@ Chỉ chọn MỘT intent trong: `recommend`, `order`.
 - `recommend`: gợi ý/tư vấn sản phẩm, tìm đèn, lọc giá, ngân sách, màu, kích thước, bán chạy.
 - `order`: chỉ khi khách MUỐN MUA hoặc THÊM VÀO GIỎ rõ ràng.
 
-QUY TẮC NGỮ CẢNH HỘI THOẠI:
-1. Bạn sẽ nhận được Lịch sử hội thoại gần đây ([Lịch sử hội thoại gần đây]) và câu chat hiện tại (sau dòng "Câu chat: ").
-2. Hãy CHỈ PHÂN LOẠI ý định của câu chat hiện tại. KHÔNG phân loại ý định của các câu chat cũ trong lịch sử.
-3. Chỉ sử dụng lịch sử hội thoại gần đây để làm rõ nghĩa các đại từ hoặc từ thay thế (ví dụ: "nó", "cái này", "đó").
-
 VÍ DỤ (few-shot):
 Câu: "Tư vấn đèn dưới 500k" → {{"intent":"recommend","confidence":0.95,"reasoning":"Tìm sản phẩm theo ngân sách."}}
 Câu: "Gợi ý đèn phòng ngủ màu hồng" → {{"intent":"recommend","confidence":0.93,"reasoning":"Tư vấn sản phẩm theo tiêu chí."}}
@@ -120,11 +110,6 @@ Chỉ chọn MỘT intent trong: `knowledge`, `recommend`.
 ĐỊNH NGHĨA:
 - `knowledge`: công dụng lý thuyết, phong thủy, bảo quản, so sánh chung — KHÔNG kèm mua/lọc giá cụ thể.
 - `recommend`: tư vấn/gợi ý/tìm sản phẩm, có ngân sách, muốn mua, hỏi giá để chọn mua.
-
-QUY TẮC NGỮ CẢNH HỘI THOẠI:
-1. Bạn sẽ nhận được Lịch sử hội thoại gần đây ([Lịch sử hội thoại gần đây]) và câu chat hiện tại (sau dòng "Câu chat: ").
-2. Hãy CHỈ PHÂN LOẠI ý định của câu chat hiện tại. KHÔNG phân loại ý định của các câu chat cũ trong lịch sử.
-3. Chỉ sử dụng lịch sử hội thoại gần đây để làm rõ nghĩa các đại từ hoặc từ thay thế (ví dụ: "nó", "cái này", "đó").
 
 VÍ DỤ (few-shot):
 Câu: "Đèn đá muối có tác dụng gì?" → {{"intent":"knowledge","confidence":0.95,"reasoning":"Hỏi công dụng lý thuyết."}}
@@ -146,14 +131,6 @@ Chỉ chọn MỘT intent trong: `greeting`, `stats`, `order_query`.
 
 KHÔNG chọn `order_query` khi câu hỏi là tư vấn sản phẩm.
 
-QUY TẮC NGỮ CẢNH HỘI THOẠI:
-1. Bạn sẽ nhận được Lịch sử hội thoại gần đây ([Lịch sử hội thoại gần đây]) và câu chat hiện tại (sau dòng "Câu chat: ").
-2. Hãy CHỈ PHÂN LOẠI ý định của câu chat hiện tại. KHÔNG phân loại ý định của các câu chat cũ trong lịch sử.
-3. Chỉ sử dụng lịch sử hội thoại gần đây để làm rõ nghĩa các đại từ hoặc từ thay thế (ví dụ: "nó", "cái này", "đó").
-4. Nếu user_role != admin thì KHÔNG chọn `stats`.
-
-user_role hiện tại: {user_role}
-
 VÍ DỤ (few-shot):
 Câu: "Xin chào!" → {{"intent":"greeting","confidence":0.98,"reasoning":"Câu chào đơn giản."}}
 Câu: "Cảm ơn bạn nhé" → {{"intent":"greeting","confidence":0.97,"reasoning":"Lời cảm ơn."}}
@@ -161,6 +138,9 @@ Câu: "Doanh thu hôm nay bao nhiêu?" (admin) → {{"intent":"stats","confidenc
 Câu: "Top 5 sản phẩm bán chạy tuần này?" (admin) → {{"intent":"stats","confidence":0.90,"reasoning":"Admin hỏi báo cáo KPI."}}
 Câu: "Tra đơn hàng mã ABC của khách X" (admin) → {{"intent":"order_query","confidence":0.88,"reasoning":"Admin tra cứu đơn cụ thể."}}
 Câu: "Tư vấn đèn ngủ" → {{"intent":"greeting","confidence":0.10,"reasoning":"Không liên quan xã giao/admin, confidence thấp."}}
+
+user_role hiện tại: {user_role}
+Nếu user_role != admin thì KHÔNG chọn `stats`.
 
 Trả về JSON duy nhất, không giải thích thêm:
 {{"intent":"...","confidence":0.0-1.0,"reasoning":"1-2 câu tiếng Việt"}}""",
@@ -503,11 +483,6 @@ Chọn ĐÚNG 1 intent trong danh sách:
 - order_query: xem đơn hàng, tra cứu trạng thái đơn
 - stats: thống kê doanh thu, báo cáo KPI (chỉ admin)
 
-QUY TẮC NGỮ CẢNH HỘI THOẠI:
-1. Bạn sẽ nhận được Lịch sử hội thoại gần đây ([Lịch sử hội thoại gần đây]) và câu chat hiện tại (sau dòng "Câu chat: ").
-2. Hãy CHỈ PHÂN LOẠI ý định của câu chat hiện tại. KHÔNG phân loại ý định của các câu chat cũ trong lịch sử.
-3. Chỉ sử dụng lịch sử hội thoại gần đây để làm rõ nghĩa các đại từ hoặc từ thay thế (ví dụ: "nó", "cái này", "đó").
-
 VÍ DỤ:
 "Xin chào" → {{"intent":"greeting","confidence":0.98,"reasoning":"Câu chào."}}
 "Tư vấn đèn dưới 500k" → {{"intent":"recommend","confidence":0.95,"reasoning":"Tìm sản phẩm theo ngân sách."}}
@@ -569,3 +544,76 @@ async def classify_intent(
     except Exception as e:
         logger.error("Error classifying intent with LLM: %s", e)
         return None
+
+
+if __name__ == "__main__":
+    import sys
+    import asyncio
+
+    # Đảm bảo in tiếng Việt không bị lỗi UnicodeEncodeError trên Windows console
+    if sys.platform == "win32":
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+            sys.stderr.reconfigure(encoding="utf-8")
+        except AttributeError:
+            pass
+
+
+    # ---------------------------------------------------------
+    # ĐIỀN CÂU HỎI ĐẦU VÀO ĐỂ CHẠY THỬ Ở ĐÂY:
+    # ---------------------------------------------------------
+    QUESTION_TO_TEST = "Các đơn hàng của tôi"
+    USER_ROLE_TO_TEST = "guest"  # Có thể đổi thành "admin"
+    CONVERSATION_CONTEXT = ""     # Ngữ cảnh hội thoại trước đó (nếu có)
+    # ---------------------------------------------------------
+
+    async def main():
+        print("=" * 60)
+        print(f"Đang phân tích câu hỏi: '{QUESTION_TO_TEST}'")
+        print(f"Vai trò người dùng: {USER_ROLE_TO_TEST}")
+        print("=" * 60)
+
+        # Chạy multi-thinking classifier
+        print("\n--- Chạy classify_intent_multi (Multi-Thinking) ---")
+        try:
+            res_multi = await classify_intent_multi(
+                message=QUESTION_TO_TEST,
+                user_role=USER_ROLE_TO_TEST,
+                conversation_context=CONVERSATION_CONTEXT
+            )
+            print(f"Kết quả phân tích gộp (Aggregated):")
+            print(f"  - Intent phát hiện: {res_multi.intent.upper()}")
+            print(f"  - Độ tin cậy (Confidence): {res_multi.confidence:.2f}")
+            print("Chi tiết các phiếu bầu (votes) từ các thinker lens:")
+            if not res_multi.votes:
+                print("  (Không có phiếu bầu từ LLM do kích hoạt fast-path bằng keyword hoặc thiếu votes)")
+            else:
+                for i, vote in enumerate(res_multi.votes, 1):
+                    print(f"  Vote {i}:")
+                    print(f"    + Lens: {vote.lens}")
+                    print(f"    + Intent đề xuất: {vote.intent}")
+                    print(f"    + Độ tin cậy: {vote.confidence:.2f}")
+                    print(f"    + Lý do giải thích: {vote.reasoning}")
+        except Exception as e:
+            print(f"Lỗi khi chạy classify_intent_multi: {e}")
+
+        # Chạy single LLM classifier
+        print("\n--- Chạy classify_intent (Single LLM) ---")
+        try:
+            res_single = await classify_intent(
+                message=QUESTION_TO_TEST,
+                user_role=USER_ROLE_TO_TEST,
+                conversation_context=CONVERSATION_CONTEXT
+            )
+            if res_single:
+                print(f"Kết quả phân tích:")
+                print(f"  - Intent phát hiện: {res_single.intent.upper()}")
+                print(f"  - Độ tin cậy (Confidence): {res_single.confidence:.2f}")
+                print(f"  - Lý do giải thích: {res_single.reasoning}")
+            else:
+                print("Không nhận được kết quả từ classify_intent.")
+        except Exception as e:
+            print(f"Lỗi khi chạy classify_intent: {e}")
+
+    # Chạy hàm async main
+    asyncio.run(main())

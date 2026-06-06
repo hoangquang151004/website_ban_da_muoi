@@ -311,4 +311,5 @@ export interface ChatMessage {
   isLoading?: boolean; // Skeleton state khi cho bot reply
   isStreaming?: boolean; // Dang nhan token SSE
   streamStatus?: string; // Trang thai xu ly (retrieval, tim SP...)
+  intent?: string; // Intent hien tai cua cuoc tro chuyen
 }

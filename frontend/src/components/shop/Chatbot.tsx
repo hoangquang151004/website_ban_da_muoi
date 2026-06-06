@@ -1421,7 +1421,10 @@ function MessageRenderer({
       <>
         <TypingIndicator />
         {message.streamStatus ? (
-          <p className="text-[10px] text-slate-400 ml-1 mt-1">{message.streamStatus}</p>
+          <p className="text-[10px] text-slate-400 ml-1 mt-1">
+            {message.streamStatus}
+            {message.intent ? ` (Intent: ${message.intent})` : ""}
+          </p>
         ) : null}
       </>
     );
@@ -1432,7 +1435,10 @@ function MessageRenderer({
       <>
         <TextBubble content={message.content} role={message.role} />
         {message.streamStatus ? (
-          <p className="text-[10px] text-slate-400 ml-1 mt-1">{message.streamStatus}</p>
+          <p className="text-[10px] text-slate-400 ml-1 mt-1">
+            {message.streamStatus}
+            {message.intent ? ` (Intent: ${message.intent})` : ""}
+          </p>
         ) : null}
       </>
     );
@@ -2066,6 +2072,7 @@ export default function Chatbot() {
             sources: apiRes.sources ?? undefined,
           },
           timestamp: Date.now(),
+          intent: apiRes.intent ?? undefined,
           isLoading: false,
           isStreaming: false,
           streamStatus: undefined,
@@ -2089,6 +2096,7 @@ export default function Chatbot() {
                         ...m,
                         isStreaming: true,
                         streamStatus: status.message,
+                        intent: status.intent || m.intent,
                       }
                     : m,
                 ),
@@ -2136,7 +2144,7 @@ export default function Chatbot() {
             if (streamAbort.signal.aborted) {
               throw streamErr;
             }
-            console.warn("[Chatbot] stream failed, fallback POST /chat", streamErr);
+            console.error("[Chatbot] stream failed, fallback POST /chat. Details:", streamErr);
             apiRes = await fetchWithPost();
             applyChatResponse(apiRes);
           }

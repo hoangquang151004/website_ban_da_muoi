@@ -75,6 +75,12 @@ class TestIntentDetection:
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("Gợi ý cho tôi đèn phù hợp") == ChatIntent.RECOMMEND
 
+    def test_recommend_intent_goi_y_standalone(self):
+        from app.services.ai_agent.agent import detect_intent, ChatIntent
+        assert detect_intent("gợi ý") == ChatIntent.RECOMMEND
+        assert detect_intent("gợi ý cho tôi") == ChatIntent.RECOMMEND
+        assert detect_intent("recommend sản phẩm") == ChatIntent.RECOMMEND
+
     def test_recommend_intent_price(self):
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("Đèn dưới 500k ngủ ngon") == ChatIntent.RECOMMEND
@@ -225,7 +231,7 @@ class TestMultiIntentDetection:
         from app.services.ai_agent.agent import resolve_intent, ChatIntent
         from app.services.ai_agent.chains.intent_chain import ThinkerVote
 
-        async def mock_multi(message, user_role=None):
+        async def mock_multi(message, user_role=None, *args, **kwargs):
             from app.services.ai_agent.chains.intent_chain import AggregatedIntent
             return AggregatedIntent(
                 intent="knowledge",
@@ -251,7 +257,7 @@ class TestMultiIntentDetection:
         from app.services.ai_agent.agent import resolve_intent, ChatIntent
         from app.services.ai_agent.chains.intent_chain import ThinkerVote, AggregatedIntent
 
-        async def mock_multi(message, user_role=None):
+        async def mock_multi(message, user_role=None, *args, **kwargs):
             return AggregatedIntent(
                 intent="recommend",
                 confidence=1.4,
@@ -276,7 +282,7 @@ class TestMultiIntentDetection:
         from app.services.ai_agent.agent import resolve_intent, ChatIntent
         from app.services.ai_agent.chains.intent_chain import ThinkerVote, AggregatedIntent
 
-        async def mock_multi(message, user_role=None):
+        async def mock_multi(message, user_role=None, *args, **kwargs):
             return AggregatedIntent(
                 intent="recommend",
                 confidence=1.4,
@@ -327,7 +333,7 @@ class TestMultiIntentDetection:
         from app.services.ai_agent.agent import resolve_intent, ChatIntent
         from app.services.ai_agent.chains.intent_chain import ThinkerVote, AggregatedIntent
 
-        async def mock_multi(message, user_role=None):
+        async def mock_multi(message, user_role=None, *args, **kwargs):
             return AggregatedIntent(
                 intent="order_query",
                 confidence=1.6,

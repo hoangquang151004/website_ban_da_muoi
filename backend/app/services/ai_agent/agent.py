@@ -74,6 +74,7 @@ _KNOWLEDGE_KEYWORDS = [
 _ORDER_KEYWORDS = [
     "thêm vào giỏ", "thêm giỏ", "thêm vào cart",
     "đặt hàng ngay", "mua ngay", "cho mình mua", "tôi cần mua",
+    "tôi muốn mua", "muốn mua", "tôi muốn đặt", "muốn đặt",
     "order giùm", "mua giùm", "chốt đơn", "checkout",
     "xóa khỏi giỏ", "xóa khỏi giỏ hàng", "xóa sản phẩm khỏi giỏ",
     "bỏ khỏi giỏ", "remove from cart", "xoa khoi gio", "bo khoi gio",
@@ -525,6 +526,11 @@ def _is_product_consultation_message(message: str) -> bool:
         return False
 
     lower = (message or "").lower()
+
+    # Nếu câu hỏi chứa từ khóa gợi ý/recommend mạnh -> luôn là RECOMMEND
+    if any(kw in lower for kw in ["gợi ý", "goi y", "recommend"]):
+        return True
+
     norm = _normalize_intent_text(message)
 
     price_patterns = [
@@ -1237,10 +1243,14 @@ async def _resolve_chat_route(
         extra_product_hint=product_hint,
     )
     normalized_role = _normalize_user_role(user_role)
+    
+    # Chỉ sử dụng tối đa 2 lượt hội thoại gần đây để phân loại intent nhằm tránh nhiễu thông tin
+    intent_context = get_conversation_context(session_id, max_turns=2) or ""
+    
     intent, intent_debug_meta = await resolve_intent(
         message,
         user_role=normalized_role,
-        conversation_context=conversation_context or None,
+        conversation_context=intent_context or None,
     )
 
     if (
