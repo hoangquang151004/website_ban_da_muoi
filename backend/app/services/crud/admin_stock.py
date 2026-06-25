@@ -11,6 +11,8 @@ from app.models.product import Product
 from app.models.stock_log import StockLog, StockLogReason
 
 
+from decimal import Decimal
+
 async def get_stock_report(
     db: AsyncSession,
     sort_asc: bool = False,
@@ -35,7 +37,12 @@ async def get_stock_report(
     for row in rows:
         p: Product = row[0]
         cat_name: str = row[1]
-        price = float(p.price)
+        
+        # Đảm bảo ép kiểu an toàn
+        price = Decimal(str(p.price or 0))
+        cost_price = Decimal(str(p.cost_price)) if p.cost_price is not None else None
+        stock = Decimal(str(p.stock or 0))
+        
         low_stock = p.stock < p.min_stock
         out_of_stock = p.stock == 0
 
@@ -53,9 +60,9 @@ async def get_stock_report(
             "image_url": p.image_url,
             "current_stock": p.stock,
             "min_stock": p.min_stock,
-            "price": price,
-            "cost_price": float(p.cost_price) if p.cost_price else None,
-            "stock_value": round(p.stock * price, 2),
+            "price": float(price),
+            "cost_price": float(cost_price) if cost_price is not None else None,
+            "stock_value": float(round(stock * price, 2)),
             "low_stock": low_stock,
         })
     return items
@@ -71,10 +78,17 @@ async def get_stock_summary(db: AsyncSession) -> dict:
     total_stock = sum(p.stock for p in products)
     low_stock_count = sum(1 for p in products if 0 < p.stock < p.min_stock)
     out_of_stock_count = sum(1 for p in products if p.stock == 0)
-    total_value = sum(
-        p.stock * float(p.cost_price if p.cost_price else p.price * 0.7)
-        for p in products
-    )
+    
+    total_value = Decimal("0.0")
+    for p in products:
+        s = Decimal(str(p.stock or 0))
+        price = Decimal(str(p.price or 0))
+        # Nếu không có giá vốn, ước tính bằng 70% giá bán
+        if p.cost_price is not None:
+            cost = Decimal(str(p.cost_price))
+        else:
+            cost = price * Decimal("0.7")
+        total_value += s * cost
 
     # tổng nhập kho trong 30 ngày gần nhất
     from datetime import datetime, timedelta

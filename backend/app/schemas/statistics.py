@@ -47,3 +47,23 @@ class CategoryRevenueItem(BaseModel):
     cost: float
     profit: float
     margin_pct: float
+
+
+class ProductStatsItem(BaseModel):
+    product_id: int
+    product_name: str
+    category_name: str
+    qty_sold: int
+    revenue: float
+    cost: float
+    profit: float
+    margin_pct: float
+
+
+class CustomerStatsItem(BaseModel):
+    customer_id: int | None
+    customer_name: str
+    customer_email: str | None
+    order_count: int
+    total_revenue: float
+    avg_order_value: float

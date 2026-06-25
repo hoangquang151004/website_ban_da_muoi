@@ -22,6 +22,36 @@ from types import SimpleNamespace
 # Unit tests — không cần DB/LLM thực
 # ---------------------------------------------------------------------------
 
+class TestRecommendationAnswerFormat:
+    def test_multi_product_markdown_list(self):
+        from app.services.ai_agent.agent import build_recommendation_answer
+
+        products = [
+            {"name": "Đèn đá muối hình khối hộp", "price": 5_000_000, "stock": 77},
+            {"name": "Đèn đá hình mặt trăng", "price": 6_800_000, "stock": 7},
+        ]
+        text = build_recommendation_answer(
+            products,
+            {"min_price": 5_000_000, "max_price": 7_000_000},
+        )
+        assert "2** sản phẩm" in text or "**2** sản phẩm" in text
+        assert "1. **Đèn đá muối hình khối hộp**" in text
+        assert "2. **Đèn đá hình mặt trăng**" in text
+        assert "5.000.000đ" in text
+        assert "thẻ sản phẩm bên dưới" in text
+        assert "😊" not in text
+
+    def test_single_product_compact(self):
+        from app.services.ai_agent.agent import build_recommendation_answer
+
+        text = build_recommendation_answer(
+            [{"name": "Đèn đá muối tự nhiên dài", "price": 2_540_000, "stock": 63}],
+            {"name_hint": "Đèn đá muối tự nhiên dài"},
+        )
+        assert "**1** sản phẩm" in text
+        assert "2.540.000đ" in text
+
+
 class TestIntentDetection:
     """Test intent detection logic."""
 
@@ -45,6 +75,12 @@ class TestIntentDetection:
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("Gợi ý cho tôi đèn phù hợp") == ChatIntent.RECOMMEND
 
+    def test_recommend_intent_goi_y_standalone(self):
+        from app.services.ai_agent.agent import detect_intent, ChatIntent
+        assert detect_intent("gợi ý") == ChatIntent.RECOMMEND
+        assert detect_intent("gợi ý cho tôi") == ChatIntent.RECOMMEND
+        assert detect_intent("recommend sản phẩm") == ChatIntent.RECOMMEND
+
     def test_recommend_intent_price(self):
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("Đèn dưới 500k ngủ ngon") == ChatIntent.RECOMMEND
@@ -56,6 +92,18 @@ class TestIntentDetection:
     def test_knowledge_intent_phong_thuy(self):
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("Phong thủy đặt đèn ở đâu?") == ChatIntent.KNOWLEDGE
+
+    def test_knowledge_intent_nhu_the_nao(self):
+        from app.services.ai_agent.agent import detect_intent, ChatIntent
+        assert detect_intent("Đèn đá muối hoạt động như thế nào?") == ChatIntent.KNOWLEDGE
+
+    def test_knowledge_intent_nhu_the_nao_overrides_price_recommend(self):
+        from app.services.ai_agent.agent import detect_intent, ChatIntent
+        assert detect_intent("Đèn dưới 500k dùng như thế nào") == ChatIntent.KNOWLEDGE
+
+    def test_contains_how_phrase_no_accent(self):
+        from app.services.ai_agent.agent import _contains_how_phrase
+        assert _contains_how_phrase("den hoat dong nhu the nao") is True
 
     def test_order_query_intent_my_orders(self):
         from app.services.ai_agent.agent import detect_intent, ChatIntent
@@ -72,6 +120,248 @@ class TestIntentDetection:
     def test_stats_intent_top_products(self):
         from app.services.ai_agent.agent import detect_intent, ChatIntent
         assert detect_intent("top sản phẩm bán chạy") == ChatIntent.STATS
+
+    def test_product_consultation_flexible_phrasing(self):
+        from app.services.ai_agent.agent import (
+            _is_product_consultation_message,
+            detect_intent,
+            ChatIntent,
+        )
+
+        msg = "Tư vấn cho tôi sản phẩm Đèn đá muối tự nhiên dài"
+        assert _is_product_consultation_message(msg) is True
+        assert detect_intent(msg) == ChatIntent.RECOMMEND
+
+    def test_product_consultation_not_order_query(self):
+        from app.services.ai_agent.agent import _is_product_consultation_message
+
+        assert _is_product_consultation_message("xem đơn hàng của tôi") is False
+
+    def test_product_consultation_price_regression(self):
+        from app.services.ai_agent.agent import (
+            _is_product_consultation_message,
+            detect_intent,
+            ChatIntent,
+        )
+
+        assert _is_product_consultation_message("tư vấn sản phẩm dưới 500k") is True
+        assert detect_intent("tư vấn sản phẩm dưới 500k") == ChatIntent.RECOMMEND
+
+
+class TestIntentAggregation:
+    """Test multi-thinking vote aggregator (no LLM)."""
+
+    def test_weighted_vote_winner(self):
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, aggregate_votes
+
+        votes = [
+            ThinkerVote(intent="knowledge", confidence=0.9, reasoning="a", lens="knowledge"),
+            ThinkerVote(intent="recommend", confidence=0.3, reasoning="b", lens="discovery"),
+            ThinkerVote(intent="knowledge", confidence=0.7, reasoning="c", lens="transaction"),
+        ]
+        result = aggregate_votes(votes)
+        assert result.intent == "knowledge"
+        assert result.confidence == pytest.approx(1.6)
+
+    def test_tie_break_order_query_over_order(self):
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, aggregate_votes
+
+        votes = [
+            ThinkerVote(intent="order", confidence=0.8, reasoning="a", lens="discovery"),
+            ThinkerVote(intent="order_query", confidence=0.8, reasoning="b", lens="transaction"),
+        ]
+        result = aggregate_votes(votes)
+        assert result.intent == "order_query"
+
+    def test_low_confidence_fallback_knowledge(self):
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, aggregate_votes
+
+        votes = [
+            ThinkerVote(intent="order", confidence=0.2, reasoning="a", lens="transaction"),
+            ThinkerVote(intent="recommend", confidence=0.15, reasoning="b", lens="discovery"),
+        ]
+        result = aggregate_votes(votes, min_confidence=0.45)
+        assert result.intent == "knowledge"
+
+    def test_stats_downgraded_for_non_admin(self):
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, aggregate_votes
+
+        votes = [
+            ThinkerVote(intent="stats", confidence=0.95, reasoning="a", lens="social_admin"),
+        ]
+        result = aggregate_votes(votes, user_role="user")
+        assert result.intent == "knowledge"
+
+    def test_stats_kept_for_admin(self):
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, aggregate_votes
+
+        votes = [
+            ThinkerVote(intent="stats", confidence=0.95, reasoning="a", lens="social_admin"),
+        ]
+        result = aggregate_votes(votes, user_role="admin")
+        assert result.intent == "stats"
+
+    def test_consultation_guard_overrides_order_query_votes(self):
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, aggregate_votes
+
+        msg = "Tư vấn cho tôi sản phẩm Đèn đá muối tự nhiên dài"
+        votes = [
+            ThinkerVote(intent="order_query", confidence=0.9, reasoning="a", lens="transaction"),
+            ThinkerVote(intent="order_query", confidence=0.85, reasoning="b", lens="social_admin"),
+        ]
+        result = aggregate_votes(votes, message=msg)
+        assert result.intent == "recommend"
+
+    def test_tie_break_recommend_over_order_query(self):
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, aggregate_votes
+
+        votes = [
+            ThinkerVote(intent="recommend", confidence=0.8, reasoning="a", lens="discovery"),
+            ThinkerVote(intent="order_query", confidence=0.8, reasoning="b", lens="transaction"),
+        ]
+        result = aggregate_votes(votes)
+        assert result.intent == "recommend"
+
+
+class TestMultiIntentDetection:
+    """Test resolve_intent with mocked thinkers."""
+
+    @pytest.mark.asyncio
+    async def test_resolve_knowledge_from_votes(self):
+        from app.services.ai_agent.agent import resolve_intent, ChatIntent
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote
+
+        async def mock_multi(message, user_role=None, *args, **kwargs):
+            from app.services.ai_agent.chains.intent_chain import AggregatedIntent
+            return AggregatedIntent(
+                intent="knowledge",
+                confidence=1.5,
+                votes=[
+                    ThinkerVote(intent="knowledge", confidence=0.9, reasoning="k", lens="knowledge"),
+                    ThinkerVote(intent="recommend", confidence=0.2, reasoning="d", lens="discovery"),
+                ],
+            )
+
+        with patch("app.core.config.settings") as mock_settings:
+            mock_settings.INTENT_MODE = "multi"
+            mock_settings.INTENT_DEBUG = False
+            with patch(
+                "app.services.ai_agent.chains.intent_chain.classify_intent_multi",
+                side_effect=mock_multi,
+            ):
+                intent, _ = await resolve_intent("công dụng đèn giá bao nhiêu")
+        assert intent == ChatIntent.KNOWLEDGE
+
+    @pytest.mark.asyncio
+    async def test_resolve_recommend_from_votes(self):
+        from app.services.ai_agent.agent import resolve_intent, ChatIntent
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, AggregatedIntent
+
+        async def mock_multi(message, user_role=None, *args, **kwargs):
+            return AggregatedIntent(
+                intent="recommend",
+                confidence=1.4,
+                votes=[
+                    ThinkerVote(intent="recommend", confidence=0.85, reasoning="r", lens="discovery"),
+                    ThinkerVote(intent="knowledge", confidence=0.2, reasoning="k", lens="knowledge"),
+                ],
+            )
+
+        with patch("app.core.config.settings") as mock_settings:
+            mock_settings.INTENT_MODE = "multi"
+            mock_settings.INTENT_DEBUG = False
+            with patch(
+                "app.services.ai_agent.chains.intent_chain.classify_intent_multi",
+                side_effect=mock_multi,
+            ):
+                intent, _ = await resolve_intent("đèn dưới 500k ngủ ngon")
+        assert intent == ChatIntent.RECOMMEND
+
+    @pytest.mark.asyncio
+    async def test_resolve_nhu_the_nao_forces_knowledge_even_if_llm_recommend(self):
+        from app.services.ai_agent.agent import resolve_intent, ChatIntent
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, AggregatedIntent
+
+        async def mock_multi(message, user_role=None, *args, **kwargs):
+            return AggregatedIntent(
+                intent="recommend",
+                confidence=1.4,
+                votes=[
+                    ThinkerVote(intent="recommend", confidence=0.9, reasoning="r", lens="discovery"),
+                ],
+            )
+
+        with patch("app.core.config.settings") as mock_settings:
+            mock_settings.INTENT_MODE = "multi"
+            mock_settings.INTENT_DEBUG = False
+            with patch(
+                "app.services.ai_agent.chains.intent_chain.classify_intent_multi",
+                side_effect=mock_multi,
+            ):
+                intent, _ = await resolve_intent("đèn dưới 500k dùng như thế nào")
+        assert intent == ChatIntent.KNOWLEDGE
+
+    @pytest.mark.asyncio
+    async def test_resolve_chat_route_consultation_overrides_order_query(self):
+        from app.services.ai_agent.agent import _resolve_chat_route, ChatIntent
+
+        msg = "Tư vấn cho tôi sản phẩm Đèn đá muối tự nhiên dài"
+
+        async def mock_resolve(message, user_role=None, conversation_context=None):
+            return ChatIntent.ORDER_QUERY, None
+
+        with patch("app.services.ai_agent.agent.resolve_intent", side_effect=mock_resolve):
+            with patch(
+                "app.services.ai_agent.chat_memory.get_conversation_context",
+                return_value="",
+            ):
+                with patch(
+                    "app.services.ai_agent.chat_memory.enrich_followup_products",
+                    return_value=None,
+                ):
+                    with patch(
+                        "app.services.ai_agent.chat_memory.build_message_with_context",
+                        side_effect=lambda m, *a, **k: m,
+                    ):
+                        ctx = await _resolve_chat_route(
+                            msg, user_id=1, user_role="user",
+                        )
+        assert ctx.intent == ChatIntent.RECOMMEND
+
+    @pytest.mark.asyncio
+    async def test_resolve_order_query_from_votes(self):
+        from app.services.ai_agent.agent import resolve_intent, ChatIntent
+        from app.services.ai_agent.chains.intent_chain import ThinkerVote, AggregatedIntent
+
+        async def mock_multi(message, user_role=None, *args, **kwargs):
+            return AggregatedIntent(
+                intent="order_query",
+                confidence=1.6,
+                votes=[
+                    ThinkerVote(intent="order_query", confidence=0.9, reasoning="q", lens="transaction"),
+                ],
+            )
+
+        with patch("app.core.config.settings") as mock_settings:
+            mock_settings.INTENT_MODE = "multi"
+            mock_settings.INTENT_DEBUG = False
+            with patch(
+                "app.services.ai_agent.chains.intent_chain.classify_intent_multi",
+                side_effect=mock_multi,
+            ):
+                intent, _ = await resolve_intent("chi tiết đơn #42")
+        assert intent == ChatIntent.ORDER_QUERY
+
+    @pytest.mark.asyncio
+    async def test_resolve_keyword_mode(self):
+        from app.services.ai_agent.agent import resolve_intent, ChatIntent
+
+        with patch("app.core.config.settings") as mock_settings:
+            mock_settings.INTENT_MODE = "keyword"
+            mock_settings.INTENT_DEBUG = False
+            intent, meta = await resolve_intent("doanh thu tháng này")
+        assert intent == ChatIntent.STATS
+        assert meta is None
 
 
 class TestSQLValidation:

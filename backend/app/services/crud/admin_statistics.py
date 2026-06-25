@@ -318,3 +318,134 @@ async def get_category_revenue(
             }
         )
     return items
+
+
+async def get_product_stats(
+    db: AsyncSession,
+    date_from: date,
+    date_to: date,
+    limit: int = 50,
+) -> list[dict]:
+    """Doanh thu, giá vốn, lợi nhuận theo từng sản phẩm (đơn delivered)."""
+    dt_from = datetime.combine(date_from, datetime.min.time())
+    dt_to = datetime.combine(date_to, datetime.max.time())
+
+    result = await db.execute(
+        select(
+            Product.id.label("product_id"),
+            Product.name.label("product_name"),
+            Category.name.label("category_name"),
+            func.sum(OrderItem.quantity).label("qty_sold"),
+            func.sum(OrderItem.subtotal).label("revenue"),
+            func.sum(
+                OrderItem.quantity * func.coalesce(Product.cost_price, 0)
+            ).label("cost"),
+        )
+        .select_from(OrderItem)
+        .join(Order, OrderItem.order_id == Order.id)
+        .join(Product, OrderItem.product_id == Product.id)
+        .join(Category, Product.category_id == Category.id)
+        .where(
+            Order.status == OrderStatus.delivered,
+            Order.created_at >= dt_from,
+            Order.created_at <= dt_to,
+        )
+        .group_by(Product.id, Product.name, Category.name)
+        .order_by(func.sum(OrderItem.subtotal).desc())
+        .limit(limit)
+    )
+
+    items = []
+    for row in result.all():
+        rev = float(row.revenue)
+        cost = float(row.cost)
+        profit = rev - cost
+        margin = round(profit / rev * 100, 1) if rev > 0 else 0.0
+        items.append(
+            {
+                "product_id": int(row.product_id),
+                "product_name": row.product_name,
+                "category_name": row.category_name,
+                "qty_sold": int(row.qty_sold),
+                "revenue": rev,
+                "cost": cost,
+                "profit": profit,
+                "margin_pct": margin,
+            }
+        )
+    return items
+
+
+async def get_customer_stats(
+    db: AsyncSession,
+    date_from: date,
+    date_to: date,
+    limit: int = 50,
+) -> list[dict]:
+    """Doanh thu và số đơn theo khách hàng đăng ký + khách vãng lai (đơn delivered)."""
+    dt_from = datetime.combine(date_from, datetime.min.time())
+    dt_to = datetime.combine(date_to, datetime.max.time())
+
+    result = await db.execute(
+        select(
+            User.id.label("customer_id"),
+            User.full_name.label("customer_name"),
+            User.email.label("customer_email"),
+            func.count(Order.id).label("order_count"),
+            func.coalesce(func.sum(Order.total_amount), 0).label("total_revenue"),
+        )
+        .join(User, Order.user_id == User.id)
+        .where(
+            Order.status == OrderStatus.delivered,
+            Order.created_at >= dt_from,
+            Order.created_at <= dt_to,
+            User.role == UserRole.customer,
+        )
+        .group_by(User.id, User.full_name, User.email)
+        .order_by(func.sum(Order.total_amount).desc())
+        .limit(limit)
+    )
+
+    items = []
+    for row in result.all():
+        order_count = int(row.order_count)
+        total_revenue = float(row.total_revenue)
+        avg = total_revenue / order_count if order_count > 0 else 0.0
+        items.append(
+            {
+                "customer_id": int(row.customer_id),
+                "customer_name": row.customer_name,
+                "customer_email": row.customer_email,
+                "order_count": order_count,
+                "total_revenue": total_revenue,
+                "avg_order_value": round(avg, 2),
+            }
+        )
+
+    guest_res = await db.execute(
+        select(
+            func.count(Order.id).label("order_count"),
+            func.coalesce(func.sum(Order.total_amount), 0).label("total_revenue"),
+        ).where(
+            Order.user_id.is_(None),
+            Order.status == OrderStatus.delivered,
+            Order.created_at >= dt_from,
+            Order.created_at <= dt_to,
+        )
+    )
+    guest_row = guest_res.one()
+    guest_orders = int(guest_row.order_count)
+    if guest_orders > 0:
+        guest_revenue = float(guest_row.total_revenue)
+        items.append(
+            {
+                "customer_id": None,
+                "customer_name": "Khách vãng lai (không đăng nhập)",
+                "customer_email": None,
+                "order_count": guest_orders,
+                "total_revenue": guest_revenue,
+                "avg_order_value": round(guest_revenue / guest_orders, 2),
+            }
+        )
+
+    return items

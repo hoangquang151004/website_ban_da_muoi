@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 
 # revision identifiers, used by Alembic.
@@ -19,8 +20,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # min_stock may already exist in the DB; use execute for safety
-    op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INTEGER NOT NULL DEFAULT 10")
+    # Kiểm tra xem cột min_stock đã tồn tại chưa để tránh lỗi
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('products')]
+    
+    if 'min_stock' not in columns:
+        op.add_column('products', sa.Column('min_stock', sa.Integer(), nullable=False, server_default='10'))
+        
     try:
         op.drop_index(op.f('ix_reviews_product_id'), table_name='reviews')
     except Exception:

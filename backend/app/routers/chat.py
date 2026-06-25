@@ -10,15 +10,23 @@ Endpoints:
 
 from __future__ import annotations
 
+import logging
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.core.dependencies import get_optional_user, get_current_user
 from app.schemas.base import BaseResponse
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+CHAT_SYSTEM_ERROR_ANSWER = (
+    "Hệ thống tạm thời không xử lý được tin nhắn do lỗi kỹ thuật. "
+    "Bạn vui lòng thử lại sau, hoặc hỏi gợi ý sản phẩm / xem danh mục để tiếp tục mua hàng nhé."
+)
 
 
 ResponseType = Literal[
@@ -73,6 +81,16 @@ class ChatResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# GET /api/v1/chat/llm-info — Model đang dùng (hiển thị log UI)
+# ---------------------------------------------------------------------------
+@router.get("/chat/llm-info", response_model=BaseResponse, summary="Thông tin LLM chatbot")
+async def chat_llm_info():
+    from app.services.ai_agent.llm import get_llm_display_info
+
+    return BaseResponse.success(data=get_llm_display_info())
+
+
+# ---------------------------------------------------------------------------
 # POST /api/v1/chat — Endpoint tổng hợp (auto-routing)
 # ---------------------------------------------------------------------------
 @router.post("/chat", response_model=BaseResponse, summary="Chat tổng hợp (auto-routing)")
@@ -82,16 +100,95 @@ async def chat_unified(
 ):
     """Endpoint duy nhất cho frontend chatbot — tự routing đến đúng chain/agent."""
     from app.services.ai_agent.agent import run_chat
+    from app.services.ai_agent.llm import get_llm_display_info
 
     user_id = current_user.id if current_user else None
     user_role = current_user.role if current_user else None
-    result = await run_chat(
-        message=req.message,
-        user_id=user_id,
-        user_role=user_role,
-        session_id=req.session_id,
+    try:
+        result = await run_chat(
+            message=req.message,
+            user_id=user_id,
+            user_role=user_role,
+            session_id=req.session_id,
+        )
+        return BaseResponse.success(data=result)
+    except Exception:
+        logger.exception(
+            "POST /chat failed message=%r session_id=%r",
+            (req.message or "")[:200],
+            req.session_id,
+        )
+        return BaseResponse.success(
+            data={
+                "answer": CHAT_SYSTEM_ERROR_ANSWER,
+                "response_type": "text",
+                "intent": "knowledge",
+                "meta": {**get_llm_display_info(), "chat_error": True},
+            }
+        )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/chat/stream — Chat tổng hợp (SSE)
+# ---------------------------------------------------------------------------
+@router.post("/chat/stream", summary="Chat tổng hợp (SSE streaming)")
+async def chat_stream_unified(
+    req: ChatRequest,
+    current_user=Depends(get_optional_user),
+):
+    """Stream SSE: status → token → done (payload giống POST /chat)."""
+    from app.core.config import settings
+    from app.services.ai_agent.agent import run_chat_stream
+    from app.services.ai_agent.streaming import format_sse_line
+
+    if not settings.CHAT_STREAM_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chat streaming is disabled",
+        )
+
+    user_id = current_user.id if current_user else None
+    user_role = current_user.role if current_user else None
+
+    async def event_generator():
+        try:
+            async for frame in run_chat_stream(
+                message=req.message,
+                user_id=user_id,
+                user_role=user_role,
+                session_id=req.session_id,
+            ):
+                yield format_sse_line(frame)
+        except Exception:
+            logger.exception(
+                "POST /chat/stream failed message=%r session_id=%r",
+                (req.message or "")[:200],
+                req.session_id,
+            )
+            from app.services.ai_agent.llm import get_llm_display_info
+            from app.services.ai_agent.streaming import done_event, error_event
+
+            yield format_sse_line(
+                error_event("Hệ thống tạm thời không xử lý được tin nhắn.")
+            )
+            yield format_sse_line(
+                done_event({
+                    "answer": CHAT_SYSTEM_ERROR_ANSWER,
+                    "response_type": "text",
+                    "intent": "knowledge",
+                    "meta": {**get_llm_display_info(), "chat_error": True},
+                })
+            )
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
-    return BaseResponse.success(data=result)
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +219,18 @@ async def chat_recommend(req: ChatRequest):
 # ---------------------------------------------------------------------------
 # POST /api/v1/chat/order — Conversational Ordering (Auth required)
 # ---------------------------------------------------------------------------
+@router.delete(
+    "/chat/session/{session_id}",
+    response_model=BaseResponse,
+    summary="Xóa bộ nhớ phiên chat",
+)
+async def clear_chat_session(session_id: str):
+    from app.services.ai_agent.chat_memory import clear_session
+
+    clear_session(session_id)
+    return BaseResponse.success(data={"cleared": True, "session_id": session_id})
+
+
 @router.post("/chat/order", response_model=BaseResponse, summary="Đặt hàng qua chat")
 async def chat_order(
     req: ChatRequest,
