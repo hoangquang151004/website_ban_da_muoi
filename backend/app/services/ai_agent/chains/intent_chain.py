@@ -168,45 +168,21 @@ Trả về JSON duy nhất, không giải thích thêm:
 
 
 # ---------------------------------------------------------------------------
-# Keyword-based pre-classifier — zero-cost, zero-latency safety net
-# Xử lý các trường hợp rõ ràng trước khi tốn LLM call
+# Load Examples from JSON
 # ---------------------------------------------------------------------------
-_KEYWORD_RULES: list[tuple[frozenset[str], str, float]] = [
-    # (keywords, intent, confidence)
-    (frozenset({"xin chào", "chào", "hello", "hi", "hey", "cảm ơn", "tạm biệt", "bye"}), "greeting", 0.95),
-    (
-        frozenset({"thêm vào giỏ", "mua ngay", "đặt hàng", "checkout", "thanh toán", "cho tôi mua", "order"}),
-        "order", 0.93,
-    ),
-    (
-        frozenset({"đơn hàng của tôi", "tra đơn", "trạng thái đơn", "đơn #", "kiểm tra đơn", "xem đơn"}),
-        "order_query", 0.93,
-    ),
-    (
-        frozenset({"tư vấn", "gợi ý", "giới thiệu", "recommend", "dưới", "tầm giá", "ngân sách", "bán chạy", "phù hợp"}),
-        "recommend", 0.85,
-    ),
-    (
-        frozenset({"công dụng", "tác dụng", "lợi ích", "phong thủy", "bảo quản", "cách dùng", "hướng dẫn sử dụng"}),
-        "knowledge", 0.90,
-    ),
-    (
-        frozenset({"doanh thu", "báo cáo", "kpi", "thống kê", "top sản phẩm", "doanh số"}),
-        "stats", 0.90,
-    ),
-]
-
-
-def _keyword_classify(message: str) -> Optional[tuple[str, float]]:
-    """Phân loại nhanh bằng keyword sử dụng regex word boundaries để tránh khớp sai substring (ví dụ 'hi' trong 'chiếc')."""
-    msg_lower = message.lower()
-    for keywords, intent, conf in _KEYWORD_RULES:
-        for kw in keywords:
-            pattern = r"\b" + re.escape(kw) + r"\b"
-            if re.search(pattern, msg_lower):
-                return intent, conf
-    return None
-
+def load_intent_examples() -> str:
+    try:
+        examples_path = backend_dir / "app" / "services" / "ai_agent" / "intent_examples.json"
+        with open(examples_path, "r", encoding="utf-8") as f:
+            examples = json.load(f)
+        
+        lines = []
+        for ex in examples:
+            lines.append(f'"{ex["message"]}" → {{"intent":"{ex["intent"]}","confidence":0.95,"reasoning":"{ex["reasoning"]}"}}')
+        return "\n".join(lines)
+    except Exception as e:
+        logger.warning(f"Could not load intent_examples.json: {e}")
+        return ""
 
 # ---------------------------------------------------------------------------
 # Models
@@ -313,20 +289,7 @@ def aggregate_votes(
     min_confidence: Optional[float] = None,
     message: Optional[str] = None,
 ) -> AggregatedIntent:
-    """Weighted vote + tie-break + role guard + keyword override."""
-    # Keyword override: nếu keyword rất rõ ràng, tin luôn
-    if message:
-        kw_result = _keyword_classify(message)
-        if kw_result:
-            kw_intent, kw_conf = kw_result
-            # Chỉ override nếu keyword confidence đủ cao VÀ votes đồng thuận
-            kw_supporting = sum(1 for v in votes if v.intent == kw_intent)
-            if kw_conf >= 0.93 and kw_supporting >= 1:
-                logger.debug("Keyword override: %s (conf=%.2f)", kw_intent, kw_conf)
-                if kw_intent == "stats" and (user_role or "").strip().lower() != "admin":
-                    kw_intent = "knowledge"
-                return AggregatedIntent(intent=kw_intent, confidence=kw_conf, votes=votes)
-
+    """Weighted vote + tie-break + role guard."""
     threshold = min_confidence if min_confidence is not None else settings.INTENT_MIN_CONFIDENCE
     valid_votes = [v for v in votes if v.intent in VALID_INTENTS]
 
@@ -459,17 +422,6 @@ async def classify_intent_multi(
     Selective thinker song song, tổng hợp weighted vote.
     Chạy 2-4 thinker tùy độ rõ của câu hỏi.
     """
-    # Fast path: keyword rõ ràng + không cần confirm từ LLM
-    kw_result = _keyword_classify(message)
-    if kw_result:
-        kw_intent, kw_conf = kw_result
-        # Nếu keyword confidence rất cao (>=0.95), shortcut luôn
-        if kw_conf >= 0.95:
-            if kw_intent == "stats" and (user_role or "").strip().lower() != "admin":
-                kw_intent = "knowledge"
-            logger.debug("Fast-path keyword: %s (%.2f)", kw_intent, kw_conf)
-            return AggregatedIntent(intent=kw_intent, confidence=kw_conf, votes=[])
-
     lenses = _select_lenses(message)
     results = await asyncio.gather(
         *[run_thinker(lens, message, user_role, conversation_context) for lens in lenses],
@@ -508,21 +460,11 @@ QUY TẮC NGỮ CẢNH HỘI THOẠI:
 2. Hãy CHỈ PHÂN LOẠI ý định của câu chat hiện tại. KHÔNG phân loại ý định của các câu chat cũ trong lịch sử.
 3. Chỉ sử dụng lịch sử hội thoại gần đây để làm rõ nghĩa các đại từ hoặc từ thay thế (ví dụ: "nó", "cái này", "đó").
 
-VÍ DỤ:
-"Xin chào" → {{"intent":"greeting","confidence":0.98,"reasoning":"Câu chào."}}
-"Tư vấn đèn dưới 500k" → {{"intent":"recommend","confidence":0.95,"reasoning":"Tìm sản phẩm theo ngân sách."}}
-"Đèn đá muối có tác dụng gì?" → {{"intent":"knowledge","confidence":0.93,"reasoning":"Hỏi công dụng."}}
-"Thêm vào giỏ hàng" → {{"intent":"order","confidence":0.95,"reasoning":"Hành động mua hàng."}}
-"Đơn hàng của tôi đâu?" → {{"intent":"order_query","confidence":0.92,"reasoning":"Tra cứu đơn."}}
-"Doanh thu hôm nay?" (admin) → {{"intent":"stats","confidence":0.90,"reasoning":"Báo cáo doanh thu."}}
+VÍ DỤ TỪ FILE JSON:
+{dynamic_examples}
 
 Trả về JSON duy nhất, không thêm text:
 {{"intent":"...","confidence":0.0-1.0,"reasoning":"..."}}"""
-
-_intent_prompt = ChatPromptTemplate.from_messages([
-    ("system", INTENT_SYSTEM_PROMPT),
-    ("human", "user_role: {user_role}\n{conversation_context}Câu chat: {message}"),
-])
 
 
 async def classify_intent(
@@ -531,16 +473,20 @@ async def classify_intent(
     conversation_context: Optional[str] = None,
 ) -> Optional[IntentResult]:
     """Phân loại ý định bằng một lần gọi LLM với robust JSON extraction."""
-    # Fast path keyword
-    kw_result = _keyword_classify(message)
-    if kw_result:
-        kw_intent, kw_conf = kw_result
-        if kw_conf >= 0.95:
-            if kw_intent == "stats" and (user_role or "").strip().lower() != "admin":
-                kw_intent = "knowledge"
-            return IntentResult(intent=kw_intent, confidence=kw_conf, reasoning="Keyword match.")
-
     llm = get_llm()
+    
+    # Load examples dynamically
+    dynamic_examples = load_intent_examples()
+    if not dynamic_examples:
+        dynamic_examples = '"Xin chào" → {"intent":"greeting","confidence":0.98,"reasoning":"Câu chào."}'
+        
+    dynamic_prompt_text = INTENT_SYSTEM_PROMPT.replace("{dynamic_examples}", dynamic_examples)
+    
+    _intent_prompt = ChatPromptTemplate.from_messages([
+        ("system", dynamic_prompt_text),
+        ("human", "user_role: {user_role}\n{conversation_context}Câu chat: {message}"),
+    ])
+    
     chain = _intent_prompt | llm
     role_str = (user_role or "guest").strip().lower()
 

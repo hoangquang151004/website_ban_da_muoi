@@ -1,0 +1,82 @@
+[
+  {
+    "message": "Xin chào shop",
+    "intent": "greeting",
+    "reasoning": "Câu chào hỏi đơn giản"
+  },
+  {
+    "message": "Cảm ơn bạn nhé",
+    "intent": "greeting",
+    "reasoning": "Lời cảm ơn"
+  },
+  {
+    "message": "Tạm biệt",
+    "intent": "greeting",
+    "reasoning": "Lời chào tạm biệt"
+  },
+  {
+    "message": "Tư vấn cho mình đèn dưới 500k",
+    "intent": "recommend",
+    "reasoning": "Tìm sản phẩm có giới hạn mức giá cụ thể"
+  },
+  {
+    "message": "Gợi ý đèn phòng ngủ màu hồng",
+    "intent": "recommend",
+    "reasoning": "Tư vấn sản phẩm theo tiêu chí màu sắc"
+  },
+  {
+    "message": "Đèn nào bán chạy nhất?",
+    "intent": "recommend",
+    "reasoning": "Tìm sản phẩm phổ biến"
+  },
+  {
+    "message": "Cho mình mua 2 cái đèn đá muối cầu",
+    "intent": "order",
+    "reasoning": "Khách hàng muốn mua số lượng cụ thể và sản phẩm cụ thể"
+  },
+  {
+    "message": "Thêm đèn kim tự tháp vào giỏ hàng",
+    "intent": "order",
+    "reasoning": "Yêu cầu thêm sản phẩm vào giỏ"
+  },
+  {
+    "message": "Checkout",
+    "intent": "order",
+    "reasoning": "Yêu cầu thanh toán"
+  },
+  {
+    "message": "Đơn hàng #123 của tôi đến chưa?",
+    "intent": "order_query",
+    "reasoning": "Tra cứu trạng thái đơn cụ thể"
+  },
+  {
+    "message": "Tôi đặt hàng hôm qua rồi, giờ đâu?",
+    "intent": "order_query",
+    "reasoning": "Hỏi về đơn đã đặt"
+  },
+  {
+    "message": "Đèn đá muối có tác dụng gì?",
+    "intent": "knowledge",
+    "reasoning": "Hỏi công dụng lý thuyết"
+  },
+  {
+    "message": "Bảo quản đèn đá muối như thế nào?",
+    "intent": "knowledge",
+    "reasoning": "Hỏi kiến thức bảo quản"
+  },
+  {
+    "message": "Đèn to hay đèn nhỏ tốt hơn?",
+    "intent": "knowledge",
+    "reasoning": "So sánh chung, không có ý mua"
+  },
+  {
+    "message": "Doanh thu hôm nay bao nhiêu?",
+    "intent": "stats",
+    "reasoning": "Admin hỏi thống kê doanh thu"
+  },
+  {
+    "message": "Top 5 sản phẩm bán chạy tuần này?",
+    "intent": "stats",
+    "reasoning": "Admin hỏi báo cáo KPI"
+  }
+]

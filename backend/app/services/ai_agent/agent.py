@@ -43,101 +43,7 @@ class ChatIntent(str, Enum):
     GREETING = "greeting"       # Chào hỏi / chitchat ngắn
 
 
-# ---------------------------------------------------------------------------
-# Keyword lists
-# ---------------------------------------------------------------------------
 
-# FIX #7: GREETING — phản hồi nhanh, không qua RAG
-_GREETING_KEYWORDS = [
-    "xin chào", "chào shop", "chào bạn", "chào mình", "chào em",
-    "hello", "hi shop", "hey", "alo", "good morning", "good evening",
-]
-
-# FIX #8: KNOWLEDGE fast-path cho domain đèn đá muối
-# Được check TRƯỚC regex giá để tránh bị RECOMMEND override nhầm
-_KNOWLEDGE_KEYWORDS = [
-    "công dụng", "tác dụng", "lợi ích", "có tốt không", "có tác dụng không",
-    "cách dùng", "hướng dẫn sử dụng", "để ở đâu", "đặt ở đâu",
-    "phong thủy", "ion âm", "không khí", "thanh lọc",
-    "himalaya là gì", "đá muối là gì", "đèn đá muối là gì",
-    "nên đặt", "bảo quản", "vệ sinh đèn", "lau đèn",
-    "sức khỏe", "chữa bệnh", "ngủ ngon", "stress",
-    "khác nhau", "so sánh loại", "ưu điểm", "nhược điểm",
-    "có an toàn không", "có độc không", "xuất xứ",
-    "uy tín không", "chất lượng không", "đảm bảo không",
-    "mua ở đây", "ship như thế nào", "giao hàng bao lâu",
-    "đổi trả", "bảo hành", "chính sách",
-]
-
-# FIX #2: Bỏ "mua" đơn lẻ — quá rộng ("mua ở đây uy tín không?" → sai ORDER)
-# FIX #3: Bỏ "order" đơn lẻ — "order này đâu rồi?" phải vào ORDER_QUERY
-_ORDER_KEYWORDS = [
-    "thêm vào giỏ", "thêm giỏ", "thêm vào cart",
-    "đặt hàng ngay", "mua ngay", "cho mình mua", "tôi cần mua",
-    "tôi muốn mua", "muốn mua", "tôi muốn đặt", "muốn đặt",
-    "order giùm", "mua giùm", "chốt đơn", "checkout",
-    "xóa khỏi giỏ", "xóa khỏi giỏ hàng", "xóa sản phẩm khỏi giỏ",
-    "bỏ khỏi giỏ", "remove from cart", "xoa khoi gio", "bo khoi gio",
-]
-
-# FIX #4: Bỏ "tìm đèn" generic → thay bằng domain-specific
-_RECOMMEND_KEYWORDS = [
-    "gợi ý", "recommend", "tìm giúp", "tìm cho",
-    "tư vấn mua", "nên mua gì", "chọn sản phẩm", "sản phẩm nào",
-    "loại nào tốt", "cái nào tốt", "gợi ý sản phẩm", "tìm sản phẩm",
-    "cần sản phẩm", "đang tìm",
-    # Domain-specific (không gây nhầm với đèn pin / đèn ngủ khác)
-    "tìm đèn đá", "tìm đèn muối", "tìm đèn himalaya",
-    "đèn đá muối nào", "đèn himalaya nào", "đèn muối nào",
-    "loại đèn đá", "size nào phù hợp", "kg nào tốt",
-    "đèn nào phù hợp", "đèn nào tốt",
-]
-
-# FIX #6: Bỏ "trạng thái đơn" khỏi đây — conflict với STATS admin
-# FIX #3: Thêm "order này/đó" để bắt "order này của tôi đâu?"
-# Thêm xem giỏ hàng
-_ORDER_QUERY_KEYWORDS = [
-    "đơn hàng của tôi", "đơn của tôi", "lịch sử đơn", "đơn #",
-    "đơn số", "xem đơn", "tra đơn",
-    "theo dõi đơn", "đơn hàng gần đây", "kiểm tra đơn",
-    "đơn hàng đang ở đâu", "my order", "order của tôi",
-    "order này", "order đó", "đơn này", "đơn đó",
-    # Xem giỏ hàng
-    "xem giỏ hàng", "giỏ hàng của tôi", "giỏ hàng hiện tại",
-    "trong giỏ có gì", "giỏ có gì",
-]
-
-# FIX #5: Bỏ "tuần này" đơn lẻ — quá rộng ("tuần này có sale không?" → sai STATS)
-# Giữ các cụm từ có ngữ cảnh kinh doanh rõ ràng
-_STATS_KEYWORDS = [
-    "doanh thu", "thống kê", "báo cáo", "revenue",
-    "top sản phẩm", "sản phẩm bán chạy", "số đơn",
-    "tổng đơn", "tổng doanh thu", "kpi",
-    "hôm nay bán được", "tháng này bán", "tuần này bán",
-    "tỷ lệ đơn", "lợi nhuận", "doanh số",
-]
-
-_CHECKOUT_HINT_KEYWORDS = [
-    "checkout", "thanh toán", "mua ngay", "chốt đơn", "đặt đơn",
-]
-
-_ORDER_REGEX_PATTERNS = [
-    # Có dấu đầy đủ
-    r"\bth[eê]m\b.*\b(v[aà]o\s+)?gi[oỏ]\s+h[aà]ng\b",
-    r"\b(add|them)\b.*\b(cart|gio\s*hang)\b",
-    r"\bx[oó]a\b.*\bkh[oỏ]i\s+gi[oỏ](\s*h[aà]ng)?\b",
-    r"\bb[oỏ]\b.*\bkh[oỏ]i\s+gi[oỏ](\s*h[aà]ng)?\b",
-    r"\bremove\b.*\bfrom\s+cart\b",
-]
-
-# FIX #9: Regex không dấu cho mobile (gõ nhanh thiếu dấu)
-_ORDER_REGEX_PATTERNS_NO_ACCENT = [
-    r"\bthem\b.*\bgio\s*hang\b",
-    r"\b(add|them)\b.*\b(cart|gio\s*hang)\b",
-    r"\bmua\b.*\bgio\s*hang\b",
-    r"\bxoa\b.*\bkhoi\s+gio(\s*hang)?\b",
-    r"\bbo\b.*\bkhoi\s+gio(\s*hang)?\b",
-]
 
 # ---------------------------------------------------------------------------
 # Normalization helpers
@@ -209,83 +115,7 @@ def _normalize_user_role(user_role: object) -> Optional[str]:
     return normalized or None
 
 
-# ---------------------------------------------------------------------------
-# Intent Detection
-# ---------------------------------------------------------------------------
-def detect_intent(message: str) -> ChatIntent:
-    """Phân loại intent từ câu chat của user.
 
-    Thứ tự ưu tiên (từ cao xuống thấp):
-    1. GREETING  — câu chào ngắn, không qua RAG
-    2. ORDER_QUERY — tra cứu đơn / giỏ hàng (trước ORDER tránh false positive)
-    3. STATS     — từ khóa báo cáo / kinh doanh rõ ràng
-    4. KNOWLEDGE — fast-path domain đá muối (trước RECOMMEND/ORDER)
-    5. RECOMMEND — tìm / gợi ý sản phẩm
-    6. ORDER     — mua / thêm / xóa giỏ (keyword + regex có dấu + regex không dấu)
-    7. RECOMMEND — fallback khi đề cập ngân sách kèm con số cụ thể
-    8. KNOWLEDGE — default
-    """
-    msg_lower = message.lower().strip()
-    msg_no_accent = _strip_accents(msg_lower)
-
-    # 1. GREETING — câu ngắn chứa từ chào hỏi
-    # FIX #7: Tránh gọi RAG chain lãng phí
-    if len(msg_lower) < 40 and any(kw in msg_lower for kw in _GREETING_KEYWORDS):
-        return ChatIntent.GREETING
-
-    # 1b. Câu hỏi "như thế nào" — luôn RAG (trước tư vấn SP / tra đơn)
-    if _contains_how_phrase(message):
-        return ChatIntent.KNOWLEDGE
-
-    # 2. ORDER_QUERY — ưu tiên cao để tránh "order này" → ORDER nhầm
-    for kw in _ORDER_QUERY_KEYWORDS:
-        if kw in msg_lower:
-            return ChatIntent.ORDER_QUERY
-
-    # 3. STATS (trước tư vấn SP — "top sản phẩm bán chạy" là báo cáo)
-    for kw in _STATS_KEYWORDS:
-        if kw in msg_lower:
-            return ChatIntent.STATS
-
-    # 3b. Tư vấn / gợi ý sản phẩm (linh hoạt, trước KNOWLEDGE/ORDER keyword)
-    if _is_product_consultation_message(message):
-        return ChatIntent.RECOMMEND
-
-    # 4. KNOWLEDGE fast-path — domain đá muối
-    # FIX #8: Check trước RECOMMEND/ORDER để tránh regex giá override
-    # Ví dụ: "công dụng đèn đá muối giá bao nhiêu?" → KNOWLEDGE, không phải RECOMMEND
-    for kw in _KNOWLEDGE_KEYWORDS:
-        if kw in msg_lower:
-            return ChatIntent.KNOWLEDGE
-
-    # 5. RECOMMEND
-    for kw in _RECOMMEND_KEYWORDS:
-        if kw in msg_lower:
-            return ChatIntent.RECOMMEND
-
-    # 6a. ORDER — keyword
-    for kw in _ORDER_KEYWORDS:
-        if kw in msg_lower:
-            return ChatIntent.ORDER
-
-    # 6b. ORDER — regex có dấu
-    for pattern in _ORDER_REGEX_PATTERNS:
-        if re.search(pattern, msg_lower):
-            return ChatIntent.ORDER
-
-    # 6c. ORDER — regex không dấu (FIX #9: mobile gõ nhanh)
-    for pattern in _ORDER_REGEX_PATTERNS_NO_ACCENT:
-        if re.search(pattern, msg_no_accent):
-            return ChatIntent.ORDER
-
-    # 7. RECOMMEND fallback — đề cập ngân sách kèm CON SỐ cụ thể
-    # FIX #1: Bỏ "giá" đơn lẻ, bỏ "dưới/tầm/khoảng" đơn lẻ
-    # Chỉ trigger khi CÓ SỐ đi kèm để tránh "giá có đắt không?" → RECOMMEND
-    if re.search(r"\d+k\b|\d{3,}\s*(?:đồng|vnd|đ)\b|dưới\s*\d|tầm\s*\d|khoảng\s*\d|\d+\s*triệu", msg_lower):
-        return ChatIntent.RECOMMEND
-
-    # 8. Default
-    return ChatIntent.KNOWLEDGE
 
 
 def _intent_string_to_enum(intent: str) -> ChatIntent:
@@ -314,22 +144,6 @@ async def resolve_intent(
     # Giảm thời gian phân loại cho ~60% câu thường gặp
     if _contains_how_phrase(message):
         return ChatIntent.KNOWLEDGE, debug_meta
-
-    if mode == "keyword":
-        return detect_intent(message), debug_meta
-
-    # Pre-filter: dùng keyword cho các intent có dấu hiệu rất rõ
-    # Chỉ các câu mơ hồ mới đẩy vào LLM → giảm ~50% số LLM calls
-    keyword_intent = detect_intent(message)
-    _CLEAR_INTENTS = {
-        ChatIntent.GREETING,
-        ChatIntent.ORDER,
-        ChatIntent.ORDER_QUERY,
-        ChatIntent.STATS,
-    }
-    if keyword_intent in _CLEAR_INTENTS:
-        # Các intent này có dấu hiệu rõ ràng từ keyword → bỏ qua LLM
-        return keyword_intent, debug_meta
 
     if mode == "single_llm":
         result = await classify_intent(
@@ -613,24 +427,7 @@ def _extract_min_price(text: str) -> Optional[float]:
 
 def _is_checkout_request(message: str) -> bool:
     msg = (message or "").lower()
-    return any(kw in msg for kw in _CHECKOUT_HINT_KEYWORDS)
-
-
-def _is_remove_from_cart_request(message: str) -> bool:
-    msg = (message or "").lower()
-    direct_keywords = [
-        "xóa khỏi giỏ", "xóa khỏi giỏ hàng", "bỏ khỏi giỏ",
-        "xoa khoi gio", "bo khoi gio", "remove from cart",
-    ]
-    if any(kw in msg for kw in direct_keywords):
-        return True
-
-    patterns = [
-        r"\bx[oó]a\b.*\bkh[oỏ]i\s+gi[oỏ](\s*h[aà]ng)?\b",
-        r"\bb[oỏ]\b.*\bkh[oỏ]i\s+gi[oỏ](\s*h[aà]ng)?\b",
-        r"\bremove\b.*\bfrom\s+cart\b",
-    ]
-    return any(re.search(pattern, msg) for pattern in patterns)
+    return any(kw in msg for kw in ["checkout", "thanh toán", "mua ngay", "chốt đơn", "đặt đơn"])
 
 
 def _slugify_fallback(text: str, fallback: str = "") -> str:
@@ -707,41 +504,63 @@ def _normalize_checkout_cart_items(result: dict) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Conversational Ordering Agent
 # ---------------------------------------------------------------------------
+async def _extract_order_entities_via_llm(message: str, conversation_context: str) -> dict:
+    from app.services.ai_agent.llm import get_llm
+    from langchain_core.prompts import ChatPromptTemplate
+    from app.services.ai_agent.chains.intent_chain import _extract_json_safe
+    import logging
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "Trích xuất thông tin đặt hàng từ câu người dùng. Trả về JSON chứa: {{\"action\": \"add\"|\"remove\", \"product_name\": \"tên sản phẩm cụ thể\" hoặc null, \"quantity\": số nguyên}}. Nếu khách không nói rõ sản phẩm nào, hãy để product_name là null. Ví dụ: \"cho 2 cái đèn đá muối\" -> {{\"action\": \"add\", \"product_name\": \"đèn đá muối\", \"quantity\": 2}}."),
+        ("human", "{conversation_context}\nCâu chat: {message}")
+    ])
+    llm = get_llm()
+    chain = prompt | llm
+    try:
+        res = await chain.ainvoke({"message": message, "conversation_context": conversation_context})
+        raw = res.content if hasattr(res, "content") else str(res)
+        parsed = _extract_json_safe(raw)
+        if parsed:
+            return {
+                "action": parsed.get("action", "add"),
+                "product_name": parsed.get("product_name"),
+                "quantity": max(1, int(parsed.get("quantity") or 1))
+            }
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Error extracting order entities: {e}")
+    return {"action": "add", "product_name": None, "quantity": 1}
+
 async def run_ordering_agent(
     message: str,
     user_id: int,
     conversation_context: Optional[str] = None,
 ) -> dict:
-    """Xử lý yêu cầu đặt hàng qua chat.
-
-    Flow:
-    1. Trích xuất số lượng + tên sản phẩm
-    2. Tìm sản phẩm khớp nhất
-    3. Gọi add_to_cart_tool (hoặc remove nếu là yêu cầu xóa)
-    4. Trả lời user
-
-    Returns:
-        {"answer": str, "cart_updated": bool, "cart_item": dict | None}
-    """
+    """Xử lý yêu cầu đặt hàng qua chat bằng LLM Extraction."""
     from app.services.ai_agent.chat_memory import build_message_with_context
     from app.services.ai_agent.tools.product_search import search_products_structured
     from app.services.ai_agent.tools.add_to_cart import add_to_cart_internal
 
+    entities = await _extract_order_entities_via_llm(message, conversation_context or "")
+    quantity = entities.get("quantity", 1)
+    is_remove_request = (entities.get("action") == "remove")
+    requested_product_name = entities.get("product_name")
+
+    if not requested_product_name:
+        # Prevent auto-fallback without a product name
+        return {
+            "answer": "Bạn muốn thêm/xoá sản phẩm nào vào giỏ hàng ạ? Vui lòng nói rõ tên sản phẩm giúp tôi nhé.",
+            "cart_updated": False,
+            "cart_item": None,
+        }
+
     search_query = build_message_with_context(message, conversation_context or "")
-
-    quantity = _extract_quantity(message)
-    is_remove_request = _is_remove_from_cart_request(message)
-    requested_product_name = _extract_requested_product_name(message)
-
-    selected_product: dict | None = None
-    if requested_product_name:
-        selected_product = await _find_best_product_by_name(requested_product_name)
+    selected_product: dict | None = await _find_best_product_by_name(requested_product_name)
 
     products = await search_products_structured(
         query=search_query, max_price=None, min_price=None
     )
 
-    if selected_product is None and requested_product_name and products:
+    if selected_product is None and products:
         ranked = sorted(
             products,
             key=lambda p: _score_product_name_match(p.get("name", ""), requested_product_name),
@@ -752,12 +571,9 @@ async def run_ordering_agent(
             if top_score >= 0.55:
                 selected_product = ranked[0]
 
-    if selected_product is None and products:
-        selected_product = products[0]
-
     if selected_product is None:
         return {
-            "answer": "Xin lỗi, tôi không tìm thấy sản phẩm phù hợp. Bạn có thể mô tả thêm không?",
+            "answer": f"Xin lỗi, tôi không tìm thấy sản phẩm nào khớp với '{requested_product_name}'. Bạn có thể kiểm tra lại tên sản phẩm hoặc yêu cầu tôi gợi ý được không?",
             "cart_updated": False,
             "cart_item": None,
         }
@@ -800,52 +616,6 @@ async def run_ordering_agent(
             "cart_updated": False,
             "cart_item": None,
         }
-
-
-def _extract_quantity(text: str) -> int:
-    """Trích xuất số lượng từ câu hỏi, mặc định là 1."""
-    patterns = [
-        r"(\d+)\s*(?:cái|cặp|chiếc|bộ|đèn)\b",
-        r"mua\s+(\d+)\b",
-        r"(\d+)\s*cái",
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, text.lower())
-        if match:
-            return max(1, int(match.group(1)))
-    return 1
-
-
-def _extract_requested_product_name(message: str) -> Optional[str]:
-    text = (message or "").strip()
-    if not text:
-        return None
-
-    patterns = [
-        r"th[eê]m\s+(.+?)\s+v[aà]o\s+gi[oỏ]\s*h[aà]ng",
-        r"th[eê]m\s+(.+?)\s+v[aà]o\s+gi[oỏ]",
-        r"mua\s+(.+?)\s+(?:v[aà]o\s+gi[oỏ]|thanh\s*to[aá]n|checkout)",
-        r"x[oó]a\s+(.+?)\s+kh[oỏ]i\s+gi[oỏ]\s*h[aà]ng",
-        r"x[oó]a\s+(.+?)\s+kh[oỏ]i\s+gi[oỏ]",
-        r"b[oỏ]\s+(.+?)\s+kh[oỏ]i\s+gi[oỏ]\s*h[aà]ng",
-        r"b[oỏ]\s+(.+?)\s+kh[oỏ]i\s+gi[oỏ]",
-        r"remove\s+(.+?)\s+from\s+cart",
-    ]
-
-    lower = text.lower()
-    for pattern in patterns:
-        match = re.search(pattern, lower)
-        if not match:
-            continue
-
-        candidate = match.group(1).strip(" ,.!?\"'")
-        candidate = re.sub(r"^(\d+)\s*(c[aá]i|chi[eế]c|b[oộ]|đ[eè]n)\s+", "", candidate)
-        candidate = re.sub(r"\s+x\s*\d+\s*$", "", candidate)
-        candidate = candidate.strip()
-        if candidate:
-            return candidate
-
-    return None
 
 
 def _score_product_name_match(product_name: str, requested_name: str) -> float:
