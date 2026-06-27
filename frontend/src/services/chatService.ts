@@ -101,6 +101,8 @@ export const chatService = {
   ): Promise<ChatApiResponse> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
+      Accept: "text/event-stream",
+      "Cache-Control": "no-cache",
     };
     const token = getAuthToken();
     if (token) {
@@ -116,9 +118,7 @@ export const chatService = {
 
     if (!response.ok) {
       const errText = await response.text().catch(() => "");
-      throw new Error(
-        errText || `Chat stream failed (${response.status})`,
-      );
+      throw new Error(errText || `Chat stream failed (${response.status})`);
     }
 
     const reader = response.body?.getReader();
@@ -140,7 +140,9 @@ export const chatService = {
       for (const frame of frames) {
         switch (frame.event) {
           case "status":
-            callbacks.onStatus?.(frame.data as unknown as ChatStreamStatusPayload);
+            callbacks.onStatus?.(
+              frame.data as unknown as ChatStreamStatusPayload,
+            );
             break;
           case "token": {
             const content = String(frame.data.content ?? "");
