@@ -143,10 +143,17 @@ export const chatService = {
             callbacks.onStatus?.(
               frame.data as unknown as ChatStreamStatusPayload,
             );
+            // Cố tình delay một chút để UI kịp render trạng thái suy nghĩ 
+            // (giúp khắc phục lỗi Vercel/Nginx proxy gom toàn bộ stream trả về cùng lúc)
+            await new Promise((r) => setTimeout(r, 600));
             break;
           case "token": {
             const content = String(frame.data.content ?? "");
-            if (content) callbacks.onToken?.(content);
+            if (content) {
+              callbacks.onToken?.(content);
+              // Delay siêu nhỏ (0ms) để nhường thread cho React render (nếu stream bị buffer thành cục lớn)
+              await new Promise((r) => setTimeout(r, 0));
+            }
             break;
           }
           case "done":
