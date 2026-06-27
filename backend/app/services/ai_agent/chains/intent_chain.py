@@ -27,7 +27,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Tự động định vị thư mục backend và thêm vào sys.path
-backend_dir = Path(__file__).resolve().parent / "backend"
+backend_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
@@ -48,19 +48,20 @@ VALID_INTENTS = frozenset({
 })
 
 # Tie-break priority (higher index = wins on equal score)
+# recommend hạ xuống giữa để tránh luôn thắng khi hòa điểm
 INTENT_TIE_PRIORITY = (
     "greeting",
+    "recommend",
     "knowledge",
     "stats",
-    "order",
     "order_query",
-    "recommend",
+    "order",
 )
 
 THINKER_ALLOWED: dict[ThinkerLens, frozenset[str]] = {
     "transaction": frozenset({"order", "order_query"}),
     "discovery": frozenset({"recommend", "order"}),
-    "knowledge": frozenset({"knowledge", "recommend"}),
+    "knowledge": frozenset({"knowledge"}),
     "social_admin": frozenset({"greeting", "stats", "order_query"}),
 }
 
@@ -76,6 +77,7 @@ Chỉ chọn MỘT intent trong: `order`, `order_query`.
 - `order_query`: xem/tra cứu đơn của tôi, trạng thái đơn, lịch sử đơn.
 
 KHÔNG chọn `order_query` khi khách hỏi tư vấn/gợi ý sản phẩm.
+QUAN TRỌNG: Các từ "tư vấn", "gợi ý", "giới thiệu" KHÔNG phải giao dịch — trả về confidence rất thấp (≤ 0.05) cho những câu này.
 
 QUY TẮC NGỮ CẢNH HỘI THOẠI:
 1. Bạn sẽ nhận được Lịch sử hội thoại gần đây ([Lịch sử hội thoại gần đây]) và câu chat hiện tại (sau dòng "Câu chat: ").
@@ -87,7 +89,8 @@ Câu: "Thêm đèn A vào giỏ hàng" → {{"intent":"order","confidence":0.95,
 Câu: "Cho tôi mua 2 cái đèn ngủ" → {{"intent":"order","confidence":0.92,"reasoning":"Ý định mua hàng trực tiếp."}}
 Câu: "Đơn hàng #123 của tôi đến chưa?" → {{"intent":"order_query","confidence":0.93,"reasoning":"Tra cứu trạng thái đơn cụ thể."}}
 Câu: "Tôi đặt hàng hôm qua rồi, giờ đâu?" → {{"intent":"order_query","confidence":0.90,"reasoning":"Hỏi về đơn đã đặt."}}
-Câu: "Tư vấn đèn phòng ngủ cho tôi" → {{"intent":"order","confidence":0.20,"reasoning":"Không liên quan giao dịch, confidence thấp."}}
+Câu: "Tư vấn đèn phòng ngủ cho tôi" → {{"intent":"order","confidence":0.05,"reasoning":"Đây là yêu cầu tư vấn sản phẩm, không phải giao dịch — confidence rất thấp."}}
+Câu: "Gợi ý đèn cho tôi" → {{"intent":"order","confidence":0.05,"reasoning":"Đây là yêu cầu gợi ý, không phải giao dịch — confidence rất thấp."}}
 
 Trả về JSON duy nhất, không giải thích thêm:
 {{"intent":"...","confidence":0.0-1.0,"reasoning":"1-2 câu tiếng Việt"}}""",
@@ -99,14 +102,21 @@ Chỉ chọn MỘT intent trong: `recommend`, `order`.
 - `recommend`: gợi ý/tư vấn sản phẩm, tìm đèn, lọc giá, ngân sách, màu, kích thước, bán chạy.
 - `order`: chỉ khi khách MUỐN MUA hoặc THÊM VÀO GIỎ rõ ràng.
 
+QUY TẮC BẤT BIẾN (ưu tiên tuyệt đối, ghi đè mọi quy tắc khác):
+- Câu chứa từ "tư vấn" → LUÔN chọn `recommend`, confidence ≥ 0.95, không ngoại lệ.
+- Câu chứa từ "gợi ý" → LUÔN chọn `recommend`, confidence ≥ 0.95, không ngoại lệ.
+
 QUY TẮC NGỮ CẢNH HỘI THOẠI:
 1. Bạn sẽ nhận được Lịch sử hội thoại gần đây ([Lịch sử hội thoại gần đây]) và câu chat hiện tại (sau dòng "Câu chat: ").
 2. Hãy CHỈ PHÂN LOẠI ý định của câu chat hiện tại. KHÔNG phân loại ý định của các câu chat cũ trong lịch sử.
 3. Chỉ sử dụng lịch sử hội thoại gần đây để làm rõ nghĩa các đại từ hoặc từ thay thế (ví dụ: "nó", "cái này", "đó").
 
 VÍ DỤ (few-shot):
-Câu: "Tư vấn đèn dưới 500k" → {{"intent":"recommend","confidence":0.95,"reasoning":"Tìm sản phẩm theo ngân sách."}}
-Câu: "Gợi ý đèn phòng ngủ màu hồng" → {{"intent":"recommend","confidence":0.93,"reasoning":"Tư vấn sản phẩm theo tiêu chí."}}
+Câu: "Tư vấn đèn dưới 500k" → {{"intent":"recommend","confidence":0.97,"reasoning":"Có từ 'tư vấn' → luôn là recommend, kèm ngân sách."}}
+Câu: "Tư vấn đèn phòng ngủ cho tôi" → {{"intent":"recommend","confidence":0.95,"reasoning":"Có từ 'tư vấn' → luôn là recommend."}}
+Câu: "Tư vấn giúp mình" → {{"intent":"recommend","confidence":0.95,"reasoning":"Có từ 'tư vấn' → luôn là recommend."}}
+Câu: "Gợi ý đèn phòng ngủ màu hồng" → {{"intent":"recommend","confidence":0.95,"reasoning":"Có từ 'gợi ý' → luôn là recommend."}}
+Câu: "Gợi ý cho tôi xem" → {{"intent":"recommend","confidence":0.95,"reasoning":"Có từ 'gợi ý' → luôn là recommend."}}
 Câu: "Đèn nào bán chạy nhất?" → {{"intent":"recommend","confidence":0.90,"reasoning":"Tìm sản phẩm phổ biến."}}
 Câu: "Cho tôi mua cái đèn cam to nhất" → {{"intent":"order","confidence":0.88,"reasoning":"Ý định mua hàng cụ thể."}}
 Câu: "Xem đơn hàng của tôi" → {{"intent":"recommend","confidence":0.15,"reasoning":"Không liên quan tìm sản phẩm, confidence thấp."}}
@@ -115,11 +125,14 @@ Trả về JSON duy nhất, không giải thích thêm:
 {{"intent":"...","confidence":0.0-1.0,"reasoning":"1-2 câu tiếng Việt"}}""",
 
     "knowledge": """Bạn là chuyên gia phân tích ý định TƯ VẤN KIẾN THỨC cho chatbot cửa hàng đèn đá muối Himalaya.
-Chỉ chọn MỘT intent trong: `knowledge`, `recommend`.
+Chỉ chọn MỘT intent: `knowledge`.
 
 ĐỊNH NGHĨA:
-- `knowledge`: công dụng lý thuyết, phong thủy, bảo quản, so sánh chung — KHÔNG kèm mua/lọc giá cụ thể.
-- `recommend`: tư vấn/gợi ý/tìm sản phẩm, có ngân sách, muốn mua, hỏi giá để chọn mua.
+- `knowledge`: công dụng lý thuyết, phong thủy, bảo quản, so sánh chung, cách sử dụng — bất kỳ câu hỏi kiến thức nào về đèn đá muối.
+
+QUY TẮC:
+- Nếu câu hỏi là kiến thức/lý thuyết → confidence CAO (≥ 0.85).
+- Nếu câu hỏi KHÔNG phải kiến thức (mua hàng, gợi ý, chào hỏi, tra đơn...) → confidence RẤT THẤP (≤ 0.15).
 
 QUY TẮC NGỮ CẢNH HỘI THOẠI:
 1. Bạn sẽ nhận được Lịch sử hội thoại gần đây ([Lịch sử hội thoại gần đây]) và câu chat hiện tại (sau dòng "Câu chat: ").
@@ -130,8 +143,10 @@ VÍ DỤ (few-shot):
 Câu: "Đèn đá muối có tác dụng gì?" → {{"intent":"knowledge","confidence":0.95,"reasoning":"Hỏi công dụng lý thuyết."}}
 Câu: "Bảo quản đèn đá muối như thế nào?" → {{"intent":"knowledge","confidence":0.93,"reasoning":"Hỏi kiến thức bảo quản."}}
 Câu: "Đèn to hay đèn nhỏ tốt hơn?" → {{"intent":"knowledge","confidence":0.88,"reasoning":"So sánh chung, không có ý mua."}}
-Câu: "Tư vấn sản phẩm dưới 500k" → {{"intent":"recommend","confidence":0.92,"reasoning":"Tìm sản phẩm theo ngân sách cụ thể."}}
-Câu: "Tư vấn đèn ngủ cho tôi" → {{"intent":"recommend","confidence":0.90,"reasoning":"Yêu cầu tư vấn sản phẩm cụ thể."}}
+Câu: "Phong thủy đặt đèn đá muối ở đâu?" → {{"intent":"knowledge","confidence":0.92,"reasoning":"Hỏi kiến thức phong thủy."}}
+Câu: "Tư vấn đèn ngủ cho tôi" → {{"intent":"knowledge","confidence":0.10,"reasoning":"Đây là tìm sản phẩm, không phải kiến thức."}}
+Câu: "Gợi ý đèn phòng khách" → {{"intent":"knowledge","confidence":0.10,"reasoning":"Đây là gợi ý sản phẩm, không phải kiến thức."}}
+Câu: "Cho mình mua đèn" → {{"intent":"knowledge","confidence":0.05,"reasoning":"Đây là mua hàng, không phải kiến thức."}}
 
 Trả về JSON duy nhất, không giải thích thêm:
 {{"intent":"...","confidence":0.0-1.0,"reasoning":"1-2 câu tiếng Việt"}}""",
@@ -386,31 +401,61 @@ async def run_thinker(
 # Selective thinker: chỉ chạy thinker liên quan thay vì luôn chạy cả 4
 # Tiết kiệm 2x latency trong đa số trường hợp
 # ---------------------------------------------------------------------------
-def _select_lenses(message: str) -> list[ThinkerLens]:
+async def _select_lenses(message: str) -> list[ThinkerLens]:
     """
     Chọn thinker phù hợp dựa trên keyword nhanh.
+    Tích lũy lenses để không bỏ sót intent khi câu chat có nhiều vế.
     Fallback: chạy cả 4 nếu không rõ.
     """
+    from app.services.ai_agent.tools.product_db_search import get_dynamic_use_keywords
+    
     msg_lower = message.lower()
+    lenses: set[ThinkerLens] = set()
+
+    # Shortcut bất biến: "tư vấn" và "gợi ý" → CHỈ chạy discovery
+    # Tránh để knowledge lens vote cạnh tranh với recommend
+    _TU_VAN_KEYWORDS = ["tư vấn", "gợi ý"]
+    if any(kw in msg_lower for kw in _TU_VAN_KEYWORDS):
+        # Không kèm knowledge lens — discovery đã cover recommend
+        return ["discovery"]
 
     # Tín hiệu giao dịch rõ ràng
-    if any(kw in msg_lower for kw in ["mua", "giỏ hàng", "thanh toán", "checkout", "đặt hàng", "đơn hàng", "trạng thái đơn"]):
-        return ["transaction", "discovery"]
+    if any(kw in msg_lower for kw in ["mua", "giỏ hàng", "thanh toán", "checkout", "đặt hàng", "đơn hàng", "trạng thái đơn", "order"]):
+        lenses.update(["transaction", "discovery"])
 
-    # Tín hiệu tìm sản phẩm
-    if any(kw in msg_lower for kw in ["tư vấn", "gợi ý", "giới thiệu", "ngân sách", "dưới", "tầm giá", "bán chạy"]):
-        return ["discovery", "knowledge"]
+    # Tín hiệu tìm sản phẩm (không có "tư vấn"/"gợi ý" — đã handled above)
+    if any(kw in msg_lower for kw in ["giới thiệu", "ngân sách", "dưới", "tầm giá", "bán chạy", "tìm"]):
+        lenses.update(["discovery", "knowledge"])
 
-    # Tín hiệu kiến thức
-    if any(kw in msg_lower for kw in ["công dụng", "tác dụng", "phong thủy", "bảo quản", "cách dùng"]):
-        return ["knowledge", "social_admin"]
+    # Tín hiệu gợi ý theo công dụng: nếu có use keyword + sản phẩm/tìm → discovery
+    dynamic_use_keywords = await get_dynamic_use_keywords()
+    _USE_PRODUCT_HINTS = ["đèn", "den", "sản phẩm", "san pham", "đá muối", "da muoi"]
+    _USE_RECOMMEND_VERBS = ["tìm", "tim", "cho xem", "xem", "có không", "đèn nào", "den nao"]
+    has_use = any(kw in msg_lower for kw in dynamic_use_keywords)
+    if has_use:
+        has_product_or_verb = (
+            any(kw in msg_lower for kw in _USE_PRODUCT_HINTS)
+            or any(kw in msg_lower for kw in _USE_RECOMMEND_VERBS)
+        )
+        if has_product_or_verb:
+            lenses.add("discovery")
+        else:
+            # Chỉ có công dụng đơn lẻ, có thể là kiến thức
+            lenses.add("knowledge")
 
-    # Tín hiệu xã giao / admin
+    # Tín hiệu kiến thức — KHÔNG thêm discovery để tránh recommend cạnh tranh
+    if any(kw in msg_lower for kw in ["công dụng", "tác dụng", "bảo quản", "cách dùng"]):
+        lenses.add("knowledge")
+
+    # Tín hiệu xã giao / admin — KHÔNG thêm knowledge để tránh nhiễu
     if any(kw in msg_lower for kw in ["chào", "cảm ơn", "doanh thu", "báo cáo", "thống kê", "hello", "hi"]):
-        return ["social_admin", "knowledge"]
+        lenses.add("social_admin")
 
     # Không rõ → chạy cả 4
-    return ["transaction", "discovery", "knowledge", "social_admin"]
+    if not lenses:
+        return ["transaction", "discovery", "knowledge", "social_admin"]
+    
+    return list(lenses)
 
 
 async def classify_intent_multi(
@@ -422,7 +467,17 @@ async def classify_intent_multi(
     Selective thinker song song, tổng hợp weighted vote.
     Chạy 2-4 thinker tùy độ rõ của câu hỏi.
     """
-    lenses = _select_lenses(message)
+    # Deterministic shortcut: "tư vấn" và "gợi ý" luôn → recommend, bỏ qua LLM
+    _msg_lower = message.lower()
+    if any(kw in _msg_lower for kw in ["tư vấn", "gợi ý"]):
+        logger.debug("classify_intent_multi: keyword shortcut → recommend for %r", message[:60])
+        return AggregatedIntent(
+            intent="recommend",
+            confidence=0.97,
+            votes=[ThinkerVote(intent="recommend", confidence=0.97, reasoning="Keyword shortcut: 'tư vấn' hoặc 'gợi ý' detected.", lens="discovery")],
+        )
+
+    lenses = await _select_lenses(message)
     results = await asyncio.gather(
         *[run_thinker(lens, message, user_role, conversation_context) for lens in lenses],
         return_exceptions=True,
@@ -455,6 +510,10 @@ Chọn ĐÚNG 1 intent trong danh sách:
 - order_query: xem đơn hàng, tra cứu trạng thái đơn
 - stats: thống kê doanh thu, báo cáo KPI (chỉ admin)
 
+QUY TẮC BẤT BIẾN (ưu tiên tuyệt đối, ghi đè mọi quy tắc khác):
+- Câu chứa từ "tư vấn" → LUÔN chọn `recommend`, không ngoại lệ.
+- Câu chứa từ "gợi ý" → LUÔN chọn `recommend`, không ngoại lệ.
+
 QUY TẮC NGỮ CẢNH HỘI THOẠI:
 1. Bạn sẽ nhận được Lịch sử hội thoại gần đây ([Lịch sử hội thoại gần đây]) và câu chat hiện tại (sau dòng "Câu chat: ").
 2. Hãy CHỈ PHÂN LOẠI ý định của câu chat hiện tại. KHÔNG phân loại ý định của các câu chat cũ trong lịch sử.
@@ -473,6 +532,17 @@ async def classify_intent(
     conversation_context: Optional[str] = None,
 ) -> Optional[IntentResult]:
     """Phân loại ý định bằng một lần gọi LLM với robust JSON extraction."""
+
+    # Deterministic shortcut: "tư vấn" và "gợi ý" luôn → recommend, bỏ qua LLM
+    _msg_lower = message.lower()
+    if any(kw in _msg_lower for kw in ["tư vấn", "gợi ý"]):
+        logger.debug("classify_intent: keyword shortcut → recommend for %r", message[:60])
+        return IntentResult(
+            intent="recommend",
+            confidence=0.97,
+            reasoning="Keyword shortcut: 'tư vấn' hoặc 'gợi ý' detected.",
+        )
+
     llm = get_llm()
     
     # Load examples dynamically
@@ -480,10 +550,8 @@ async def classify_intent(
     if not dynamic_examples:
         dynamic_examples = '"Xin chào" → {"intent":"greeting","confidence":0.98,"reasoning":"Câu chào."}'
         
-    dynamic_prompt_text = INTENT_SYSTEM_PROMPT.replace("{dynamic_examples}", dynamic_examples)
-    
     _intent_prompt = ChatPromptTemplate.from_messages([
-        ("system", dynamic_prompt_text),
+        ("system", INTENT_SYSTEM_PROMPT),
         ("human", "user_role: {user_role}\n{conversation_context}Câu chat: {message}"),
     ])
     
@@ -492,6 +560,7 @@ async def classify_intent(
 
     try:
         result = await chain.ainvoke({
+            "dynamic_examples": dynamic_examples,
             "message": message,
             "user_role": role_str,
             "conversation_context": _format_conversation_context_block(conversation_context),

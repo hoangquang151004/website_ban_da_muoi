@@ -1,0 +1,42 @@
+{
+  "uses": [
+    {
+      "id": 6,
+      "name": "Hỗ trợ hô hấp"
+    },
+    {
+      "id": 4,
+      "name": "Lọc không khí"
+    },
+    {
+      "id": 7,
+      "name": "Ngôi sao xa xôi"
+    },
+    {
+      "id": 2,
+      "name": "Phong thủy"
+    },
+    {
+      "id": 5,
+      "name": "Thiền định"
+    },
+    {
+      "id": 3,
+      "name": "Trị mất ngủ"
+    }
+  ],
+  "product_uses": [
+    {
+      "product_id": 10,
+      "use_id": 2
+    },
+    {
+      "product_id": 10,
+      "use_id": 3
+    },
+    {
+      "product_id": 10,
+      "use_id": 6
+    }
+  ]
+}

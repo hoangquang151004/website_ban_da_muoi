@@ -43,6 +43,12 @@ class ChatIntent(str, Enum):
     GREETING = "greeting"       # Chào hỏi / chitchat ngắn
 
 
+_ORDER_QUERY_KEYWORDS = [
+    "đơn hàng", "don hang", "đơn của tôi", "don cua toi",
+    "trạng thái đơn", "trang thai don", "mã đơn", "ma don",
+    "đơn số", "don so", "xem đơn", "xem don",
+    "kiểm tra đơn", "kiem tra don", "giỏ hàng", "gio hang",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -229,19 +235,29 @@ def _format_vnd_price(amount: float) -> str:
 
 
 def _recommendation_filter_summary(search_filters: dict) -> Optional[str]:
-    """Mô tả ngắn bộ lọc giá (cho intro gợi ý)."""
+    """Mô tả ngắn bộ lọc giá + công dụng (cho intro gợi ý)."""
+    parts: list[str] = []
+
+    # Công dụng
+    use_labels = search_filters.get("use_labels")
+    if use_labels:
+        uses_str = ", ".join(f"**{u}**" for u in use_labels)
+        parts.append(f"công dụng {uses_str}")
+
+    # Giá
     min_p = search_filters.get("min_price")
     max_p = search_filters.get("max_price")
     if min_p is not None and max_p is not None:
-        return (
+        parts.append(
             f"khoảng {_format_vnd_price(float(min_p))} – "
             f"{_format_vnd_price(float(max_p))}"
         )
-    if min_p is not None:
-        return f"từ {_format_vnd_price(float(min_p))} trở lên"
-    if max_p is not None:
-        return f"dưới {_format_vnd_price(float(max_p))}"
-    return None
+    elif min_p is not None:
+        parts.append(f"từ {_format_vnd_price(float(min_p))} trở lên")
+    elif max_p is not None:
+        parts.append(f"dưới {_format_vnd_price(float(max_p))}")
+
+    return ", ".join(parts) if parts else None
 
 
 def build_recommendation_answer(
@@ -313,6 +329,14 @@ async def run_recommendation_agent(
     )
 
     meta: dict = {"search_filters": search_filters}
+    # Truyền use_labels vào search_filters để build_recommendation_answer hiển thị
+    if "use_labels" not in search_filters and search_filters.get("use_ids"):
+        from app.services.ai_agent.tools.product_db_search import get_product_catalog_cached
+        catalog = await get_product_catalog_cached()
+        id_to_name = {u["id"]: u["name"] for u in catalog.get("uses", [])}
+        search_filters["use_labels"] = [
+            id_to_name[uid] for uid in search_filters["use_ids"] if uid in id_to_name
+        ]
     answer = build_recommendation_answer(products, search_filters)
 
     return {"answer": answer, "products": products, "meta": meta}
@@ -388,6 +412,49 @@ def _is_product_consultation_message(message: str) -> bool:
 def _looks_like_product_shopping_query(message: str) -> bool:
     """Heuristic: câu hỏi tìm/gợi ý mua sản phẩm — ép RECOMMEND thay vì RAG."""
     return _is_product_consultation_message(message)
+
+
+def _has_explicit_price_filter(message: str) -> bool:
+    """Chỉ True khi có pattern giá MUA cụ thể — tránh ép knowledge sang recommend."""
+    norm = _normalize_intent_text(message)
+    price_patterns = [
+        r"duoi\s*\d+\s*k\b",
+        r"tam\s*\d+\s*k\b",
+        r"khoang\s*\d+\s*k\b",
+        r"\d+\s*trieu",
+        r"\d{3,}\s*(?:dong|vnd|d)\b",
+        r"tren\s*\d+\s*k\b",
+        r"tu\s*\d+\s*k\b",
+    ]
+    return any(re.search(p, norm) for p in price_patterns)
+
+
+async def _has_use_based_recommendation_signal(message: str) -> bool:
+    """Phát hiện câu gợi ý sản phẩm theo công dụng — override knowledge → recommend.
+
+    True khi câu có keyword công dụng KÈM keyword tìm/gợi ý/sản phẩm.
+    Tránh match câu kiến thức thuần túy như "đèn đá muối có tác dụng gì?".
+    """
+    from app.services.ai_agent.tools.product_db_search import get_dynamic_use_keywords
+    
+    lower = (message or "").lower()
+    dynamic_use_keywords = await get_dynamic_use_keywords()
+    has_use = any(kw in lower for kw in dynamic_use_keywords)
+    if not has_use:
+        return False
+
+    # Cần kèm tín hiệu tìm/gợi ý/sản phẩm
+    recommend_signals = [
+        "gợi ý", "goi y", "tư vấn", "tu van", "tìm", "tim",
+        "cho xem", "xem", "recommend", "mua", "đèn nào", "den nao",
+        "sản phẩm nào", "san pham nao", "có không", "co khong",
+    ]
+    product_hints = ["đèn", "den", "sản phẩm", "san pham", "đá muối", "da muoi"]
+
+    has_recommend = any(kw in lower for kw in recommend_signals)
+    has_product = any(kw in lower for kw in product_hints)
+
+    return has_recommend or has_product
 
 
 def _extract_max_price(text: str) -> Optional[float]:
@@ -1037,10 +1104,17 @@ async def _resolve_chat_route(
     ):
         intent = ChatIntent.STATS
 
-    if (
-        _is_product_consultation_message(message)
-        or _is_product_consultation_message(effective_message)
+    # Chỉ override knowledge → recommend khi có price filter rõ ràng
+    # Tránh ép mọi câu chứa "đèn" + keyword shopping sang recommend
+    if intent == ChatIntent.KNOWLEDGE and (
+        _has_explicit_price_filter(message)
+        or _has_explicit_price_filter(effective_message)
     ):
+        intent = ChatIntent.RECOMMEND
+
+    # Override knowledge → recommend khi câu có pattern gợi ý theo công dụng
+    # Ví dụ: "gợi ý đèn giúp ngủ ngon", "tìm đèn thư giãn"
+    if intent == ChatIntent.KNOWLEDGE and await _has_use_based_recommendation_signal(message):
         intent = ChatIntent.RECOMMEND
 
     if _contains_how_phrase(message) or _contains_how_phrase(effective_message):
@@ -1086,6 +1160,14 @@ async def stream_recommendation_agent(
         message, conversation_context=conversation_context
     )
     meta: dict = {"search_filters": search_filters}
+    # Bổ sung use_labels nếu có use_ids nhưng chưa có labels
+    if "use_labels" not in search_filters and search_filters.get("use_ids"):
+        from app.services.ai_agent.tools.product_db_search import get_product_catalog_cached
+        catalog = await get_product_catalog_cached()
+        id_to_name = {u["id"]: u["name"] for u in catalog.get("uses", [])}
+        search_filters["use_labels"] = [
+            id_to_name[uid] for uid in search_filters["use_ids"] if uid in id_to_name
+        ]
     answer = build_recommendation_answer(products, search_filters)
 
     if products:

@@ -27,6 +27,7 @@ type ProductRow = {
   model3DUrl: string | null;
   uses: { id: number; name: string }[];
   images: { id: number; image_url: string }[];
+  description: string;
 };
 
 function mapItem(p: AdminProductItem): ProductRow {
@@ -49,6 +50,7 @@ function mapItem(p: AdminProductItem): ProductRow {
     model3DUrl: p.model_3d_url ?? null,
     uses: p.uses ?? [],
     images: p.images ?? [],
+    description: p.description ?? "",
   };
 }
 
@@ -200,7 +202,7 @@ export default function AdminProductsPage() {
   function openEdit(p: ProductRow) {
     setEditProduct(p);
     setFormName(p.name);
-    setFormDesc("");
+    setFormDesc(p.description);
     setFormPrice(String(p.price));
     setFormSalePrice(p.originalPrice != null ? String(p.originalPrice) : "");
     setFormStock(String(p.stock));
