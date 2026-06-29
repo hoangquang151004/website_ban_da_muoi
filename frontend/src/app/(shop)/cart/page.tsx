@@ -94,26 +94,35 @@ export default function CartPage() {
                         </button>
                       </div>
                       <div className="flex justify-between items-end mt-4 sm:mt-0">
-                        <div className="flex items-center border border-neutral-light rounded-lg">
-                          <button
-                            onClick={() =>
-                              updateQuantity(item.productId, item.quantity - 1)
-                            }
-                            className="px-3 py-1 hover:bg-neutral-light text-neutral-dark rounded-l-lg transition-colors"
-                          >
-                            -
-                          </button>
-                          <span className="px-2 py-1 text-sm font-medium text-neutral-dark w-8 text-center">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() =>
-                              updateQuantity(item.productId, item.quantity + 1)
-                            }
-                            className="px-3 py-1 hover:bg-neutral-light text-neutral-dark rounded-r-lg transition-colors"
-                          >
-                            +
-                          </button>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center border border-neutral-light rounded-lg">
+                            <button
+                              onClick={() =>
+                                updateQuantity(item.productId, item.quantity - 1)
+                              }
+                              className="px-3 py-1 hover:bg-neutral-light text-neutral-dark rounded-l-lg transition-colors"
+                            >
+                              -
+                            </button>
+                            <span className="px-2 py-1 text-sm font-medium text-neutral-dark w-8 text-center">
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() =>
+                                updateQuantity(item.productId, item.quantity + 1)
+                              }
+                              disabled={item.quantity >= item.stock}
+                              className="px-3 py-1 hover:bg-neutral-light text-neutral-dark rounded-r-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              +
+                            </button>
+                          </div>
+                          {item.quantity >= item.stock && item.stock > 0 && (
+                            <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[13px]">warning</span>
+                              Đã đạt giới hạn tồn kho ({item.stock})
+                            </p>
+                          )}
                         </div>
                         <p className="font-bold text-lg text-primary">
                           {formatPrice(item.price * item.quantity)}

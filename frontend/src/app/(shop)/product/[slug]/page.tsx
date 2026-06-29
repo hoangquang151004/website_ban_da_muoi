@@ -225,6 +225,7 @@ export default function ProductDetailPage() {
       price: product.price,
       image: product.image_url ?? "",
       slug: product.slug,
+      stock: product.stock,
       quantity,
     });
     setAddedToCart(true);
@@ -239,6 +240,7 @@ export default function ProductDetailPage() {
       price: product.price,
       image: product.image_url ?? "",
       slug: product.slug,
+      stock: product.stock,
       quantity,
     });
     router.push("/checkout");

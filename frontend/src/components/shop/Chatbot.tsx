@@ -20,10 +20,7 @@ import {
   onlinePaymentLabel,
 } from "@/lib/paymentLabels";
 import { saveOrderForInvoice } from "@/lib/invoiceOrderStorage";
-import {
-  CHAT_STREAM_ENABLED,
-  chatService,
-} from "@/services/chatService";
+import { CHAT_STREAM_ENABLED, chatService } from "@/services/chatService";
 import { orderService } from "@/services/orderService";
 import CheckoutPanel from "@/components/shop/CheckoutPanel";
 import type {
@@ -132,54 +129,54 @@ function formatCurrency(amount: number | string) {
 }
 
 const ORDER_STATUS_META: Record<string, { label: string; className: string }> =
-{
-  pending: {
-    label: "Chờ xác nhận",
-    className: "bg-amber-100 text-amber-700 border-amber-200",
-  },
-  confirmed: {
-    label: "Đã xác nhận",
-    className: "bg-sky-100 text-sky-700 border-sky-200",
-  },
-  packing: {
-    label: "Đang chuẩn bị",
-    className: "bg-indigo-100 text-indigo-700 border-indigo-200",
-  },
-  shipping: {
-    label: "Đang giao",
-    className: "bg-blue-100 text-blue-700 border-blue-200",
-  },
-  delivered: {
-    label: "Đã giao",
-    className: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  },
-  cancelled: {
-    label: "Đã hủy",
-    className: "bg-rose-100 text-rose-700 border-rose-200",
-  },
-};
+  {
+    pending: {
+      label: "Chờ xác nhận",
+      className: "bg-amber-100 text-amber-700 border-amber-200",
+    },
+    confirmed: {
+      label: "Đã xác nhận",
+      className: "bg-sky-100 text-sky-700 border-sky-200",
+    },
+    packing: {
+      label: "Đang chuẩn bị",
+      className: "bg-indigo-100 text-indigo-700 border-indigo-200",
+    },
+    shipping: {
+      label: "Đang giao",
+      className: "bg-blue-100 text-blue-700 border-blue-200",
+    },
+    delivered: {
+      label: "Đã giao",
+      className: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    },
+    cancelled: {
+      label: "Đã hủy",
+      className: "bg-rose-100 text-rose-700 border-rose-200",
+    },
+  };
 
 const ORDER_FILTERS: Array<{
   key: "all" | "pending" | "shipping" | "delivered";
   label: string;
 }> = [
-    {
-      key: "all",
-      label: "Tất cả",
-    },
-    {
-      key: "pending",
-      label: "Chờ xác nhận",
-    },
-    {
-      key: "shipping",
-      label: "Đang giao",
-    },
-    {
-      key: "delivered",
-      label: "Đã giao",
-    },
-  ];
+  {
+    key: "all",
+    label: "Tất cả",
+  },
+  {
+    key: "pending",
+    label: "Chờ xác nhận",
+  },
+  {
+    key: "shipping",
+    label: "Đang giao",
+  },
+  {
+    key: "delivered",
+    label: "Đã giao",
+  },
+];
 
 function OrderListPanel({
   orders,
@@ -231,10 +228,11 @@ function OrderListPanel({
             <button
               key={filter.key}
               onClick={() => handleFilterClick(filter.key)}
-              className={`rounded-full border px-2 py-1 text-[11px] font-medium ${isActive
+              className={`rounded-full border px-2 py-1 text-[11px] font-medium ${
+                isActive
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-slate-200 text-slate-600 hover:border-primary/40"
-                }`}
+              }`}
             >
               {filter.label}
             </button>
@@ -381,7 +379,7 @@ function OrderDetailPanel({
 
   const paymentMethodLabel =
     PAYMENT_METHOD_LABEL[
-    order.payment_method as keyof typeof PAYMENT_METHOD_LABEL
+      order.payment_method as keyof typeof PAYMENT_METHOD_LABEL
     ] ?? order.payment_method;
 
   const canRetryPayment =
@@ -941,10 +939,11 @@ function StatsSourceBadge({ meta }: { meta?: ChatStatsMeta }) {
   const isSql = meta?.source === "text_to_sql";
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${isSql
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+        isSql
           ? "border-indigo-200 bg-indigo-50 text-indigo-700"
           : "border-emerald-200 bg-emerald-50 text-emerald-700"
-        }`}
+      }`}
     >
       {isSql ? "Truy vấn linh hoạt" : "Dữ liệu chuẩn"}
     </span>
@@ -1611,11 +1610,11 @@ function normalizeCheckoutItems(apiRes: ChatApiResponse): ChatCheckoutItem[] {
 
   const fallbackCartItem = apiRes.cart_item as
     | (ChatApiResponse["cart_item"] & {
-      product_name?: string;
-      product_slug?: string;
-      image_url?: string;
-      price?: number;
-    })
+        product_name?: string;
+        product_slug?: string;
+        image_url?: string;
+        price?: number;
+      })
     | null
     | undefined;
 
@@ -1710,7 +1709,9 @@ export default function Chatbot() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [sessionId, setSessionId] = useState(() => loadChatSessionId());
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatMessages());
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    loadChatMessages(),
+  );
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
@@ -2091,11 +2092,11 @@ export default function Chatbot() {
                 prev.map((m) =>
                   m.id === loadingMsg.id
                     ? {
-                      ...m,
-                      isStreaming: true,
-                      streamStatus: status.message,
-                      intent: status.intent || m.intent,
-                    }
+                        ...m,
+                        isStreaming: true,
+                        streamStatus: status.message,
+                        intent: status.intent || m.intent,
+                      }
                     : m,
                 ),
               );
@@ -2107,11 +2108,11 @@ export default function Chatbot() {
                 prev.map((m) =>
                   m.id === loadingMsg.id
                     ? {
-                      ...m,
-                      isLoading: false,
-                      isStreaming: true,
-                      content: snapshot,
-                    }
+                        ...m,
+                        isLoading: false,
+                        isStreaming: true,
+                        content: snapshot,
+                      }
                     : m,
                 ),
               );
@@ -2142,7 +2143,10 @@ export default function Chatbot() {
             if (streamAbort.signal.aborted) {
               throw streamErr;
             }
-            console.error("[Chatbot] stream failed, fallback POST /chat. Details:", streamErr);
+            console.error(
+              "[Chatbot] stream failed, fallback POST /chat. Details:",
+              streamErr,
+            );
             apiRes = await fetchWithPost();
             applyChatResponse(apiRes);
           }
@@ -2163,7 +2167,7 @@ export default function Chatbot() {
 
         if (axiosError.code === "ECONNABORTED") {
           content =
-            "Phản hồi quá lâu (AI đang xử lý). Bạn thử lại hoặc hỏi ngắn hơn, ví dụ: \"gợi ý đèn dưới 500k\".";
+            'Phản hồi quá lâu (AI đang xử lý). Bạn thử lại hoặc hỏi ngắn hơn, ví dụ: "gợi ý đèn dưới 500k".';
         } else if (axiosError.response?.data?.data?.answer) {
           content = axiosError.response.data.data.answer;
         } else if (axiosError.response?.data?.message) {
@@ -2174,11 +2178,11 @@ export default function Chatbot() {
           prev.map((m) =>
             m.id === loadingMsg.id
               ? {
-                ...m,
-                isLoading: false,
-                content,
-                response_type: "text",
-              }
+                  ...m,
+                  isLoading: false,
+                  content,
+                  response_type: "text",
+                }
               : m,
           ),
         );
@@ -2492,10 +2496,11 @@ export default function Chatbot() {
       {/* Chatbot Window */}
       {isOpen && (
         <div
-          className={`flex flex-col bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-100 relative animate-fade-in-up origin-bottom-right transition-all duration-200 ${isExpanded
+          className={`flex flex-col bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-100 relative animate-fade-in-up origin-bottom-right transition-all duration-200 ${
+            isExpanded
               ? "w-[92vw] sm:w-[760px] h-[88vh] max-h-[92vh]"
               : "w-[350px] sm:w-[400px] h-[600px] max-h-[85vh]"
-            }`}
+          }`}
         >
           {/* Header */}
           <header className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/10">
@@ -2695,7 +2700,6 @@ export default function Chatbot() {
                 </span>
               </button>
             </div>
-
           </div>
         </div>
       )}
