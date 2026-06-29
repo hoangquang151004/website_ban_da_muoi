@@ -1,0 +1,80 @@
+[
+  {
+    "id": 1,
+    "name": "Đèn đá muối tự nhiên",
+    "stock": 9379,
+    "is_active": true
+  },
+  {
+    "id": 2,
+    "name": "Đèn đá muối hình cầu",
+    "stock": 14,
+    "is_active": true
+  },
+  {
+    "id": 3,
+    "name": "Đèn ngủ đá hình trụ",
+    "stock": 43,
+    "is_active": true
+  },
+  {
+    "id": 4,
+    "name": "Đèn đá hình mặt trăng",
+    "stock": 7,
+    "is_active": true
+  },
+  {
+    "id": 5,
+    "name": "Hộp đá muối hình chóp",
+    "stock": 0,
+    "is_active": true
+  },
+  {
+    "id": 10,
+    "name": "Đá muối kim tự tháp",
+    "stock": 22,
+    "is_active": true
+  },
+  {
+    "id": 15,
+    "name": "Đèn đá muối hình khối hộp",
+    "stock": 69,
+    "is_active": true
+  },
+  {
+    "id": 16,
+    "name": "Đá muối thiên nga",
+    "stock": 48,
+    "is_active": true
+  },
+  {
+    "id": 17,
+    "name": "Đá muối hình hộp màu xám",
+    "stock": 21,
+    "is_active": true
+  },
+  {
+    "id": 18,
+    "name": "Đá muối hình lá",
+    "stock": 52,
+    "is_active": true
+  },
+  {
+    "id": 19,
+    "name": "Đĩa đá muối và viên đan",
+    "stock": 32,
+    "is_active": true
+  },
+  {
+    "id": 20,
+    "name": "Đá muối hình bình",
+    "stock": 72,
+    "is_active": true
+  },
+  {
+    "id": 21,
+    "name": "Đèn đá muối tự nhiên dài",
+    "stock": 55,
+    "is_active": true
+  }
+]

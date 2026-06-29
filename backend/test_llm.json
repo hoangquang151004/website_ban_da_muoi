@@ -1,0 +1,46 @@
+[
+  {
+    "max_price": null,
+    "min_price": null,
+    "use_ids": [
+      2
+    ],
+    "use_match": "any",
+    "category_slug": null,
+    "keywords": [
+      "đèn phong thủy"
+    ],
+    "keyword_match": "all",
+    "featured_only": false,
+    "sort_by": null,
+    "limit": 6
+  },
+  {
+    "max_price": null,
+    "min_price": null,
+    "use_ids": [
+      3
+    ],
+    "use_match": "any",
+    "category_slug": null,
+    "keywords": [],
+    "keyword_match": "any",
+    "featured_only": false,
+    "sort_by": null,
+    "limit": 6
+  },
+  {
+    "max_price": null,
+    "min_price": null,
+    "use_ids": [],
+    "use_match": "any",
+    "category_slug": null,
+    "keywords": [
+      "đèn thư giãn"
+    ],
+    "keyword_match": "all",
+    "featured_only": false,
+    "sort_by": null,
+    "limit": 6
+  }
+]

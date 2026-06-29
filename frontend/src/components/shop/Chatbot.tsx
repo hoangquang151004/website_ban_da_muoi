@@ -20,10 +20,7 @@ import {
   onlinePaymentLabel,
 } from "@/lib/paymentLabels";
 import { saveOrderForInvoice } from "@/lib/invoiceOrderStorage";
-import {
-  CHAT_STREAM_ENABLED,
-  chatService,
-} from "@/services/chatService";
+import { CHAT_STREAM_ENABLED, chatService } from "@/services/chatService";
 import { orderService } from "@/services/orderService";
 import CheckoutPanel from "@/components/shop/CheckoutPanel";
 import type {
@@ -1712,7 +1709,9 @@ export default function Chatbot() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [sessionId, setSessionId] = useState(() => loadChatSessionId());
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatMessages());
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    loadChatMessages(),
+  );
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
@@ -2144,7 +2143,10 @@ export default function Chatbot() {
             if (streamAbort.signal.aborted) {
               throw streamErr;
             }
-            console.error("[Chatbot] stream failed, fallback POST /chat. Details:", streamErr);
+            console.error(
+              "[Chatbot] stream failed, fallback POST /chat. Details:",
+              streamErr,
+            );
             apiRes = await fetchWithPost();
             applyChatResponse(apiRes);
           }
@@ -2165,7 +2167,7 @@ export default function Chatbot() {
 
         if (axiosError.code === "ECONNABORTED") {
           content =
-            "Phản hồi quá lâu (AI đang xử lý). Bạn thử lại hoặc hỏi ngắn hơn, ví dụ: \"gợi ý đèn dưới 500k\".";
+            'Phản hồi quá lâu (AI đang xử lý). Bạn thử lại hoặc hỏi ngắn hơn, ví dụ: "gợi ý đèn dưới 500k".';
         } else if (axiosError.response?.data?.data?.answer) {
           content = axiosError.response.data.data.answer;
         } else if (axiosError.response?.data?.message) {
@@ -2697,23 +2699,6 @@ export default function Chatbot() {
                   send
                 </span>
               </button>
-            </div>
-            <div className="text-center mt-2 space-y-0.5">
-              {llmInfo && (
-                <p
-                  className="text-[10px] text-slate-500 font-mono truncate px-2"
-                  title={`${llmInfo.llm_model} (${llmInfo.llm_provider})`}
-                >
-                  Model: {llmInfo.llm_model}
-                  <span className="text-slate-400">
-                    {" "}
-                    · {llmInfo.llm_provider}
-                  </span>
-                </p>
-              )}
-              <span className="text-[10px] text-slate-400 block">
-                Được hỗ trợ bởi Quang
-              </span>
             </div>
           </div>
         </div>

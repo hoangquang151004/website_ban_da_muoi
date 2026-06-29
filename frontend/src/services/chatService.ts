@@ -101,6 +101,8 @@ export const chatService = {
   ): Promise<ChatApiResponse> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
+      Accept: "text/event-stream",
+      "Cache-Control": "no-cache",
     };
     const token = getAuthToken();
     if (token) {
@@ -116,9 +118,7 @@ export const chatService = {
 
     if (!response.ok) {
       const errText = await response.text().catch(() => "");
-      throw new Error(
-        errText || `Chat stream failed (${response.status})`,
-      );
+      throw new Error(errText || `Chat stream failed (${response.status})`);
     }
 
     const reader = response.body?.getReader();
@@ -140,11 +140,20 @@ export const chatService = {
       for (const frame of frames) {
         switch (frame.event) {
           case "status":
-            callbacks.onStatus?.(frame.data as unknown as ChatStreamStatusPayload);
+            callbacks.onStatus?.(
+              frame.data as unknown as ChatStreamStatusPayload,
+            );
+            // Cố tình delay một chút để UI kịp render trạng thái suy nghĩ 
+            // (giúp khắc phục lỗi Vercel/Nginx proxy gom toàn bộ stream trả về cùng lúc)
+            await new Promise((r) => setTimeout(r, 600));
             break;
           case "token": {
             const content = String(frame.data.content ?? "");
-            if (content) callbacks.onToken?.(content);
+            if (content) {
+              callbacks.onToken?.(content);
+              // Delay siêu nhỏ (0ms) để nhường thread cho React render (nếu stream bị buffer thành cục lớn)
+              await new Promise((r) => setTimeout(r, 0));
+            }
             break;
           }
           case "done":

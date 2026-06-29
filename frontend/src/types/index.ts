@@ -41,6 +41,7 @@ export interface CartItem {
   image: string;
   quantity: number;
   slug: string;
+  stock: number; // Tồn kho để giới hạn số lượng trong giỏ
 }
 
 // User / Auth types

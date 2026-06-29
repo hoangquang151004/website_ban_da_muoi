@@ -23,6 +23,7 @@ async def create_review(
     )
     db.add(review)
     await db.flush()
+    await db.refresh(review)
     await db.refresh(review, attribute_names=["user"])
     return review
 

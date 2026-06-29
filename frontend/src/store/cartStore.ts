@@ -24,20 +24,25 @@ export const useCartStore = create<CartStore>()(
             (i) => i.productId === newItem.productId,
           );
           if (existing) {
+            const newQty = existing.quantity + (newItem.quantity ?? 1);
+            // Giới hạn không vượt quá tồn kho
+            const clampedQty = Math.min(newQty, existing.stock);
             return {
               items: state.items.map((i) =>
                 i.productId === newItem.productId
-                  ? { ...i, quantity: i.quantity + (newItem.quantity ?? 1) }
+                  ? { ...i, quantity: clampedQty }
                   : i,
               ),
             };
           }
+          // Sản phẩm mới: giới hạn quantity <= stock
+          const clampedQty = Math.min(newItem.quantity ?? 1, newItem.stock);
           return {
             items: [
               ...state.items,
               {
                 ...newItem,
-                quantity: newItem.quantity ?? 1,
+                quantity: clampedQty,
                 // Ensure image URL is absolute
                 image: getAbsoluteImageUrl(newItem.image),
               },
@@ -58,9 +63,12 @@ export const useCartStore = create<CartStore>()(
           return;
         }
         set((state) => ({
-          items: state.items.map((i) =>
-            i.productId === productId ? { ...i, quantity } : i,
-          ),
+          items: state.items.map((i) => {
+            if (i.productId !== productId) return i;
+            // Giới hạn không vượt quá tồn kho
+            const clampedQty = Math.min(quantity, i.stock);
+            return { ...i, quantity: clampedQty };
+          }),
         }));
       },
 
@@ -81,6 +89,8 @@ export const useCartStore = create<CartStore>()(
             // Backward compatibility: old persisted shape may miss productId.
             productId: Number(item.productId ?? item.id),
             image: getAbsoluteImageUrl(item.image),
+            // Backward compatibility: old items may miss stock field
+            stock: item.stock ?? 9999,
           }));
         }
       },

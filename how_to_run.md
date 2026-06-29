@@ -22,6 +22,20 @@ Rollback HuggingFace Router: `LLM_PROVIDER=huggingface`, `HF_TOKEN=...`, `LLM_MO
 
 Sau khi doi .env, restart uvicorn. Thu nhanh: `python huggiface_api.py` (doc tu `backend/.env`).
 
+## Logging config (.env)
+
+Dat cac bien sau trong file `backend/.env` de theo doi log backend FastAPI:
+
+LOG_LEVEL=INFO
+LOG_SLOW_REQUEST_MS=1000
+
+Giai thich:
+
+- `LOG_LEVEL`: muc log tong (`DEBUG`, `INFO`, `WARNING`, `ERROR`).
+- `LOG_SLOW_REQUEST_MS`: neu request chay cham hon nguong nay (ms), backend se ghi `slow_request` o muc `WARNING`.
+
+Moi request se co `request_id` va backend tra ve header `X-Request-ID` de trace loi giua client va server.
+
 ## Chat streaming (SSE)
 
 Backend (trong `backend/.env`):

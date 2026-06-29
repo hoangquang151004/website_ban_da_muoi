@@ -79,6 +79,30 @@ class ParsedProductFilters(BaseModel):
     featured_only: bool = False
     sort_by: Optional[SortBy] = None
 
+    @field_validator("use_ids", mode="before")
+    @classmethod
+    def normalize_use_ids(cls, v: Any) -> list[int]:
+        if not v:
+            return []
+        if isinstance(v, (int, str)):
+            v = [v]
+        out: list[int] = []
+        for item in v:
+            try:
+                out.append(int(item))
+            except (TypeError, ValueError):
+                continue
+        return out
+
+    @field_validator("keywords", mode="before")
+    @classmethod
+    def normalize_keywords(cls, v: Any) -> list[str]:
+        if not v:
+            return []
+        if isinstance(v, str):
+            v = [v]
+        return [str(k).strip() for k in v if str(k).strip()]
+
 
 _FILTER_PARSE_PROMPT = ChatPromptTemplate.from_messages([
     (
@@ -521,6 +545,45 @@ async def get_product_catalog_cached(ttl_seconds: int = 300) -> dict[str, Any]:
     return data
 
 
+async def get_dynamic_use_keywords() -> list[str]:
+    import unicodedata
+    import re
+    catalog = await get_product_catalog_cached()
+    keywords = set()
+    for u in catalog.get("uses", []):
+        name = u["name"].lower()
+        parts = re.split(r'[\&,\-\/]', name)
+        for p in parts:
+            p = p.strip()
+            if not p:
+                continue
+            keywords.add(p)
+            norm_p = unicodedata.normalize("NFD", p)
+            unacc_p = "".join(c for c in norm_p if unicodedata.category(c) != "Mn").replace("đ", "d")
+            keywords.add(unacc_p)
+            
+            if "ngủ" in p:
+                keywords.update(["ngủ", "ngu", "giấc ngủ", "giac ngu", "ngủ ngon", "ngu ngon"])
+            if "thư giãn" in p:
+                keywords.update(["thư giãn", "thu gian", "relax"])
+            if "stress" in p:
+                keywords.update(["giảm stress", "giam stress", "stress"])
+            if "lọc" in p:
+                keywords.update(["thanh lọc", "thanh loc", "lọc không khí", "loc khong khi"])
+            if "phong thuỷ" in p or "phong thủy" in p:
+                keywords.update(["phong thủy", "phong thuy", "feng shui"])
+            if "thiền" in p:
+                keywords.update(["thiền", "thien", "meditation"])
+            if "yoga" in p:
+                keywords.add("yoga")
+            if "sức khỏe" in p or "khoẻ" in p:
+                keywords.update(["sức khỏe", "suc khoe", "healthy"])
+            if "trang trí" in p:
+                keywords.update(["trang trí", "trang tri", "decor"])
+                
+    return list(keywords)
+
+
 def format_catalog_for_prompt(catalog: dict[str, Any]) -> str:
     uses = catalog.get("uses") or []
     categories = catalog.get("categories") or []
@@ -633,21 +696,34 @@ async def query_products_by_filters(spec: ProductFilterSpec) -> list[dict]:
 
         # Đọc xong dữ liệu trong khi session còn mở
         output = [product_to_dict(p) for p in products]
-        needs_fallback = not output and bool(spec.use_ids or spec.keywords)
         fallback_sort = sort_by or "featured"
 
-    # Fallback: bỏ lọc use/keyword nếu quá hẹp nhưng vẫn giữ giá
-    # Gọi đệ quy SAU KHI session đã đóng để tránh nested session
-    if needs_fallback:
-        relaxed = ProductFilterSpec(
-            max_price=spec.max_price,
-            min_price=spec.min_price,
-            category_slug=spec.category_slug,
-            featured_only=spec.featured_only,
-            sort_by=fallback_sort,
-            limit=spec.limit,
-        )
-        return await query_products_by_filters(relaxed)
+    if not output:
+        # Fallback 1: Drop keywords but keep use_ids and other filters
+        if spec.keywords:
+            relaxed_keywords = ProductFilterSpec(
+                max_price=spec.max_price,
+                min_price=spec.min_price,
+                use_ids=spec.use_ids,
+                use_match=spec.use_match,
+                category_slug=spec.category_slug,
+                featured_only=spec.featured_only,
+                sort_by=fallback_sort,
+                limit=spec.limit,
+            )
+            return await query_products_by_filters(relaxed_keywords)
+            
+        # Fallback 2: Drop use_ids if it still fails (or if there were no keywords to begin with)
+        if spec.use_ids:
+            relaxed_uses = ProductFilterSpec(
+                max_price=spec.max_price,
+                min_price=spec.min_price,
+                category_slug=spec.category_slug,
+                featured_only=spec.featured_only,
+                sort_by=fallback_sort,
+                limit=spec.limit,
+            )
+            return await query_products_by_filters(relaxed_uses)
 
     return output
 
